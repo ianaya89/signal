@@ -181,8 +181,8 @@ signal-player = { path = "crates/signal-player" }
 signal-search = { path = "crates/signal-search" }
 signal-plugins = { path = "crates/signal-plugins" }
 
-tauri = { version = "2.1", features = ["macos-private-api"] }
-tauri-build = "2.0"
+tauri = { version = "2" }   # macos-private-api requires app.macOSPrivateApi in tauri.conf.json; enable together when needed
+tauri-build = "2"
 
 tokio = { version = "1.41", features = ["rt-multi-thread", "macros", "sync", "time", "fs"] }
 
@@ -228,11 +228,16 @@ expect_used = "warn"
 
 ```toml
 # crates/signal-player/Cargo.toml
-[lints]
-workspace = true
-
+# Cargo forbids combining `workspace = true` with local overrides in [lints],
+# so this crate mirrors the workspace set locally with unsafe_code relaxed:
 [lints.rust]
 unsafe_code = "warn"   # allowed, but must be justified per call site with a comment
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "deny"
+expect_used = "warn"
 ```
 
 Every other crate, including `src-tauri`, inherits `unsafe_code = "deny"` unmodified — if a future dependency needs `unsafe`, it needs to live behind the `signal-player` boundary, not leak into the app shell.

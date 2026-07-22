@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+/* Design tokens — source of truth: docs/10-design-system.md */
+:root {
+  /* surfaces */
+  --bg-base: #0d1117;
+  --bg-surface: #161b22;
+  --bg-raised: #1c2128;
+
+  /* borders */
+  --border-subtle: #30363d;
+  --border-focus: #3fb9c9;
+
+  /* text */
+  --text-primary: #e6edf3;
+  --text-secondary: #9198a1;
+  --text-muted: #6e7681;
+
+  /* accent */
+  --accent: #3fb9c9;
+  --accent-dim: #1f6b73;
+
+  /* semantic */
+  --ok: #3fb950;
+  --warn: #d29922;
+  --error: #f85149;
+  --info: #58a6ff;
+
+  /* audio-specific */
+  --bitperfect: #3fb950;
+  --lossy: #d29922;
+  --hires: #39c5cf;
+
+  --font-mono: ui-monospace, "JetBrains Mono", "SF Mono", "Cascadia Code",
+    Menlo, Consolas, monospace;
+}
+
+@theme inline {
+  --color-base: var(--bg-base);
+  --color-surface: var(--bg-surface);
+  --color-raised: var(--bg-raised);
+  --color-subtle: var(--border-subtle);
+  --color-focus: var(--border-focus);
+  --color-primary: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-dim: var(--accent-dim);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-error: var(--error);
+  --color-info: var(--info);
+  --color-bitperfect: var(--bitperfect);
+  --color-lossy: var(--lossy);
+  --color-hires: var(--hires);
+  --font-mono: var(--font-mono);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  user-select: none;
+}

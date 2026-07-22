@@ -1,0 +1,22 @@
+[package]
+name = "signal-player"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+signal-core = { workspace = true }
+thiserror = { workspace = true }
+
+# Sole crate allowed to use unsafe: the libmpv FFI boundary (M2) occasionally
+# needs raw pointer handling. Local lints mirror the workspace set otherwise.
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "deny"
+expect_used = "warn"

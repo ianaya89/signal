@@ -1,0 +1,65 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/signal-core",
+    "crates/signal-db",
+    "crates/signal-scanner",
+    "crates/signal-player",
+    "crates/signal-search",
+    "crates/signal-plugins",
+    "src-tauri",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.82"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/ianaya89/rocola"
+
+[workspace.dependencies]
+signal-core = { path = "crates/signal-core" }
+signal-db = { path = "crates/signal-db" }
+signal-scanner = { path = "crates/signal-scanner" }
+signal-player = { path = "crates/signal-player" }
+signal-search = { path = "crates/signal-search" }
+signal-plugins = { path = "crates/signal-plugins" }
+
+tauri = { version = "2" }
+tauri-build = "2"
+
+tokio = { version = "1.41", features = ["rt-multi-thread", "macros", "sync", "time", "fs"] }
+
+sqlx = { version = "0.8", default-features = false, features = [
+    "runtime-tokio",
+    "sqlite",
+    "macros",
+    "migrate",
+    "chrono",
+] }
+
+lofty = "0.21"
+notify = "7.0"
+notify-debouncer-full = "0.4"
+
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+chrono = { version = "0.4", features = ["serde"] }
+walkdir = "2.5"
+
+criterion = "0.5"
+tempfile = "3.13"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "deny"
+expect_used = "warn"

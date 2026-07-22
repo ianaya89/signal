@@ -1,0 +1,28 @@
+[package]
+name = "signal-app"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[build-dependencies]
+tauri-build = { workspace = true }
+
+[dependencies]
+signal-core = { workspace = true }
+signal-db = { workspace = true }
+signal-scanner = { workspace = true }
+signal-player = { workspace = true }
+signal-search = { workspace = true }
+signal-plugins = { workspace = true }
+
+tauri = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[lints]
+workspace = true
