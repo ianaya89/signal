@@ -3,11 +3,13 @@ import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+import { bootstrapEvents } from "@/ipc/bootstrap";
 import { router } from "@/router";
 
 import "./styles.css";
 
 const queryClient = new QueryClient();
+bootstrapEvents(queryClient);
 
 const rootEl = document.getElementById("root");
 if (!rootEl) {

@@ -252,24 +252,39 @@ BEGIN
           WHERE tg.track_id = new.id);
 END;
 
+-- NOTE: contentless-delete FTS5 tables reject `UPDATE` of a column subset
+-- ("cannot UPDATE a subset of columns on fts5 contentless-delete table"),
+-- so genre changes re-index the whole row (delete + reinsert):
 CREATE TRIGGER trg_track_genres_ai
 AFTER INSERT ON track_genres
 BEGIN
-    UPDATE tracks_fts
-       SET genre = (SELECT group_concat(g.name, ' ')
-                       FROM track_genres tg JOIN genres g ON g.id = tg.genre_id
-                      WHERE tg.track_id = new.track_id)
-     WHERE rowid = new.track_id;
+    DELETE FROM tracks_fts WHERE rowid = new.track_id;
+    INSERT INTO tracks_fts(rowid, title, artist_name, album_name, genre)
+    SELECT
+        t.id,
+        t.title,
+        (SELECT name FROM artists WHERE id = t.artist_id),
+        (SELECT name FROM albums  WHERE id = t.album_id),
+        (SELECT group_concat(g.name, ' ')
+           FROM track_genres tg JOIN genres g ON g.id = tg.genre_id
+          WHERE tg.track_id = t.id)
+    FROM tracks t WHERE t.id = new.track_id;
 END;
 
 CREATE TRIGGER trg_track_genres_ad
 AFTER DELETE ON track_genres
 BEGIN
-    UPDATE tracks_fts
-       SET genre = (SELECT group_concat(g.name, ' ')
-                       FROM track_genres tg JOIN genres g ON g.id = tg.genre_id
-                      WHERE tg.track_id = old.track_id)
-     WHERE rowid = old.track_id;
+    DELETE FROM tracks_fts WHERE rowid = old.track_id;
+    INSERT INTO tracks_fts(rowid, title, artist_name, album_name, genre)
+    SELECT
+        t.id,
+        t.title,
+        (SELECT name FROM artists WHERE id = t.artist_id),
+        (SELECT name FROM albums  WHERE id = t.album_id),
+        (SELECT group_concat(g.name, ' ')
+           FROM track_genres tg JOIN genres g ON g.id = tg.genre_id
+          WHERE tg.track_id = t.id)
+    FROM tracks t WHERE t.id = old.track_id;
 END;
 ```
 

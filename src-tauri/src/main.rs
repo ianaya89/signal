@@ -2,10 +2,16 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod artwork;
 mod bridge;
 mod commands;
 mod state;
 
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
+
+use signal_core::{AppConfig, EventBus};
+use signal_db::DbPool;
 use tauri::Manager;
 
 use crate::state::AppState;
@@ -19,16 +25,34 @@ fn main() {
         .init();
 
     let result = tauri::Builder::default()
-        .manage(AppState::default())
         .setup(|app| {
-            let state = app.state::<AppState>();
-            bridge::spawn(app.handle().clone(), &state.events);
+            let data_dir = app.path().app_data_dir()?;
+            let cache_dir = app.path().app_cache_dir()?;
+            std::fs::create_dir_all(&data_dir)?;
+            std::fs::create_dir_all(&cache_dir)?;
+            let config = AppConfig::new(data_dir, cache_dir);
+
+            let db = tauri::async_runtime::block_on(DbPool::connect(&config.db_path))?;
+            let events = EventBus::default();
+            bridge::spawn(app.handle().clone(), &events);
+
+            app.manage(AppState {
+                config,
+                events,
+                db,
+                scanning: Arc::new(AtomicBool::new(false)),
+            });
             tracing::info!("signal started");
             Ok(())
         })
+        .register_asynchronous_uri_scheme_protocol(artwork::SCHEME, artwork::handle)
         .invoke_handler(tauri::generate_handler![
             commands::settings::settings_get,
             commands::settings::settings_set,
+            commands::library::library_scan,
+            commands::library::library_list_albums,
+            commands::library::library_list_artists,
+            commands::library::library_get_album,
         ])
         .run(tauri::generate_context!());
 

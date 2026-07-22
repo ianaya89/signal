@@ -1,4 +1,20 @@
 //! Database layer: sqlx `SqlitePool`, migrations, repositories.
 //!
-//! M0 stub — the real implementation lands in M1 (`docs/07-roadmap.md`).
-//! Design: `docs/03-database-schema.md`.
+//! Repositories are the only sanctioned path to the database — no other
+//! crate builds SQL against the pool. Design: `docs/03-database-schema.md`.
+
+// All pub fns return sqlx::Result; the error is uniformly "database failure",
+// documented once here instead of on every method.
+#![allow(clippy::missing_errors_doc)]
+
+mod pool;
+mod repositories;
+mod row;
+
+pub use pool::DbPool;
+pub use repositories::albums::AlbumRepo;
+pub use repositories::artists::ArtistRepo;
+pub use repositories::settings::SettingsRepo;
+pub use repositories::tracks::{NewTrack, TrackRepo};
+
+pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("../../migrations");

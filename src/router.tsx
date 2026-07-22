@@ -1,17 +1,39 @@
-import { createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
+import {
+  createRootRoute,
+  createRoute,
+  createRouter,
+} from "@tanstack/react-router";
 
 import { AppShell } from "@/components/layout/AppShell";
-import { MainView } from "@/components/layout/MainView";
+import { AlbumDetailView } from "@/components/library/AlbumDetailView";
+import { AlbumsView } from "@/components/library/AlbumsView";
+import { ArtistsView } from "@/components/library/ArtistsView";
 
 const rootRoute = createRootRoute({ component: AppShell });
 
-const indexRoute = createRoute({
+const albumsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  component: MainView,
+  component: AlbumsView,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute]);
+const albumDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/albums/$albumId",
+  component: AlbumDetailView,
+});
+
+const artistsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/artists",
+  component: ArtistsView,
+});
+
+const routeTree = rootRoute.addChildren([
+  albumsRoute,
+  albumDetailRoute,
+  artistsRoute,
+]);
 
 export const router = createRouter({ routeTree });
 

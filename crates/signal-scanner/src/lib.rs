@@ -1,4 +1,12 @@
-//! Library scanner: recursive walk, lofty tag extraction, artwork resolution,
-//! notify-based incremental updates.
+//! Library scanner: recursive walk, lofty tag extraction, artwork resolution.
 //!
-//! M0 stub — the real implementation lands in M1 (`docs/07-roadmap.md`).
+//! One-shot full scans land here in M1; notify-based incremental updates
+//! come in M4 (`docs/07-roadmap.md`).
+
+#![allow(clippy::missing_errors_doc)]
+
+mod artwork;
+mod scanner;
+mod tags;
+
+pub use scanner::{ScanReport, Scanner, ScannerError};

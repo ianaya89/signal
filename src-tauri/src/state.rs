@@ -1,20 +1,14 @@
-use std::collections::HashMap;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 
-use signal_core::EventBus;
-use tokio::sync::RwLock;
+use signal_core::{AppConfig, EventBus};
+use signal_db::DbPool;
 
 /// Arc-free by design: Tauri's `State` wraps this in an Arc already.
 pub struct AppState {
+    pub config: AppConfig,
     pub events: EventBus,
-    // M0: in-memory settings; replaced by the signal-db settings repo in M1.
-    pub settings: RwLock<HashMap<String, String>>,
-}
-
-impl Default for AppState {
-    fn default() -> Self {
-        Self {
-            events: EventBus::default(),
-            settings: RwLock::new(HashMap::new()),
-        }
-    }
+    pub db: DbPool,
+    /// Guards against concurrent library scans.
+    pub scanning: Arc<AtomicBool>,
 }
