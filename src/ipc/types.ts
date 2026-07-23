@@ -59,6 +59,12 @@ export interface AlbumDetail {
   tracks: Track[];
 }
 
+export interface TrackWithContext {
+  track: Track;
+  artistName: string;
+  albumName: string;
+}
+
 export interface ScannerProgressEvent {
   processed: number;
   total: number;

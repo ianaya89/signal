@@ -8,9 +8,11 @@ repository.workspace = true
 
 [dependencies]
 signal-core = { workspace = true }
+libmpv2 = { workspace = true }
 thiserror = { workspace = true }
+tracing = { workspace = true }
 
-# Sole crate allowed to use unsafe: the libmpv FFI boundary (M2) occasionally
+# Sole crate allowed to use unsafe: the libmpv FFI boundary occasionally
 # needs raw pointer handling. Local lints mirror the workspace set otherwise.
 [lints.rust]
 unsafe_code = "warn"

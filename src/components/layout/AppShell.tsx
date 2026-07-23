@@ -5,6 +5,7 @@ import { InspectorPane } from "@/components/layout/InspectorPane";
 import { LibraryNav } from "@/components/layout/LibraryNav";
 import { Pane } from "@/components/layout/Pane";
 import { StatusBar } from "@/components/layout/StatusBar";
+import { api } from "@/ipc/invoke";
 import { useUiStore } from "@/stores/uiStore";
 
 export function AppShell() {
@@ -12,9 +13,15 @@ export function AppShell() {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Tab") {
+      const target = e.target as HTMLElement;
+      const inInput =
+        target.tagName === "INPUT" || target.tagName === "TEXTAREA";
+      if (e.key === "Tab" && !inInput) {
         e.preventDefault();
         cycleFocus(e.shiftKey ? -1 : 1);
+      } else if (e.key === " " && !inInput) {
+        e.preventDefault();
+        void api.toggle();
       }
     };
     window.addEventListener("keydown", onKeyDown);

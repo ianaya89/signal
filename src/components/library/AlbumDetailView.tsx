@@ -7,6 +7,7 @@ import type { Track } from "@/ipc/types";
 import { artworkUrl } from "@/lib/artwork";
 import { fmtDuration, fmtQuality, isHires, isLossy } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { usePlayerStore } from "@/stores/playerStore";
 
 export function AlbumDetailView() {
   const { albumId } = useParams({ from: "/albums/$albumId" });
@@ -69,12 +70,31 @@ function AlbumArt({ albumId, hasArt }: { albumId: number; hasArt: boolean }) {
 
 function TrackRow({ track }: { track: Track }) {
   const t = track.technical;
+  const playing = usePlayerStore((s) => s.trackId === track.id);
   return (
-    <tr className="h-7 cursor-default hover:bg-raised">
-      <td className="w-10 pr-2 text-right text-[11px] text-muted">
-        {track.trackNo ?? "—"}
+    <tr
+      onDoubleClick={() => void api.play(track.id)}
+      className={cn(
+        "h-7 cursor-default hover:bg-raised",
+        playing ? "bg-raised" : undefined,
+      )}
+    >
+      <td
+        className={cn(
+          "w-10 border-l-2 pr-2 text-right text-[11px]",
+          playing ? "border-accent text-accent" : "border-transparent text-muted",
+        )}
+      >
+        {playing ? "▶" : (track.trackNo ?? "—")}
       </td>
-      <td className="truncate pr-2 text-[12px] text-primary">{track.title}</td>
+      <td
+        className={cn(
+          "truncate pr-2 text-[12px]",
+          playing ? "text-accent" : "text-primary",
+        )}
+      >
+        {track.title}
+      </td>
       <td className="w-32 pr-2">
         <span
           className={cn(

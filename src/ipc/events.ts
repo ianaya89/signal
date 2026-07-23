@@ -5,6 +5,7 @@ export type SignalChannel =
   | "player:state"
   | "player:progress"
   | "player:track-changed"
+  | "player:track-ended"
   | "player:device-changed"
   | "scanner:progress"
   | "scanner:done"

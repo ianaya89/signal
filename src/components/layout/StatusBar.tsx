@@ -1,18 +1,19 @@
+import { TransportBar } from "@/components/player/TransportBar";
 import { useScanStore } from "@/stores/scanStore";
 
 export function StatusBar() {
   const { scanning, processed, total, currentPath } = useScanStore();
 
   return (
-    <footer className="flex h-6 shrink-0 items-center justify-between gap-4 border border-subtle bg-surface px-2 text-[11px]">
-      <span className="shrink-0 text-muted">■ stopped</span>
+    <footer className="flex h-7 shrink-0 items-center justify-between gap-4 border border-subtle bg-surface px-2 text-[11px]">
+      <TransportBar />
       {scanning ? (
-        <span className="min-w-0 truncate text-accent">
+        <span className="min-w-0 shrink-0 truncate text-accent">
           scanning {processed}/{total} · {basename(currentPath)}
         </span>
       ) : (
-        <span className="truncate text-muted">
-          tab: switch pane · space: play · /: search · ctrl+p: palette
+        <span className="hidden shrink-0 text-muted lg:inline">
+          tab: panes · space: play · /: search · ctrl+p: palette
         </span>
       )}
       <span className="shrink-0 text-muted">signal v0.1.0</span>

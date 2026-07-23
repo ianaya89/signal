@@ -1,4 +1,5 @@
 pub mod library;
+pub mod player;
 pub mod settings;
 
 use signal_core::SignalError;

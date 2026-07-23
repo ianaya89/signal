@@ -66,6 +66,42 @@ pub async fn library_list_artists(
     state.db.artists().list().await.db_err()
 }
 
+/// Track + its artist/album display names, for now-playing UI + inspector.
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn library_get_track(
+    state: State<'_, AppState>,
+    track_id: i64,
+) -> Result<TrackWithContext, SignalError> {
+    let track = state
+        .db
+        .tracks()
+        .get(track_id)
+        .await
+        .db_err()?
+        .ok_or_else(|| SignalError::Db(format!("track {track_id} not found")))?;
+
+    let album = state.db.albums().get(track.album_id).await.db_err()?;
+    let (album_name, artist_name) = album.map_or_else(
+        || (String::new(), String::new()),
+        |a| (a.name, a.artist_name),
+    );
+
+    Ok(TrackWithContext {
+        track,
+        artist_name,
+        album_name,
+    })
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrackWithContext {
+    pub track: signal_core::Track,
+    pub artist_name: String,
+    pub album_name: String,
+}
+
 #[tauri::command]
 #[tracing::instrument(skip(state))]
 pub async fn library_get_album(

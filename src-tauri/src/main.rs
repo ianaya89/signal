@@ -35,11 +35,13 @@ fn main() {
             let db = tauri::async_runtime::block_on(DbPool::connect(&config.db_path))?;
             let events = EventBus::default();
             bridge::spawn(app.handle().clone(), &events);
+            let player = signal_player::Player::new(events.clone())?;
 
             app.manage(AppState {
                 config,
                 events,
                 db,
+                player,
                 scanning: Arc::new(AtomicBool::new(false)),
             });
             tracing::info!("signal started");
@@ -53,6 +55,14 @@ fn main() {
             commands::library::library_list_albums,
             commands::library::library_list_artists,
             commands::library::library_get_album,
+            commands::library::library_get_track,
+            commands::player::player_play,
+            commands::player::player_toggle,
+            commands::player::player_pause,
+            commands::player::player_stop,
+            commands::player::player_seek,
+            commands::player::player_set_volume,
+            commands::player::player_get_state,
         ])
         .run(tauri::generate_context!());
 

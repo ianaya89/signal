@@ -23,6 +23,11 @@ pub enum SignalEvent {
     TrackChanged {
         track_id: Option<i64>,
     },
+    /// Natural end-of-file (not user stop) — drives auto-advance + scrobbling.
+    #[serde(rename_all = "camelCase")]
+    TrackEnded {
+        track_id: i64,
+    },
     #[serde(rename_all = "camelCase")]
     DeviceChanged {
         device_id: String,
@@ -56,6 +61,7 @@ impl SignalEvent {
             Self::PlayerState { .. } => "player:state",
             Self::PlayerProgress { .. } => "player:progress",
             Self::TrackChanged { .. } => "player:track-changed",
+            Self::TrackEnded { .. } => "player:track-ended",
             Self::DeviceChanged { .. } => "player:device-changed",
             Self::ScannerProgress { .. } => "scanner:progress",
             Self::ScannerDone { .. } => "scanner:done",
