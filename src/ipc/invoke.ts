@@ -5,6 +5,7 @@ import type {
   AlbumSummary,
   ArtistSummary,
   QueueEntry,
+  StatsOverview,
   Track,
   TrackWithContext,
 } from "@/ipc/types";
@@ -31,7 +32,10 @@ export type IpcCommand =
   | "queue_move"
   | "queue_clear"
   | "queue_play_next"
-  | "search_query";
+  | "search_query"
+  | "player_next"
+  | "player_prev"
+  | "stats_overview";
 
 export function ipc<T>(
   command: IpcCommand,
@@ -63,4 +67,7 @@ export const api = {
   queueClear: () => ipc<void>("queue_clear"),
   queuePlayNext: () => ipc<boolean>("queue_play_next"),
   search: (query: string) => ipc<Track[]>("search_query", { query }),
+  next: () => ipc<boolean>("player_next"),
+  prev: () => ipc<void>("player_prev"),
+  statsOverview: () => ipc<StatsOverview>("stats_overview"),
 };

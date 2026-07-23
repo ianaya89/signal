@@ -72,10 +72,14 @@ pub async fn queue_clear(state: State<'_, AppState>) -> Result<(), SignalError> 
 #[tauri::command]
 #[tracing::instrument(skip(state))]
 pub async fn queue_play_next(state: State<'_, AppState>) -> Result<bool, SignalError> {
+    play_queue_head(&state).await
+}
+
+pub(crate) async fn play_queue_head(state: &State<'_, AppState>) -> Result<bool, SignalError> {
     let Some(entry) = state.db.queue().pop_front().await.db_err()? else {
         return Ok(false);
     };
-    notify(&state);
+    notify(state);
 
     let path = entry.track.technical.file_path.clone();
     if !path.is_file() {

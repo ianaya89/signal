@@ -1,4 +1,9 @@
 //! The mpv-owning thread: command handling + event pumping.
+//!
+//! Gapless model: mpv's internal playlist is a 2-slot sliding window —
+//! index 0 = current, index 1 = prefetched next (docs/04-player-libmpv.md).
+//! Signal's queue stays the source of truth; the window is a derived cache
+//! resynced by the autoplay task on every queue change.
 
 use std::sync::mpsc::{self, Sender, TryRecvError};
 use std::sync::{Arc, RwLock};
@@ -46,7 +51,7 @@ pub(crate) fn spawn(
                 Engine {
                     events,
                     state,
-                    current_track: None,
+                    window: Vec::new(),
                     duration_ms: 0,
                     last_progress: Instant::now(),
                 }
@@ -69,6 +74,7 @@ fn init_mpv() -> Result<Mpv, PlayerError> {
         init.set_property("video", "no")?;
         init.set_property("audio-display", "no")?;
         init.set_property("gapless-audio", "yes")?;
+        init.set_property("prefetch-playlist", "yes")?;
         init.set_property("idle", "yes")?;
         init.set_property("keep-open", "no")?;
         Ok(())
@@ -79,7 +85,8 @@ fn init_mpv() -> Result<Mpv, PlayerError> {
 struct Engine {
     events: EventBus,
     state: Arc<RwLock<PlayerState>>,
-    current_track: Option<i64>,
+    /// Track ids mirroring mpv playlist order: [current] or [current, next].
+    window: Vec<i64>,
     duration_ms: u64,
     last_progress: Instant,
 }
@@ -107,7 +114,7 @@ impl Engine {
             }
 
             match mpv.wait_event(EVENT_TIMEOUT_S) {
-                Some(Ok(event)) => self.handle_event(&event),
+                Some(Ok(event)) => self.handle_event(mpv, &event),
                 Some(Err(err)) => tracing::warn!("mpv event error: {err}"),
                 None => {}
             }
@@ -119,7 +126,7 @@ impl Engine {
         let result = match cmd {
             Cmd::Load { track_id, path } => {
                 let path_str = path.to_string_lossy().into_owned();
-                self.current_track = Some(track_id);
+                self.window = vec![track_id];
                 self.duration_ms = 0;
                 let res = mpv
                     .command("loadfile", &[&path_str, "replace"])
@@ -136,12 +143,34 @@ impl Engine {
                 }
                 res
             }
+            Cmd::SetNext { track_id, path } => {
+                if self.window.first() == Some(&track_id) || self.window.get(1) == Some(&track_id) {
+                    Ok(()) // already current or already staged
+                } else {
+                    let res = Self::drop_next_entries(mpv).and_then(|()| {
+                        mpv.command("loadfile", &[&path.to_string_lossy(), "append"])
+                    });
+                    if res.is_ok() {
+                        self.window.truncate(1);
+                        self.window.push(track_id);
+                        tracing::debug!(track_id, "gapless next staged");
+                    }
+                    res
+                }
+            }
+            Cmd::ClearNext => {
+                let res = Self::drop_next_entries(mpv);
+                if res.is_ok() {
+                    self.window.truncate(1);
+                }
+                res
+            }
             Cmd::Toggle => mpv
                 .get_property::<bool>("pause")
                 .and_then(|paused| mpv.set_property("pause", !paused)),
             Cmd::Pause => mpv.set_property("pause", true),
             Cmd::Stop => {
-                self.current_track = None;
+                self.window.clear();
                 let res = mpv.command("stop", &[]);
                 self.events
                     .publish(SignalEvent::TrackChanged { track_id: None });
@@ -168,26 +197,63 @@ impl Engine {
         }
     }
 
-    fn handle_event(&mut self, event: &Event<'_>) {
+    /// Removes every mpv playlist entry after the current one.
+    fn drop_next_entries(mpv: &Mpv) -> libmpv2::Result<()> {
+        let count: i64 = mpv.get_property("playlist-count").unwrap_or(0);
+        for idx in (1..count).rev() {
+            mpv.command("playlist-remove", &[&idx.to_string()])?;
+        }
+        Ok(())
+    }
+
+    fn handle_event(&mut self, mpv: &Mpv, event: &Event<'_>) {
         match event {
             Event::PropertyChange { name, change, .. } => {
                 self.handle_property(name, change);
             }
-            // Only natural EOF ends a track; `loadfile replace` and `stop`
-            // also emit EndFile (reason Stop/Redirect) and must not.
-            Event::EndFile(reason) if *reason == mpv_end_file_reason::Eof => {
-                if let Some(track_id) = self.current_track.take() {
-                    self.events.publish(SignalEvent::TrackEnded { track_id });
+            Event::StartFile => {
+                // playlist-pos 1 after an EOF means mpv gapless-advanced
+                // into the prefetched next entry.
+                let pos: i64 = mpv.get_property("playlist-pos").unwrap_or(0);
+                if pos > 0 && self.window.len() > 1 {
+                    let finished = self.window.remove(0);
+                    tracing::debug!(finished, "gapless advance");
+                    let Some(&current) = self.window.first() else {
+                        return;
+                    };
+                    self.duration_ms = 0;
+                    self.events
+                        .publish(SignalEvent::TrackAutoAdvanced { track_id: current });
+                    self.events.publish(SignalEvent::TrackChanged {
+                        track_id: Some(current),
+                    });
+                    self.set_state(|s| {
+                        s.status = PlaybackStatus::Playing;
+                        s.track_id = Some(current);
+                        s.position_ms = 0;
+                    });
                 }
-                self.set_state(|s| {
-                    s.status = PlaybackStatus::Stopped;
-                    s.track_id = None;
-                    s.position_ms = 0;
-                });
+            }
+            // Natural EOF: scrobble signal for the finished entry. Playback
+            // stops only when nothing is prefetched (otherwise StartFile
+            // follows immediately and takes over).
+            Event::EndFile(reason) if *reason == mpv_end_file_reason::Eof => {
+                if let Some(&finished) = self.window.first() {
+                    self.events
+                        .publish(SignalEvent::TrackEnded { track_id: finished });
+                }
+                if self.window.len() <= 1 {
+                    self.window.clear();
+                    self.set_state(|s| {
+                        s.status = PlaybackStatus::Stopped;
+                        s.track_id = None;
+                        s.position_ms = 0;
+                    });
+                }
             }
             Event::EndFile(reason) if *reason == mpv_end_file_reason::Error => {
                 tracing::warn!("playback ended with error");
-                self.current_track = None;
+                self.window.clear();
                 self.set_state(|s| {
                     s.status = PlaybackStatus::Stopped;
                     s.track_id = None;
@@ -217,7 +283,7 @@ impl Engine {
                 let duration_ms = self.duration_ms;
                 self.set_state(|s| s.duration_ms = duration_ms);
             }
-            ("pause", PropertyData::Flag(paused)) if self.current_track.is_some() => {
+            ("pause", PropertyData::Flag(paused)) if !self.window.is_empty() => {
                 let status = if *paused {
                     PlaybackStatus::Paused
                 } else {

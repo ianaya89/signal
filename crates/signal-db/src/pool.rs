@@ -10,6 +10,7 @@ use crate::repositories::albums::AlbumRepo;
 use crate::repositories::artists::ArtistRepo;
 use crate::repositories::queue::QueueRepo;
 use crate::repositories::settings::SettingsRepo;
+use crate::repositories::stats::StatsRepo;
 use crate::repositories::tracks::TrackRepo;
 
 /// Cloneable handle over the connection pool; hands out repositories.
@@ -59,6 +60,11 @@ impl DbPool {
     #[must_use]
     pub fn queue(&self) -> QueueRepo {
         QueueRepo::new(self.pool.clone())
+    }
+
+    #[must_use]
+    pub fn stats(&self) -> StatsRepo {
+        StatsRepo::new(self.pool.clone())
     }
 
     #[must_use]

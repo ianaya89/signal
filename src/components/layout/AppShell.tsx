@@ -72,6 +72,15 @@ export function AppShell() {
         case "Escape":
           currentListHandler()?.back?.();
           break;
+        case "}":
+          void api.next();
+          break;
+        case "{":
+          void api.prev();
+          break;
+        case "S":
+          void navigate({ to: "/stats" });
+          break;
         default:
           break;
       }

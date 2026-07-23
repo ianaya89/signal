@@ -16,7 +16,17 @@ pub enum PlayerError {
 
 #[derive(Debug)]
 pub(crate) enum Cmd {
-    Load { track_id: i64, path: PathBuf },
+    Load {
+        track_id: i64,
+        path: PathBuf,
+    },
+    /// Stage/replace the gapless next slot (mpv playlist index 1).
+    SetNext {
+        track_id: i64,
+        path: PathBuf,
+    },
+    /// Drop the staged next slot, if any.
+    ClearNext,
     Toggle,
     Pause,
     Stop,
@@ -41,6 +51,15 @@ impl Player {
 
     pub fn load_and_play(&self, track_id: i64, path: PathBuf) -> Result<(), PlayerError> {
         self.send(Cmd::Load { track_id, path })
+    }
+
+    /// Prefetch `path` as the gapless next track (replaces any staged next).
+    pub fn set_next(&self, track_id: i64, path: PathBuf) -> Result<(), PlayerError> {
+        self.send(Cmd::SetNext { track_id, path })
+    }
+
+    pub fn clear_next(&self) -> Result<(), PlayerError> {
+        self.send(Cmd::ClearNext)
     }
 
     pub fn toggle(&self) -> Result<(), PlayerError> {

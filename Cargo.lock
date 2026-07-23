@@ -3236,6 +3236,7 @@ checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
 name = "signal-app"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "serde",
  "serde_json",
  "signal-core",
@@ -3270,6 +3271,7 @@ name = "signal-db"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "serde",
  "serde_json",
  "signal-core",
  "sqlx",

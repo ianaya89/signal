@@ -66,6 +66,20 @@ export function CommandPalette() {
         run: () => navigate({ to: "/search" }),
       },
       {
+        id: "stats",
+        label: "go to stats",
+        hint: "S",
+        run: () => navigate({ to: "/stats" }),
+      },
+      {
+        id: "next",
+        label: "next track",
+        hint: "}",
+        run: async () => {
+          await api.next();
+        },
+      },
+      {
         id: "scan-folder",
         label: "scan folder…",
         run: async () => {

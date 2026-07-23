@@ -74,3 +74,17 @@ pub async fn player_set_volume(state: State<'_, AppState>, volume: f64) -> Resul
 pub async fn player_get_state(state: State<'_, AppState>) -> Result<PlayerState, SignalError> {
     Ok(state.player.state())
 }
+
+/// Skips to the queue head. Returns false when the queue is empty.
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn player_next(state: State<'_, AppState>) -> Result<bool, SignalError> {
+    crate::commands::queue::play_queue_head(&state).await
+}
+
+/// Restarts the current track (no play history yet to go further back).
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn player_prev(state: State<'_, AppState>) -> Result<(), SignalError> {
+    state.player.seek_ms(0).player_err()
+}

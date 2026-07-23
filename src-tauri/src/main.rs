@@ -6,6 +6,7 @@ mod artwork;
 mod autoplay;
 mod bridge;
 mod commands;
+mod recorder;
 mod state;
 
 use std::sync::atomic::AtomicBool;
@@ -38,6 +39,7 @@ fn main() {
             let events = EventBus::default();
             bridge::spawn(app.handle().clone(), &events);
             autoplay::spawn(app.handle().clone(), &events);
+            recorder::spawn(app.handle().clone(), &events);
             let player = signal_player::Player::new(events.clone())?;
 
             app.manage(AppState {
@@ -73,6 +75,9 @@ fn main() {
             commands::queue::queue_clear,
             commands::queue::queue_play_next,
             commands::search::search_query,
+            commands::player::player_next,
+            commands::player::player_prev,
+            commands::stats::stats_overview,
         ])
         .run(tauri::generate_context!());
 

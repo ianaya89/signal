@@ -17,6 +17,7 @@ signal-player = { workspace = true }
 signal-search = { workspace = true }
 signal-plugins = { workspace = true }
 
+chrono = { workspace = true }
 tauri = { workspace = true }
 tauri-plugin-dialog = "2"
 tokio = { workspace = true }

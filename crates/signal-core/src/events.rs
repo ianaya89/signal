@@ -28,6 +28,12 @@ pub enum SignalEvent {
     TrackEnded {
         track_id: i64,
     },
+    /// mpv gapless-advanced into the prefetched next entry; the queue head
+    /// must be consumed and a new next staged.
+    #[serde(rename_all = "camelCase")]
+    TrackAutoAdvanced {
+        track_id: i64,
+    },
     #[serde(rename_all = "camelCase")]
     DeviceChanged {
         device_id: String,
@@ -68,6 +74,7 @@ impl SignalEvent {
             Self::PlayerProgress { .. } => "player:progress",
             Self::TrackChanged { .. } => "player:track-changed",
             Self::TrackEnded { .. } => "player:track-ended",
+            Self::TrackAutoAdvanced { .. } => "player:auto-advanced",
             Self::DeviceChanged { .. } => "player:device-changed",
             Self::ScannerProgress { .. } => "scanner:progress",
             Self::ScannerDone { .. } => "scanner:done",

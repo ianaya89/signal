@@ -19,10 +19,26 @@ export function TransportBar() {
     <div className="flex min-w-0 flex-1 items-center gap-3">
       <button
         type="button"
+        onClick={() => void api.prev()}
+        title="restart ({)"
+        className="shrink-0 text-secondary hover:text-accent"
+      >
+        ⏮
+      </button>
+      <button
+        type="button"
         onClick={() => void api.toggle()}
         className="shrink-0 text-accent hover:text-primary"
       >
         {status === "playing" ? "⏸" : "▶"}
+      </button>
+      <button
+        type="button"
+        onClick={() => void api.next()}
+        title="next from queue (})"
+        className="shrink-0 text-secondary hover:text-accent"
+      >
+        ⏭
       </button>
       <NowPlayingTitle trackId={trackId} />
       <span className="shrink-0 text-[11px] text-muted">

@@ -77,6 +77,25 @@ export interface QueueEntry {
   track: Track;
 }
 
+export interface DayCount {
+  day: string;
+  plays: number;
+}
+
+export interface NameCount {
+  name: string;
+  count: number;
+}
+
+export interface StatsOverview {
+  totalPlays: number;
+  totalMsPlayed: number;
+  distinctTracks: number;
+  heatmap: DayCount[];
+  topArtists: NameCount[];
+  topCodecs: NameCount[];
+}
+
 export interface ScannerProgressEvent {
   processed: number;
   total: number;
