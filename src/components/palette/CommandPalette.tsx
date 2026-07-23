@@ -3,7 +3,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { api } from "@/ipc/invoke";
 import { useKeyboardStore } from "@/lib/keyboard";
+import { pickFolder } from "@/lib/pickFolder";
 import { cn } from "@/lib/utils";
+import { useScanStore } from "@/stores/scanStore";
 
 interface Command {
   id: string;
@@ -64,10 +66,37 @@ export function CommandPalette() {
         run: () => navigate({ to: "/search" }),
       },
       {
+        id: "scan-folder",
+        label: "scan folder…",
+        run: async () => {
+          const folder = await pickFolder();
+          if (folder) {
+            useScanStore.getState().start();
+            await api.scanLibrary(folder);
+          }
+        },
+      },
+      {
         id: "scan",
         label: "scan <path>",
         takesArg: true,
-        run: (arg) => api.scanLibrary(arg ?? "~/Music"),
+        run: async (arg) => {
+          useScanStore.getState().start();
+          await api.scanLibrary(arg ?? "~/Music");
+        },
+      },
+      {
+        id: "rescan",
+        label: "rescan library",
+        run: async () => {
+          const root = await api.settingsGet("library.root");
+          if (!root) {
+            useScanStore.getState().fail("no previous scan — use scan folder…");
+            return;
+          }
+          useScanStore.getState().start();
+          await api.scanLibrary(root);
+        },
       },
     ],
     [navigate],
@@ -109,7 +138,11 @@ export function CommandPalette() {
     try {
       await cmd.run(arg);
     } catch (err) {
-      console.error("palette command failed", err);
+      const message =
+        typeof err === "object" && err !== null && "message" in err
+          ? String((err as { message: unknown }).message)
+          : String(err);
+      useScanStore.getState().fail(message);
     }
   };
 

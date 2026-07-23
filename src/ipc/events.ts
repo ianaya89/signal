@@ -9,6 +9,7 @@ export type SignalChannel =
   | "player:device-changed"
   | "scanner:progress"
   | "scanner:done"
+  | "scanner:error"
   | "queue:changed"
   | "log:line";
 

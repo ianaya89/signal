@@ -43,6 +43,12 @@ pub enum SignalEvent {
         added: u32,
         updated: u32,
         removed: u32,
+        skipped: u32,
+        errors: u32,
+    },
+    #[serde(rename_all = "camelCase")]
+    ScannerError {
+        message: String,
     },
     QueueChanged,
     #[serde(rename_all = "camelCase")]
@@ -65,6 +71,7 @@ impl SignalEvent {
             Self::DeviceChanged { .. } => "player:device-changed",
             Self::ScannerProgress { .. } => "scanner:progress",
             Self::ScannerDone { .. } => "scanner:done",
+            Self::ScannerError { .. } => "scanner:error",
             Self::QueueChanged => "queue:changed",
             Self::LogLine { .. } => "log:line",
         }

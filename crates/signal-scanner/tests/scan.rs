@@ -30,6 +30,38 @@ fn write_wav(path: &Path) {
 }
 
 #[tokio::test]
+async fn flac_fixture_extracts_technical_data() {
+    let dir = tempfile::tempdir().unwrap();
+    let music = dir.path().join("music");
+    std::fs::create_dir_all(&music).unwrap();
+    let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../fixtures/flac/tone-44100-16.flac");
+    std::fs::copy(&fixture, music.join("tone.flac")).unwrap();
+
+    let db = DbPool::connect(&dir.path().join("test.db")).await.unwrap();
+    let scanner = Scanner::new(db.clone(), EventBus::default(), dir.path().join("cache"));
+
+    let report = scanner.scan_full(music.clone()).await.unwrap();
+    assert_eq!(report.added, 1);
+    assert_eq!(report.errors, 0);
+
+    let track_id = db
+        .tracks()
+        .id_by_path(&music.join("tone.flac").to_string_lossy())
+        .await
+        .unwrap()
+        .unwrap();
+    let track = db.tracks().get(track_id).await.unwrap().unwrap();
+    assert_eq!(track.title, "Fixture Tone");
+    assert_eq!(track.technical.codec, "FLAC");
+    assert_eq!(track.technical.sample_rate_hz, 44_100);
+    assert_eq!(track.technical.bit_depth, Some(16));
+
+    let artists = db.artists().list().await.unwrap();
+    assert_eq!(artists[0].name, "Signal Fixtures");
+}
+
+#[tokio::test]
 async fn full_scan_imports_wav_and_skips_rescan() {
     let dir = tempfile::tempdir().unwrap();
     let music = dir.path().join("music");

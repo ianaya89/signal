@@ -18,20 +18,49 @@ fn expand_home(path: &str) -> PathBuf {
 }
 
 /// Kicks off a background scan and returns immediately; progress arrives via
-/// `scanner:progress` / `scanner:done` events.
+/// `scanner:progress` / `scanner:done` events. Failures are also published
+/// as `scanner:error` so they surface regardless of the calling UI.
 #[tauri::command]
 #[tracing::instrument(skip(state))]
 pub async fn library_scan(state: State<'_, AppState>, root: String) -> Result<(), SignalError> {
+    let scan_err = |message: String| {
+        state
+            .events
+            .publish(signal_core::SignalEvent::ScannerError {
+                message: message.clone(),
+            });
+        SignalError::Scanner(message)
+    };
+
     let root = expand_home(&root);
+    let root = match root.canonicalize() {
+        Ok(canonical) => canonical,
+        Err(err) if err.kind() == std::io::ErrorKind::PermissionDenied => {
+            return Err(scan_err(format!(
+                "macOS blocked access to {} — use \"scan folder…\" (picker) or grant access in System Settings → Privacy → Files & Folders",
+                root.display()
+            )));
+        }
+        Err(_) => {
+            return Err(scan_err(format!("folder not found: {}", root.display())));
+        }
+    };
     if !root.is_dir() {
-        return Err(SignalError::Scanner(format!(
-            "not a directory: {}",
-            root.display()
-        )));
+        return Err(scan_err(format!("not a directory: {}", root.display())));
     }
 
     if state.scanning.swap(true, Ordering::SeqCst) {
         return Err(SignalError::Scanner("a scan is already running".into()));
+    }
+
+    // remember for `rescan`
+    if let Err(err) = state
+        .db
+        .settings()
+        .set("library.root", &root.to_string_lossy())
+        .await
+    {
+        tracing::warn!("could not persist library.root: {err}");
     }
 
     let scanner = Scanner::new(

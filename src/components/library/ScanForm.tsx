@@ -1,24 +1,29 @@
 import { useState } from "react";
 
 import { api } from "@/ipc/invoke";
+import { pickFolder } from "@/lib/pickFolder";
 import { useScanStore } from "@/stores/scanStore";
 
 export function ScanForm() {
   const [root, setRoot] = useState("~/Music");
-  const [error, setError] = useState<string | null>(null);
   const start = useScanStore((s) => s.start);
+  const fail = useScanStore((s) => s.fail);
+  const lastError = useScanStore((s) => s.lastError);
 
-  const submit = async () => {
-    setError(null);
+  const scan = async (path: string) => {
+    start();
     try {
-      await api.scanLibrary(root);
-      start();
+      await api.scanLibrary(path);
     } catch (err) {
-      setError(
-        typeof err === "object" && err !== null && "message" in err
-          ? String((err as { message: unknown }).message)
-          : String(err),
-      );
+      fail(errText(err));
+    }
+  };
+
+  const browse = async () => {
+    const folder = await pickFolder();
+    if (folder) {
+      setRoot(folder);
+      await scan(folder);
     }
   };
 
@@ -29,7 +34,7 @@ export function ScanForm() {
         className="flex gap-2"
         onSubmit={(e) => {
           e.preventDefault();
-          void submit();
+          void scan(root);
         }}
       >
         <input
@@ -44,8 +49,30 @@ export function ScanForm() {
         >
           scan
         </button>
+        <button
+          type="button"
+          onClick={() => void browse()}
+          className="border border-subtle bg-raised px-3 py-1 text-secondary hover:border-focus hover:text-accent"
+        >
+          browse…
+        </button>
       </form>
-      {error && <p className="text-error text-[12px]">{error}</p>}
+      <p className="max-w-96 text-center text-[11px] text-muted">
+        for iCloud Drive or other protected folders use browse… — macOS only
+        grants access through the native picker
+      </p>
+      {lastError && (
+        <p className="max-w-[480px] text-center text-[12px] text-error">
+          {lastError}
+        </p>
+      )}
     </div>
   );
+}
+
+function errText(err: unknown): string {
+  if (typeof err === "object" && err !== null && "message" in err) {
+    return String((err as { message: unknown }).message);
+  }
+  return String(err);
 }

@@ -51,11 +51,24 @@ impl Scanner {
             return Err(ScannerError::InvalidRoot(root));
         }
 
-        let files = collect_audio_files(&root);
+        let (files, walk_errors) = collect_audio_files(&root);
         let total = u64::try_from(files.len()).unwrap_or_default();
-        tracing::info!(total, root = %root.display(), "scan started");
+        tracing::info!(total, walk_errors, root = %root.display(), "scan started");
+
+        if files.is_empty() {
+            let message = if walk_errors > 0 {
+                format!(
+                    "no audio files found in {} ({walk_errors} unreadable entries — likely a permissions problem; use the folder picker or grant access in System Settings → Privacy → Files & Folders)",
+                    root.display()
+                )
+            } else {
+                format!("no audio files found in {}", root.display())
+            };
+            self.events.publish(SignalEvent::ScannerError { message });
+        }
 
         let mut report = ScanReport::default();
+        report.errors += walk_errors;
         // albums whose artwork has been resolved during this scan
         let mut art_done: HashSet<i64> = HashSet::new();
 
@@ -80,6 +93,8 @@ impl Scanner {
             added: report.added,
             updated: report.updated,
             removed: report.removed,
+            skipped: report.skipped,
+            errors: report.errors,
         });
         tracing::info!(
             added = report.added,
@@ -188,8 +203,9 @@ enum ImportError {
     Extract(String),
 }
 
-fn collect_audio_files(root: &Path) -> Vec<PathBuf> {
-    WalkDir::new(root)
+fn collect_audio_files(root: &Path) -> (Vec<PathBuf>, u32) {
+    let mut errors = 0u32;
+    let files = WalkDir::new(root)
         .follow_links(false)
         .into_iter()
         .filter_map(|entry| match entry {
@@ -199,8 +215,10 @@ fn collect_audio_files(root: &Path) -> Vec<PathBuf> {
             Ok(_) => None,
             Err(err) => {
                 tracing::warn!("walk error: {err}");
+                errors += 1;
                 None
             }
         })
-        .collect()
+        .collect();
+    (files, errors)
 }

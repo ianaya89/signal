@@ -1,7 +1,11 @@
 import type { QueryClient } from "@tanstack/react-query";
 
 import { onSignalEvent } from "@/ipc/events";
-import type { ScannerDoneEvent, ScannerProgressEvent } from "@/ipc/types";
+import type {
+  ScannerDoneEvent,
+  ScannerErrorEvent,
+  ScannerProgressEvent,
+} from "@/ipc/types";
 import type { PlayerStateDto } from "@/stores/playerStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useQueueStore } from "@/stores/queueStore";
@@ -22,9 +26,13 @@ export function bootstrapEvents(queryClient: QueryClient) {
     useScanStore.getState().progress(p);
   });
 
-  void onSignalEvent<ScannerDoneEvent>("scanner:done", () => {
-    useScanStore.getState().done();
+  void onSignalEvent<ScannerDoneEvent>("scanner:done", (d) => {
+    useScanStore.getState().done(d);
     void queryClient.invalidateQueries();
+  });
+
+  void onSignalEvent<ScannerErrorEvent>("scanner:error", (e) => {
+    useScanStore.getState().fail(e.message);
   });
 
   void onSignalEvent<{ state: PlayerStateDto }>("player:state", (e) => {

@@ -87,4 +87,10 @@ export interface ScannerDoneEvent {
   added: number;
   updated: number;
   removed: number;
+  skipped: number;
+  errors: number;
+}
+
+export interface ScannerErrorEvent {
+  message: string;
 }

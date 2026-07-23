@@ -2,7 +2,8 @@ import { TransportBar } from "@/components/player/TransportBar";
 import { useScanStore } from "@/stores/scanStore";
 
 export function StatusBar() {
-  const { scanning, processed, total, currentPath } = useScanStore();
+  const { scanning, processed, total, currentPath, lastError, summary } =
+    useScanStore();
 
   return (
     <footer className="flex h-7 shrink-0 items-center justify-between gap-4 border border-subtle bg-surface px-2 text-[11px]">
@@ -11,6 +12,15 @@ export function StatusBar() {
         <span className="min-w-0 shrink-0 truncate text-accent">
           scanning {processed}/{total} · {basename(currentPath)}
         </span>
+      ) : lastError ? (
+        <span
+          className="min-w-0 truncate text-error"
+          title={lastError}
+        >
+          ✕ {lastError}
+        </span>
+      ) : summary ? (
+        <span className="min-w-0 shrink-0 truncate text-ok">{summary}</span>
       ) : (
         <span className="hidden shrink-0 text-muted lg:inline">
           tab: panes · space: play · /: search · ctrl+p: palette
