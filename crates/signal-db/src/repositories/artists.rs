@@ -14,27 +14,33 @@ impl ArtistRepo {
         Self { pool }
     }
 
-    /// Idempotent by the unique index on `artists.name`; the no-op
-    /// `DO UPDATE` makes `RETURNING id` yield the existing row on conflict.
+    /// Case-insensitive get-or-create (the unique index is NOCASE). The
+    /// first-seen spelling wins; later case variants map onto it.
     pub async fn get_or_create(&self, name: &str) -> sqlx::Result<i64> {
-        sqlx::query_scalar(
-            "INSERT INTO artists (name) VALUES (?1)
-             ON CONFLICT(name) DO UPDATE SET name = excluded.name
-             RETURNING id",
-        )
-        .bind(name)
-        .fetch_one(&self.pool)
-        .await
+        let existing: Option<i64> =
+            sqlx::query_scalar("SELECT id FROM artists WHERE name = ?1 COLLATE NOCASE")
+                .bind(name)
+                .fetch_optional(&self.pool)
+                .await?;
+        if let Some(id) = existing {
+            return Ok(id);
+        }
+        sqlx::query_scalar("INSERT INTO artists (name) VALUES (?1) RETURNING id")
+            .bind(name)
+            .fetch_one(&self.pool)
+            .await
     }
 
+    /// Album artists only — track-level "feat." credits don't clutter the
+    /// artist list; their tracks are reachable through the album.
     pub async fn list(&self) -> sqlx::Result<Vec<ArtistSummary>> {
         let rows = sqlx::query(
             "SELECT ar.id, ar.name,
                     COUNT(DISTINCT al.id) AS album_count,
                     COUNT(t.id) AS track_count
              FROM artists ar
-             LEFT JOIN albums al ON al.artist_id = ar.id
-             LEFT JOIN tracks t ON t.artist_id = ar.id
+             JOIN albums al ON al.artist_id = ar.id
+             LEFT JOIN tracks t ON t.album_id = al.id
              GROUP BY ar.id
              HAVING track_count > 0
              ORDER BY ar.name COLLATE NOCASE",
@@ -52,5 +58,31 @@ impl ArtistRepo {
                 })
             })
             .collect()
+    }
+
+    pub async fn get(&self, id: i64) -> sqlx::Result<Option<ArtistSummary>> {
+        let row = sqlx::query(
+            "SELECT ar.id, ar.name,
+                    COUNT(DISTINCT al.id) AS album_count,
+                    COUNT(t.id) AS track_count
+             FROM artists ar
+             LEFT JOIN albums al ON al.artist_id = ar.id
+             LEFT JOIN tracks t ON t.album_id = al.id
+             WHERE ar.id = ?1
+             GROUP BY ar.id",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        row.map(|row| {
+            Ok(ArtistSummary {
+                id: row.try_get("id")?,
+                name: row.try_get("name")?,
+                album_count: to_u32(row.try_get::<i64, _>("album_count")?),
+                track_count: to_u32(row.try_get::<i64, _>("track_count")?),
+            })
+        })
+        .transpose()
     }
 }

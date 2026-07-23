@@ -100,6 +100,14 @@ export function CommandPalette() {
         },
       },
       {
+        id: "reset-library",
+        label: "reset library (wipe + rescan)",
+        run: async () => {
+          useScanStore.getState().start();
+          await api.resetAndRescan();
+        },
+      },
+      {
         id: "rescan",
         label: "rescan library",
         run: async () => {

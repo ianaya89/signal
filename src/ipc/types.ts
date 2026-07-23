@@ -59,6 +59,11 @@ export interface AlbumDetail {
   tracks: Track[];
 }
 
+export interface ArtistDetail {
+  artist: ArtistSummary;
+  albums: AlbumSummary[];
+}
+
 export interface TrackWithContext {
   track: Track;
   artistName: string;

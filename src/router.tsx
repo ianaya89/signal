@@ -7,6 +7,7 @@ import {
 import { AppShell } from "@/components/layout/AppShell";
 import { AlbumDetailView } from "@/components/library/AlbumDetailView";
 import { AlbumsView } from "@/components/library/AlbumsView";
+import { ArtistDetailView } from "@/components/library/ArtistDetailView";
 import { ArtistsView } from "@/components/library/ArtistsView";
 import { SearchView } from "@/components/search/SearchView";
 import { StatsView } from "@/components/stats/StatsView";
@@ -31,6 +32,12 @@ const artistsRoute = createRoute({
   component: ArtistsView,
 });
 
+const artistDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/artists/$artistId",
+  component: ArtistDetailView,
+});
+
 const searchRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/search",
@@ -47,6 +54,7 @@ const routeTree = rootRoute.addChildren([
   albumsRoute,
   albumDetailRoute,
   artistsRoute,
+  artistDetailRoute,
   searchRoute,
   statsRoute,
 ]);

@@ -61,6 +61,8 @@ fn main() {
             commands::library::library_list_artists,
             commands::library::library_get_album,
             commands::library::library_get_track,
+            commands::library::library_get_artist,
+            commands::library::library_reset_and_rescan,
             commands::player::player_play,
             commands::player::player_toggle,
             commands::player::player_pause,

@@ -20,18 +20,48 @@ impl AlbumRepo {
         Self { pool }
     }
 
+    /// Case-insensitive upsert on (artist, name) — the unique index is NOCASE.
     pub async fn upsert(&self, name: &str, artist_id: i64, year: Option<i32>) -> sqlx::Result<i64> {
+        let existing: Option<i64> = sqlx::query_scalar(
+            "SELECT id FROM albums WHERE artist_id = ?1 AND name = ?2 COLLATE NOCASE",
+        )
+        .bind(artist_id)
+        .bind(name)
+        .fetch_optional(&self.pool)
+        .await?;
+        if let Some(id) = existing {
+            if let Some(year) = year {
+                sqlx::query("UPDATE albums SET year = COALESCE(year, ?2) WHERE id = ?1")
+                    .bind(id)
+                    .bind(year)
+                    .execute(&self.pool)
+                    .await?;
+            }
+            return Ok(id);
+        }
         sqlx::query_scalar(
-            "INSERT INTO albums (name, artist_id, year) VALUES (?1, ?2, ?3)
-             ON CONFLICT(artist_id, name)
-             DO UPDATE SET year = COALESCE(albums.year, excluded.year)
-             RETURNING id",
+            "INSERT INTO albums (name, artist_id, year) VALUES (?1, ?2, ?3) RETURNING id",
         )
         .bind(name)
         .bind(artist_id)
         .bind(year)
         .fetch_one(&self.pool)
         .await
+    }
+
+    pub async fn list_by_artist(&self, artist_id: i64) -> sqlx::Result<Vec<AlbumSummary>> {
+        let rows = sqlx::query(&format!(
+            "{SUMMARY_SELECT}
+             WHERE al.artist_id = ?1
+             GROUP BY al.id
+             HAVING track_count > 0
+             ORDER BY al.year, al.name COLLATE NOCASE"
+        ))
+        .bind(artist_id)
+        .fetch_all(&self.pool)
+        .await?;
+
+        rows.iter().map(summary_from_row).collect()
     }
 
     pub async fn list(&self) -> sqlx::Result<Vec<AlbumSummary>> {

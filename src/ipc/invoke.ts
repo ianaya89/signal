@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type {
   AlbumDetail,
   AlbumSummary,
+  ArtistDetail,
   ArtistSummary,
   QueueEntry,
   StatsOverview,
@@ -19,6 +20,8 @@ export type IpcCommand =
   | "library_list_artists"
   | "library_get_album"
   | "library_get_track"
+  | "library_get_artist"
+  | "library_reset_and_rescan"
   | "player_play"
   | "player_toggle"
   | "player_pause"
@@ -51,6 +54,9 @@ export const api = {
   getAlbum: (albumId: number) => ipc<AlbumDetail>("library_get_album", { albumId }),
   getTrack: (trackId: number) =>
     ipc<TrackWithContext>("library_get_track", { trackId }),
+  getArtist: (artistId: number) =>
+    ipc<ArtistDetail>("library_get_artist", { artistId }),
+  resetAndRescan: () => ipc<void>("library_reset_and_rescan"),
   settingsGet: (key: string) => ipc<string | null>("settings_get", { key }),
   settingsSet: (key: string, value: string) =>
     ipc<void>("settings_set", { key, value }),

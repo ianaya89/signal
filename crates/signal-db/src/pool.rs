@@ -76,4 +76,16 @@ impl DbPool {
     pub fn inner(&self) -> &SqlitePool {
         &self.pool
     }
+
+    /// Wipes all library data (tracks cascade into genres links, playlists,
+    /// queue and play history). Settings survive.
+    pub async fn reset_library(&self) -> sqlx::Result<()> {
+        let mut tx = self.pool.begin().await?;
+        for table in ["tracks", "albums", "artists", "genres", "playlists"] {
+            sqlx::query(&format!("DELETE FROM {table}"))
+                .execute(&mut *tx)
+                .await?;
+        }
+        tx.commit().await
+    }
 }

@@ -122,6 +122,55 @@ async fn fts_index_is_populated_by_triggers() {
 }
 
 #[tokio::test]
+async fn artists_and_albums_dedupe_case_insensitively() {
+    let (db, _dir) = test_db().await;
+
+    let a1 = db
+        .artists()
+        .get_or_create("Los Angeles Azules")
+        .await
+        .unwrap();
+    let a2 = db
+        .artists()
+        .get_or_create("Los angeles azules")
+        .await
+        .unwrap();
+    let a3 = db
+        .artists()
+        .get_or_create("LOS ANGELES AZULES")
+        .await
+        .unwrap();
+    assert_eq!(a1, a2);
+    assert_eq!(a1, a3);
+
+    let al1 = db
+        .albums()
+        .upsert("Epoca Dorada", a1, Some(2000))
+        .await
+        .unwrap();
+    let al2 = db.albums().upsert("epoca dorada", a1, None).await.unwrap();
+    assert_eq!(al1, al2);
+
+    // artist list only shows album artists with tracks
+    db.tracks()
+        .insert(&new_track("Track", a1, al1, "/music/t1.flac"))
+        .await
+        .unwrap();
+    let feat = db
+        .artists()
+        .get_or_create("Los Angeles Azules feat. X")
+        .await
+        .unwrap();
+    assert_ne!(feat, a1);
+    let artists = db.artists().list().await.unwrap();
+    assert_eq!(artists.len(), 1);
+    assert_eq!(artists[0].name, "Los Angeles Azules");
+
+    let by_artist = db.albums().list_by_artist(a1).await.unwrap();
+    assert_eq!(by_artist.len(), 1);
+}
+
+#[tokio::test]
 async fn settings_roundtrip() {
     let (db, _dir) = test_db().await;
     assert_eq!(db.settings().get("library.root").await.unwrap(), None);

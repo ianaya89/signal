@@ -124,12 +124,23 @@ impl Scanner {
 
         let artist_id = self.db.artists().get_or_create(&extracted.artist).await?;
         let album_id = match &extracted.album {
-            Some(album) => Some(
-                self.db
-                    .albums()
-                    .upsert(album, artist_id, extracted.year)
-                    .await?,
-            ),
+            Some(album) => {
+                // group the album under the album artist, not the track credit
+                let album_artist_id = if extracted.album_artist == extracted.artist {
+                    artist_id
+                } else {
+                    self.db
+                        .artists()
+                        .get_or_create(&extracted.album_artist)
+                        .await?
+                };
+                Some(
+                    self.db
+                        .albums()
+                        .upsert(album, album_artist_id, extracted.year)
+                        .await?,
+                )
+            }
             None => None,
         };
 

@@ -2,13 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
+import { TrackRow } from "@/components/library/TrackRow";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { artworkUrl } from "@/lib/artwork";
-import { fmtDuration, fmtQuality, isHires, isLossy } from "@/lib/format";
 import { registerListHandler } from "@/lib/keyboard";
-import { cn } from "@/lib/utils";
-import { usePlayerStore } from "@/stores/playerStore";
 
 export function AlbumDetailView() {
   const { albumId } = useParams({ from: "/albums/$albumId" });
@@ -23,6 +21,8 @@ export function AlbumDetailView() {
   const tracks = data?.tracks ?? [];
   const tracksRef = useRef<Track[]>(tracks);
   tracksRef.current = tracks;
+  const cursorRef = useRef(cursor);
+  cursorRef.current = cursor;
 
   useEffect(() => {
     return registerListHandler({
@@ -43,9 +43,6 @@ export function AlbumDetailView() {
       back: () => void navigate({ to: "/" }),
     });
   }, [navigate]);
-
-  const cursorRef = useRef(cursor);
-  cursorRef.current = cursor;
 
   if (isLoading || !data) {
     return <p className="p-3 text-muted">loading…</p>;
@@ -100,75 +97,5 @@ function AlbumArt({ albumId, hasArt }: { albumId: number; hasArt: boolean }) {
         </div>
       )}
     </div>
-  );
-}
-
-function TrackRow({
-  track,
-  selected,
-  onSelect,
-}: {
-  track: Track;
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  const t = track.technical;
-  const playing = usePlayerStore((s) => s.trackId === track.id);
-  const ref = useRef<HTMLTableRowElement>(null);
-
-  useEffect(() => {
-    if (selected) {
-      ref.current?.scrollIntoView({ block: "nearest" });
-    }
-  }, [selected]);
-
-  return (
-    <tr
-      ref={ref}
-      onClick={onSelect}
-      onDoubleClick={() => void api.play(track.id)}
-      className={cn(
-        "h-7 cursor-default",
-        selected ? "bg-raised" : "hover:bg-raised/50",
-      )}
-    >
-      <td
-        className={cn(
-          "w-10 border-l-2 pr-2 text-right text-[11px]",
-          playing
-            ? "border-accent text-accent"
-            : selected
-              ? "border-focus text-secondary"
-              : "border-transparent text-muted",
-        )}
-      >
-        {playing ? "▶" : (track.trackNo ?? "—")}
-      </td>
-      <td
-        className={cn(
-          "truncate pr-2 text-[12px]",
-          playing ? "text-accent" : "text-primary",
-        )}
-      >
-        {track.title}
-      </td>
-      <td className="w-32 pr-2">
-        <span
-          className={cn(
-            "text-[11px]",
-            isLossy(t.codec)
-              ? "text-lossy"
-              : isHires(t.bitDepth, t.sampleRateHz)
-                ? "text-hires"
-                : "text-secondary",
-          )}
-        >
-          [{t.codec}] [{fmtQuality(t.bitDepth, t.sampleRateHz)}]
-        </span>
-      </td>
-      <td className="w-12 pr-3 text-right text-[11px] text-muted">
-        {fmtDuration(track.durationMs)}
-      </td>
-    </tr>
   );
 }

@@ -95,6 +95,48 @@ pub async fn library_list_artists(
     state.db.artists().list().await.db_err()
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArtistDetail {
+    pub artist: ArtistSummary,
+    pub albums: Vec<AlbumSummary>,
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn library_get_artist(
+    state: State<'_, AppState>,
+    artist_id: i64,
+) -> Result<ArtistDetail, SignalError> {
+    let artist = state
+        .db
+        .artists()
+        .get(artist_id)
+        .await
+        .db_err()?
+        .ok_or_else(|| SignalError::Db(format!("artist {artist_id} not found")))?;
+    let albums = state.db.albums().list_by_artist(artist_id).await.db_err()?;
+    Ok(ArtistDetail { artist, albums })
+}
+
+/// Wipes library data and rescans the stored root. Fixes libraries imported
+/// before album-artist grouping existed.
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn library_reset_and_rescan(state: State<'_, AppState>) -> Result<(), SignalError> {
+    let root = state
+        .db
+        .settings()
+        .get("library.root")
+        .await
+        .db_err()?
+        .ok_or_else(|| SignalError::Scanner("no library root stored — scan first".into()))?;
+
+    state.db.reset_library().await.db_err()?;
+    state.events.publish(signal_core::SignalEvent::QueueChanged);
+    library_scan(state, root).await
+}
+
 /// Track + its artist/album display names, for now-playing UI + inspector.
 #[tauri::command]
 #[tracing::instrument(skip(state))]

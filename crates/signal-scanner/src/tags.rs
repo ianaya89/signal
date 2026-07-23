@@ -10,6 +10,9 @@ use signal_core::TrackTechnical;
 pub struct Extracted {
     pub title: String,
     pub artist: String,
+    /// ALBUMARTIST tag, falling back to `artist` — used to group albums so
+    /// "feat. X" track credits don't fragment an album.
+    pub album_artist: String,
     pub album: Option<String>,
     pub track_no: Option<u32>,
     pub disc_no: Option<u32>,
@@ -61,6 +64,11 @@ pub fn extract(path: &Path) -> Result<Extracted, ExtractError> {
     let artist = tag
         .and_then(Accessor::artist)
         .map_or_else(|| "Unknown Artist".to_owned(), std::borrow::Cow::into_owned);
+    let album_artist = tag
+        .and_then(|t| t.get_string(&ItemKey::AlbumArtist))
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map_or_else(|| artist.clone(), ToOwned::to_owned);
     let album = tag
         .and_then(Accessor::album)
         .map(std::borrow::Cow::into_owned);
@@ -99,6 +107,7 @@ pub fn extract(path: &Path) -> Result<Extracted, ExtractError> {
     Ok(Extracted {
         title,
         artist,
+        album_artist,
         album,
         track_no: tag.and_then(Accessor::track),
         disc_no: tag.and_then(Accessor::disk),
