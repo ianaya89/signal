@@ -26,6 +26,23 @@ Not another Apple Music clone. Not another Plexamp clone. **The LazyGit of music
 | [09 — Keyboard](docs/09-keyboard.md) | Mode stack, full binding tables, rebinding, discoverability |
 | [10 — Design system](docs/10-design-system.md) | Palette, typography, density, component specs, motion rules |
 
+## Development
+
+Rust toolchain is managed by [mise](https://mise.jdx.dev) (`mise.toml`).
+
+```sh
+# first time
+mise trust && mise install
+pnpm install
+brew install pkgconf mpv   # libmpv + its pkg-config metadata
+
+# run
+pnpm tauri dev
+```
+
+If `cargo` is not found, either activate mise in your shell
+(`eval "$(mise activate zsh)"` in `~/.zshrc`) or run `mise exec -- pnpm tauri dev`.
+
 ## Principles
 
 - Everything is local. Everything works offline.
