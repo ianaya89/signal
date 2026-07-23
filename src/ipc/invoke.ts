@@ -4,6 +4,8 @@ import type {
   AlbumDetail,
   AlbumSummary,
   ArtistSummary,
+  QueueEntry,
+  Track,
   TrackWithContext,
 } from "@/ipc/types";
 
@@ -22,7 +24,14 @@ export type IpcCommand =
   | "player_stop"
   | "player_seek"
   | "player_set_volume"
-  | "player_get_state";
+  | "player_get_state"
+  | "queue_list"
+  | "queue_add"
+  | "queue_remove"
+  | "queue_move"
+  | "queue_clear"
+  | "queue_play_next"
+  | "search_query";
 
 export function ipc<T>(
   command: IpcCommand,
@@ -46,4 +55,12 @@ export const api = {
   stop: () => ipc<void>("player_stop"),
   seek: (positionMs: number) => ipc<void>("player_seek", { positionMs }),
   setVolume: (volume: number) => ipc<void>("player_set_volume", { volume }),
+  queueList: () => ipc<QueueEntry[]>("queue_list"),
+  queueAdd: (trackId: number) => ipc<void>("queue_add", { trackId }),
+  queueRemove: (queueItemId: number) =>
+    ipc<void>("queue_remove", { queueItemId }),
+  queueMove: (orderedIds: number[]) => ipc<void>("queue_move", { orderedIds }),
+  queueClear: () => ipc<void>("queue_clear"),
+  queuePlayNext: () => ipc<boolean>("queue_play_next"),
+  search: (query: string) => ipc<Track[]>("search_query", { query }),
 };

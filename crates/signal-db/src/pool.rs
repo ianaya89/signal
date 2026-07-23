@@ -8,6 +8,7 @@ use sqlx::sqlite::{
 
 use crate::repositories::albums::AlbumRepo;
 use crate::repositories::artists::ArtistRepo;
+use crate::repositories::queue::QueueRepo;
 use crate::repositories::settings::SettingsRepo;
 use crate::repositories::tracks::TrackRepo;
 
@@ -53,6 +54,11 @@ impl DbPool {
     #[must_use]
     pub fn artists(&self) -> ArtistRepo {
         ArtistRepo::new(self.pool.clone())
+    }
+
+    #[must_use]
+    pub fn queue(&self) -> QueueRepo {
+        QueueRepo::new(self.pool.clone())
     }
 
     #[must_use]

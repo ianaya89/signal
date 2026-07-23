@@ -4,6 +4,7 @@ import { onSignalEvent } from "@/ipc/events";
 import type { ScannerDoneEvent, ScannerProgressEvent } from "@/ipc/types";
 import type { PlayerStateDto } from "@/stores/playerStore";
 import { usePlayerStore } from "@/stores/playerStore";
+import { useQueueStore } from "@/stores/queueStore";
 import { useScanStore } from "@/stores/scanStore";
 
 interface ProgressEvent {
@@ -33,4 +34,9 @@ export function bootstrapEvents(queryClient: QueryClient) {
   void onSignalEvent<ProgressEvent>("player:progress", (e) => {
     usePlayerStore.getState().applyProgress(e.positionMs, e.durationMs);
   });
+
+  void onSignalEvent("queue:changed", () => {
+    void useQueueStore.getState().refresh();
+  });
+  void useQueueStore.getState().refresh();
 }

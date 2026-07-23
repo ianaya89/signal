@@ -65,6 +65,18 @@ export interface TrackWithContext {
   albumName: string;
 }
 
+export interface QueueItem {
+  id: number;
+  position: number;
+  trackId: number;
+  addedAt: string;
+}
+
+export interface QueueEntry {
+  item: QueueItem;
+  track: Track;
+}
+
 export interface ScannerProgressEvent {
   processed: number;
   total: number;

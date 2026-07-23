@@ -9,6 +9,7 @@ repository.workspace = true
 [dependencies]
 signal-core = { workspace = true }
 signal-db = { workspace = true }
+sqlx = { workspace = true }
 thiserror = { workspace = true }
 
 [lints]

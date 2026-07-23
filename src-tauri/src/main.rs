@@ -3,6 +3,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod artwork;
+mod autoplay;
 mod bridge;
 mod commands;
 mod state;
@@ -35,6 +36,7 @@ fn main() {
             let db = tauri::async_runtime::block_on(DbPool::connect(&config.db_path))?;
             let events = EventBus::default();
             bridge::spawn(app.handle().clone(), &events);
+            autoplay::spawn(app.handle().clone(), &events);
             let player = signal_player::Player::new(events.clone())?;
 
             app.manage(AppState {
@@ -63,6 +65,13 @@ fn main() {
             commands::player::player_seek,
             commands::player::player_set_volume,
             commands::player::player_get_state,
+            commands::queue::queue_list,
+            commands::queue::queue_add,
+            commands::queue::queue_remove,
+            commands::queue::queue_move,
+            commands::queue::queue_clear,
+            commands::queue::queue_play_next,
+            commands::search::search_query,
         ])
         .run(tauri::generate_context!());
 

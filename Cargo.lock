@@ -3294,6 +3294,7 @@ version = "0.1.0"
 dependencies = [
  "signal-core",
  "signal-db",
+ "sqlx",
  "thiserror 1.0.69",
 ]
 

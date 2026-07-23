@@ -1,0 +1,186 @@
+import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import { api } from "@/ipc/invoke";
+import { useKeyboardStore } from "@/lib/keyboard";
+import { cn } from "@/lib/utils";
+
+interface Command {
+  id: string;
+  label: string;
+  hint?: string;
+  run: (arg?: string) => void | Promise<void>;
+  /// Commands taking free text (e.g. "scan <path>") match on prefix.
+  takesArg?: boolean;
+}
+
+export function CommandPalette() {
+  const mode = useKeyboardStore((s) => s.mode);
+  const setMode = useKeyboardStore((s) => s.setMode);
+  const navigate = useNavigate();
+  const [input, setInput] = useState("");
+  const [selected, setSelected] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const commands = useMemo<Command[]>(
+    () => [
+      {
+        id: "play-pause",
+        label: "play / pause",
+        hint: "space",
+        run: () => api.toggle(),
+      },
+      {
+        id: "stop",
+        label: "stop",
+        run: () => api.stop(),
+      },
+      {
+        id: "play-next",
+        label: "queue: play next",
+        run: async () => {
+          await api.queuePlayNext();
+        },
+      },
+      {
+        id: "queue-clear",
+        label: "queue: clear",
+        run: () => api.queueClear(),
+      },
+      {
+        id: "albums",
+        label: "go to albums",
+        run: () => navigate({ to: "/" }),
+      },
+      {
+        id: "artists",
+        label: "go to artists",
+        run: () => navigate({ to: "/artists" }),
+      },
+      {
+        id: "search",
+        label: "go to search",
+        hint: "/",
+        run: () => navigate({ to: "/search" }),
+      },
+      {
+        id: "scan",
+        label: "scan <path>",
+        takesArg: true,
+        run: (arg) => api.scanLibrary(arg ?? "~/Music"),
+      },
+    ],
+    [navigate],
+  );
+
+  const open = mode === "palette";
+
+  const matches = useMemo(() => {
+    const q = input.trim().toLowerCase();
+    if (!q) return commands;
+    return commands.filter((c) => {
+      if (c.takesArg) {
+        const verb = c.id.toLowerCase();
+        return verb.startsWith(q.split(" ")[0] ?? "") || fuzzy(c.label, q);
+      }
+      return fuzzy(c.label, q);
+    });
+  }, [commands, input]);
+
+  useEffect(() => {
+    if (open) {
+      setInput("");
+      setSelected(0);
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
+  }, [open]);
+
+  useEffect(() => {
+    setSelected(0);
+  }, [input]);
+
+  if (!open) return null;
+
+  const execute = async () => {
+    const cmd = matches[selected];
+    if (!cmd) return;
+    setMode("normal");
+    const arg = cmd.takesArg ? input.split(" ").slice(1).join(" ") || undefined : undefined;
+    try {
+      await cmd.run(arg);
+    } catch (err) {
+      console.error("palette command failed", err);
+    }
+  };
+
+  return (
+    <div
+      className="absolute inset-0 z-50 flex items-start justify-center bg-black/40 pt-[15vh]"
+      onMouseDown={() => setMode("normal")}
+    >
+      <div
+        className="w-[560px] border border-focus bg-raised shadow-lg"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <input
+          ref={inputRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              setMode("normal");
+            } else if (e.key === "Enter") {
+              e.preventDefault();
+              void execute();
+            } else if (e.key === "ArrowDown" || (e.key === "n" && e.ctrlKey)) {
+              e.preventDefault();
+              setSelected((s) => Math.min(s + 1, matches.length - 1));
+            } else if (e.key === "ArrowUp" || (e.key === "p" && e.ctrlKey)) {
+              e.preventDefault();
+              setSelected((s) => Math.max(s - 1, 0));
+            }
+          }}
+          placeholder="type a command…"
+          spellCheck={false}
+          className="w-full border-b border-subtle bg-transparent px-3 py-2 text-[13px] text-primary outline-none"
+        />
+        <ul className="max-h-72 overflow-auto py-1">
+          {matches.map((cmd, i) => (
+            <li
+              key={cmd.id}
+              onMouseEnter={() => setSelected(i)}
+              onClick={() => void execute()}
+              className={cn(
+                "flex h-7 cursor-default items-center justify-between px-3 text-[12px]",
+                i === selected ? "bg-surface text-accent" : "text-secondary",
+              )}
+            >
+              <span>{cmd.label}</span>
+              {cmd.hint && (
+                <kbd className="rounded-sm bg-base px-1 text-[10px] text-muted">
+                  {cmd.hint}
+                </kbd>
+              )}
+            </li>
+          ))}
+          {matches.length === 0 && (
+            <li className="px-3 py-2 text-[12px] text-muted">no matches</li>
+          )}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function fuzzy(haystack: string, needle: string): boolean {
+  let i = 0;
+  const h = haystack.toLowerCase();
+  for (const ch of needle) {
+    if (ch === " ") continue;
+    i = h.indexOf(ch, i);
+    if (i === -1) return false;
+    i += 1;
+  }
+  return true;
+}

@@ -14,7 +14,9 @@ mod row;
 pub use pool::DbPool;
 pub use repositories::albums::AlbumRepo;
 pub use repositories::artists::ArtistRepo;
+pub use repositories::queue::QueueRepo;
 pub use repositories::settings::SettingsRepo;
 pub use repositories::tracks::{NewTrack, TrackRepo};
+pub use row::track_from_row;
 
 pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("../../migrations");

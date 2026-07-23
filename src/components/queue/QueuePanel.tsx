@@ -1,0 +1,96 @@
+import { api } from "@/ipc/invoke";
+import { fmtDuration } from "@/lib/format";
+import { usePlayerStore } from "@/stores/playerStore";
+import { useQueueStore } from "@/stores/queueStore";
+
+export function QueuePanel() {
+  const entries = useQueueStore((s) => s.entries);
+  const playing = usePlayerStore((s) => s.status === "playing");
+
+  if (entries.length === 0) {
+    return (
+      <p className="px-2 py-2 text-[11px] text-muted">
+        queue empty — press <kbd className="rounded-sm bg-raised px-1">a</kbd> on
+        a track to stage it
+      </p>
+    );
+  }
+
+  const move = (index: number, delta: number) => {
+    const next = [...entries];
+    const target = index + delta;
+    if (target < 0 || target >= next.length) return;
+    const item = next[index];
+    if (!item) return;
+    next.splice(index, 1);
+    next.splice(target, 0, item);
+    void api.queueMove(next.map((e) => e.item.id));
+  };
+
+  return (
+    <div className="flex flex-col">
+      <div className="flex h-6 items-center justify-between px-2 text-[10px] text-muted">
+        <span>{entries.length} staged</span>
+        <div className="flex gap-2">
+          {!playing && entries.length > 0 && (
+            <button
+              type="button"
+              onClick={() => void api.queuePlayNext()}
+              className="hover:text-accent"
+            >
+              play
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => void api.queueClear()}
+            className="hover:text-error"
+          >
+            clear
+          </button>
+        </div>
+      </div>
+      <ul>
+        {entries.map((entry, i) => (
+          <li
+            key={entry.item.id}
+            className="group flex h-6 items-center gap-2 px-2 hover:bg-raised"
+          >
+            <span className="w-4 shrink-0 text-right text-[10px] text-muted">
+              {i + 1}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-[11px] text-secondary">
+              {entry.track.title}
+            </span>
+            <span className="shrink-0 text-[10px] text-muted">
+              {fmtDuration(entry.track.durationMs)}
+            </span>
+            <span className="hidden shrink-0 gap-1 text-[10px] group-hover:flex">
+              <button
+                type="button"
+                onClick={() => move(i, -1)}
+                className="text-muted hover:text-accent"
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                onClick={() => move(i, 1)}
+                className="text-muted hover:text-accent"
+              >
+                ↓
+              </button>
+              <button
+                type="button"
+                onClick={() => void api.queueRemove(entry.item.id)}
+                className="text-muted hover:text-error"
+              >
+                ✕
+              </button>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
