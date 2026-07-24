@@ -6,6 +6,7 @@ import type {
   ArtistDetail,
   ArtistSummary,
   AudioDevice,
+  PlayMode,
   PlaylistDetail,
   PlaylistSummary,
   QueueEntry,
@@ -59,7 +60,11 @@ export type IpcCommand =
   | "library_rename_artist"
   | "library_rename_album"
   | "library_rename_track"
-  | "library_set_album_artwork";
+  | "library_set_album_artwork"
+  | "track_set_rating"
+  | "track_toggle_favorite"
+  | "player_set_mode"
+  | "player_get_mode";
 
 export function ipc<T>(
   command: IpcCommand,
@@ -127,4 +132,10 @@ export const api = {
     ipc<void>("library_rename_track", { trackId, title }),
   setAlbumArtwork: (albumId: number, sourcePath: string) =>
     ipc<void>("library_set_album_artwork", { albumId, sourcePath }),
+  setRating: (trackId: number, rating: number) =>
+    ipc<void>("track_set_rating", { trackId, rating }),
+  toggleFavorite: (trackId: number) =>
+    ipc<boolean>("track_toggle_favorite", { trackId }),
+  setPlayMode: (mode: PlayMode) => ipc<void>("player_set_mode", { mode }),
+  getPlayMode: () => ipc<PlayMode>("player_get_mode"),
 };

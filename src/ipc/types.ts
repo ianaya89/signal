@@ -104,6 +104,13 @@ export interface AudioDevice {
 
 export type ReplayGainMode = "off" | "track" | "album";
 
+export type RepeatMode = "off" | "all" | "one";
+
+export interface PlayMode {
+  shuffle: boolean;
+  repeat: RepeatMode;
+}
+
 export interface DayCount {
   day: string;
   plays: number;

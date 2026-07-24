@@ -55,8 +55,17 @@ pub fn spawn(app: AppHandle, events: &EventBus) {
     });
 }
 
-/// Next track to play: queue head, else next in the play context.
+/// Next track to play. Priority: repeat-one (current again) → queue head →
+/// play context (shuffle/repeat-all aware).
 pub async fn next_candidate(state: &State<'_, AppState>) -> Option<i64> {
+    let mode = state.play_mode.lock().map(|m| *m).unwrap_or_default();
+
+    if mode.repeat == crate::state::Repeat::One {
+        if let Some(current) = state.player.state().track_id {
+            return Some(current);
+        }
+    }
+
     match state.db.queue().first().await {
         Ok(Some(entry)) => return Some(entry.track.id),
         Ok(None) => {}
@@ -65,11 +74,12 @@ pub async fn next_candidate(state: &State<'_, AppState>) -> Option<i64> {
             return None;
         }
     }
-    state.play_context.lock().ok()?.peek_next()
+    state.play_context.lock().ok()?.peek_next(mode)
 }
 
 /// Marks `track_id` as consumed: pops it from the queue if it is the head,
-/// otherwise advances the play context onto it.
+/// otherwise repositions the play context onto it (covers linear advance,
+/// shuffle jumps and repeat-all wraps alike).
 pub async fn consume(state: &State<'_, AppState>, track_id: i64) {
     match state.db.queue().first().await {
         Ok(Some(entry)) if entry.track.id == track_id => {
@@ -83,7 +93,7 @@ pub async fn consume(state: &State<'_, AppState>, track_id: i64) {
         Err(err) => tracing::error!("queue peek failed: {err}"),
     }
     if let Ok(mut ctx) = state.play_context.lock() {
-        if !ctx.advance_to(track_id) {
+        if !ctx.jump_to(track_id) {
             tracing::debug!(track_id, "advance outside queue and context");
         }
     }

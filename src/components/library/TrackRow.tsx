@@ -37,7 +37,7 @@ export function TrackRow({
       onClick={onSelect}
       onDoubleClick={() => (onPlay ? onPlay() : void api.play(track.id))}
       className={cn(
-        "h-7 cursor-default",
+        "group h-7 cursor-default",
         selected ? "bg-raised" : "hover:bg-raised/50",
       )}
     >
@@ -82,6 +82,28 @@ export function TrackRow({
         >
           [{t.codec}] [{fmtQuality(t.bitDepth, t.sampleRateHz)}]
         </span>
+      </td>
+      <td className="w-12 pr-1 text-right text-[11px]">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            void api
+              .toggleFavorite(track.id)
+              .then(() => queryClient.invalidateQueries());
+          }}
+          title="favorite (f)"
+          className={cn(
+            track.favorite
+              ? "text-accent"
+              : "text-muted opacity-0 hover:text-accent group-hover:opacity-100",
+          )}
+        >
+          {track.favorite ? "♥" : "♡"}
+        </button>
+        {track.rating ? (
+          <span className="ml-1 text-[10px] text-warn">{track.rating}★</span>
+        ) : null}
       </td>
       <td className="w-12 pr-3 text-right text-[11px] text-muted">
         {fmtDuration(track.durationMs)}

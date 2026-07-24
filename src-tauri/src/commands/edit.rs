@@ -71,6 +71,45 @@ pub async fn library_rename_track(
         .db_err()
 }
 
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn track_set_rating(
+    state: State<'_, AppState>,
+    track_id: i64,
+    rating: u8,
+) -> Result<(), SignalError> {
+    state
+        .db
+        .tracks()
+        .set_rating(track_id, rating)
+        .await
+        .db_err()
+}
+
+/// Toggles and returns the new favorite state.
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn track_toggle_favorite(
+    state: State<'_, AppState>,
+    track_id: i64,
+) -> Result<bool, SignalError> {
+    let track = state
+        .db
+        .tracks()
+        .get(track_id)
+        .await
+        .db_err()?
+        .ok_or_else(|| SignalError::Db(format!("track {track_id} not found")))?;
+    let next = !track.favorite;
+    state
+        .db
+        .tracks()
+        .set_favorite(track_id, next)
+        .await
+        .db_err()?;
+    Ok(next)
+}
+
 /// Copies a user-picked image into the artwork cache and points the album
 /// at it (original file stays where it is).
 #[tauri::command]

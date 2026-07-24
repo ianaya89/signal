@@ -3,6 +3,8 @@ import { useRef } from "react";
 
 import { api } from "@/ipc/invoke";
 import { fmtDuration } from "@/lib/format";
+import { cn } from "@/lib/utils";
+import { usePlayModeStore } from "@/stores/playModeStore";
 import { usePlayerStore } from "@/stores/playerStore";
 
 export function TransportBar() {
@@ -48,7 +50,54 @@ export function TransportBar() {
       <span className="shrink-0 text-[11px] text-muted">
         {fmtDuration(durationMs)}
       </span>
+      <ModeButtons />
+      <VolumeSlider />
     </div>
+  );
+}
+
+function ModeButtons() {
+  const { shuffle, repeat, toggleShuffle, cycleRepeat } = usePlayModeStore();
+  return (
+    <span className="flex shrink-0 gap-1.5">
+      <button
+        type="button"
+        onClick={toggleShuffle}
+        title="shuffle"
+        className={cn("text-[11px]", shuffle ? "text-accent" : "text-muted hover:text-secondary")}
+      >
+        ⇄
+      </button>
+      <button
+        type="button"
+        onClick={cycleRepeat}
+        title={`repeat: ${repeat}`}
+        className={cn(
+          "text-[11px]",
+          repeat === "off" ? "text-muted hover:text-secondary" : "text-accent",
+        )}
+      >
+        {repeat === "one" ? "⟳¹" : "⟳"}
+      </button>
+    </span>
+  );
+}
+
+function VolumeSlider() {
+  const volume = usePlayerStore((s) => s.volume);
+  return (
+    <span className="flex shrink-0 items-center gap-1">
+      <span className="text-[10px] text-muted">{volume === 0 ? "🔇" : "vol"}</span>
+      <input
+        type="range"
+        min={0}
+        max={100}
+        value={Math.round(volume * 100)}
+        onChange={(e) => void api.setVolume(Number(e.target.value))}
+        className="h-0.5 w-16 cursor-pointer appearance-none bg-subtle accent-[var(--accent)]"
+        title={`${Math.round(volume * 100)}% (m mute, +/- adjust)`}
+      />
+    </span>
   );
 }
 

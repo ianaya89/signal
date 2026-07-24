@@ -8,6 +8,7 @@ import type {
 } from "@/ipc/types";
 import { api } from "@/ipc/invoke";
 import { useLogStore } from "@/stores/logStore";
+import { usePlayModeStore } from "@/stores/playModeStore";
 import type { PlayerStateDto } from "@/stores/playerStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useQueueStore } from "@/stores/queueStore";
@@ -33,6 +34,11 @@ export function bootstrapEvents(queryClient: QueryClient) {
         useUiStore.getState().setTheme(theme, false);
       }
     })
+    .catch(() => {});
+
+  void api
+    .getPlayMode()
+    .then((mode) => usePlayModeStore.getState().restore(mode))
     .catch(() => {});
 
   void api

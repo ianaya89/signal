@@ -21,6 +21,8 @@ use tracing_subscriber::util::SubscriberInitExt as _;
 
 use crate::state::AppState;
 
+// one linear registration block — length is boilerplate, not complexity
+#[allow(clippy::too_many_lines)]
 fn main() {
     let events = EventBus::default();
 
@@ -56,9 +58,10 @@ fn main() {
                 scanning: Arc::new(AtomicBool::new(false)),
                 watcher: Mutex::new(None),
                 play_context: Mutex::new(state::PlayContext::default()),
+                play_mode: Mutex::new(state::PlayMode::default()),
             });
 
-            // watch the stored library root, if any
+            // watch the stored library root + restore play mode
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 let state = handle.state::<AppState>();
@@ -66,6 +69,13 @@ fn main() {
                     Ok(Some(root)) => state.start_watcher(std::path::Path::new(&root)),
                     Ok(None) => {}
                     Err(err) => tracing::warn!("library.root read failed: {err}"),
+                }
+                if let Ok(Some(raw)) = state.db.settings().get("player.mode").await {
+                    if let Ok(mode) = serde_json::from_str::<state::PlayMode>(&raw) {
+                        if let Ok(mut guard) = state.play_mode.lock() {
+                            *guard = mode;
+                        }
+                    }
                 }
             });
 
@@ -117,6 +127,10 @@ fn main() {
             commands::edit::library_rename_album,
             commands::edit::library_rename_track,
             commands::edit::library_set_album_artwork,
+            commands::edit::track_set_rating,
+            commands::edit::track_toggle_favorite,
+            commands::player::player_set_mode,
+            commands::player::player_get_mode,
         ])
         .run(tauri::generate_context!());
 

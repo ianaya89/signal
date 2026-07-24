@@ -114,6 +114,25 @@ impl TrackRepo {
             .await
     }
 
+    /// `rating` 0 clears.
+    pub async fn set_rating(&self, id: i64, rating: u8) -> sqlx::Result<()> {
+        sqlx::query("UPDATE tracks SET rating = ?2 WHERE id = ?1")
+            .bind(id)
+            .bind(i64::from(rating.min(5)))
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn set_favorite(&self, id: i64, favorite: bool) -> sqlx::Result<()> {
+        sqlx::query("UPDATE tracks SET favorite = ?2 WHERE id = ?1")
+            .bind(id)
+            .bind(i64::from(favorite))
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
     /// Retitles a track; the FTS row follows via the update trigger.
     pub async fn rename(&self, id: i64, new_title: &str) -> sqlx::Result<()> {
         sqlx::query(

@@ -25,6 +25,8 @@ export interface ListHandler {
   stage?: () => void; // 'a' — add to queue (git-add metaphor)
   remove?: () => void; // 'x'
   back?: () => void; // Esc
+  fav?: () => void; // 'f' — toggle favorite
+  rate?: (rating: number) => void; // 'r' then 0-5
 }
 
 let listHandler: ListHandler | null = null;
@@ -52,4 +54,20 @@ export function handleSequenceG(): "top" | "pending" {
   }
   pendingG = now;
   return "pending";
+}
+
+// r+digit rating sequence
+let pendingR = 0;
+
+export function armRating() {
+  pendingR = Date.now();
+}
+
+/** Returns true when a digit arrives inside the r-sequence window. */
+export function ratingArmed(): boolean {
+  if (Date.now() - pendingR < SEQ_TIMEOUT_MS) {
+    pendingR = 0;
+    return true;
+  }
+  return false;
 }

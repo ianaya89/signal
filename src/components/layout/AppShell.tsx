@@ -8,8 +8,18 @@ import { StatusBar } from "@/components/layout/StatusBar";
 import { CommandPalette } from "@/components/palette/CommandPalette";
 import { QueuePanel } from "@/components/queue/QueuePanel";
 import { api } from "@/ipc/invoke";
-import { currentListHandler, handleSequenceG, useKeyboardStore } from "@/lib/keyboard";
+import {
+  armRating,
+  currentListHandler,
+  handleSequenceG,
+  ratingArmed,
+  useKeyboardStore,
+} from "@/lib/keyboard";
+import { usePlayerStore } from "@/stores/playerStore";
 import { useUiStore } from "@/stores/uiStore";
+
+// remembered across mute toggles (module-level; survives re-renders)
+let lastVolume = 1;
 
 export function AppShell() {
   const cycleFocus = useUiStore((s) => s.cycleFocus);
@@ -93,6 +103,43 @@ export function AppShell() {
           break;
         case "i":
           useUiStore.getState().togglePane("inspector");
+          break;
+        case "f":
+          currentListHandler()?.fav?.();
+          break;
+        case "r":
+          armRating();
+          break;
+        case "0":
+        case "1":
+        case "2":
+        case "3":
+        case "4":
+        case "5":
+          if (ratingArmed()) {
+            currentListHandler()?.rate?.(Number(e.key));
+          }
+          break;
+        case "m": {
+          const vol = usePlayerStore.getState().volume;
+          if (vol > 0) {
+            lastVolume = vol;
+            void api.setVolume(0);
+          } else {
+            void api.setVolume(Math.round((lastVolume || 1) * 100));
+          }
+          break;
+        }
+        case "=":
+        case "+":
+          void api.setVolume(
+            Math.min(Math.round(usePlayerStore.getState().volume * 100) + 5, 100),
+          );
+          break;
+        case "-":
+          void api.setVolume(
+            Math.max(Math.round(usePlayerStore.getState().volume * 100) - 5, 0),
+          );
           break;
         default:
           break;

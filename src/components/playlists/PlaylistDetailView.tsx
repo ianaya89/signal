@@ -58,6 +58,22 @@ export function PlaylistDetailView() {
         const track = tracksRef.current[cursorRef.current];
         if (track) void api.queueAdd(track.id);
       },
+      fav: () => {
+        const track = tracksRef.current[cursorRef.current];
+        if (track) {
+          void api
+            .toggleFavorite(track.id)
+            .then(() => queryClient.invalidateQueries());
+        }
+      },
+      rate: (rating) => {
+        const track = tracksRef.current[cursorRef.current];
+        if (track) {
+          void api
+            .setRating(track.id, rating)
+            .then(() => queryClient.invalidateQueries());
+        }
+      },
       remove: () => removeAt(cursorRef.current),
       back: () => void navigate({ to: "/playlists" }),
     });

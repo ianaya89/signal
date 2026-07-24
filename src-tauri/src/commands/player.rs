@@ -124,3 +124,26 @@ pub async fn player_next(state: State<'_, AppState>) -> Result<bool, SignalError
 pub async fn player_prev(state: State<'_, AppState>) -> Result<(), SignalError> {
     state.player.seek_ms(0).player_err()
 }
+
+/// Sets shuffle/repeat; persisted so it survives restarts.
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn player_set_mode(
+    state: State<'_, AppState>,
+    mode: crate::state::PlayMode,
+) -> Result<(), SignalError> {
+    if let Ok(mut guard) = state.play_mode.lock() {
+        *guard = mode;
+    }
+    let json = serde_json::to_string(&mode).unwrap_or_default();
+    state.db.settings().set("player.mode", &json).await.db_err()
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+#[allow(clippy::unnecessary_wraps)]
+pub async fn player_get_mode(
+    state: State<'_, AppState>,
+) -> Result<crate::state::PlayMode, SignalError> {
+    Ok(state.play_mode.lock().map(|m| *m).unwrap_or_default())
+}
