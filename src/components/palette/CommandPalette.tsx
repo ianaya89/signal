@@ -6,6 +6,7 @@ import { useKeyboardStore } from "@/lib/keyboard";
 import { pickFolder } from "@/lib/pickFolder";
 import { cn } from "@/lib/utils";
 import { useScanStore } from "@/stores/scanStore";
+import { useUiStore } from "@/stores/uiStore";
 
 interface Command {
   id: string;
@@ -78,6 +79,11 @@ export function CommandPalette() {
         run: async () => {
           await api.next();
         },
+      },
+      {
+        id: "theme",
+        label: "theme: toggle dark / light",
+        run: () => useUiStore.getState().toggleTheme(),
       },
       {
         id: "scan-folder",

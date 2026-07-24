@@ -6,10 +6,12 @@ import type {
   ScannerErrorEvent,
   ScannerProgressEvent,
 } from "@/ipc/types";
+import { api } from "@/ipc/invoke";
 import type { PlayerStateDto } from "@/stores/playerStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useQueueStore } from "@/stores/queueStore";
 import { useScanStore } from "@/stores/scanStore";
+import { useUiStore } from "@/stores/uiStore";
 
 interface ProgressEvent {
   positionMs: number;
@@ -21,6 +23,16 @@ export function bootstrapEvents(queryClient: QueryClient) {
   if (!("__TAURI_INTERNALS__" in window)) {
     return; // plain-browser dev: no tauri runtime, no events
   }
+
+  // restore persisted theme without re-persisting it
+  void api
+    .settingsGet("ui.theme")
+    .then((theme) => {
+      if (theme === "light" || theme === "dark") {
+        useUiStore.getState().setTheme(theme, false);
+      }
+    })
+    .catch(() => {});
 
   void onSignalEvent<ScannerProgressEvent>("scanner:progress", (p) => {
     useScanStore.getState().progress(p);

@@ -40,6 +40,53 @@
   --radius-sm: 4px;
 }
 
+/* Manila light theme — warm paper, ink text, sealing-wax accent */
+:root[data-theme="light"] {
+  /* surfaces */
+  --bg-base: #e8dec7; /* manila paper */
+  --bg-surface: #f2ead8; /* pane bodies */
+  --bg-raised: #e0d3b4; /* selected rows, chips, popovers */
+
+  /* borders */
+  --border-subtle: #c9b995;
+  --border-focus: #bf5b3f;
+
+  /* text — warm ink */
+  --text-primary: #3d3427;
+  --text-secondary: #5f5340;
+  --text-muted: #8f8163;
+
+  /* accent — sealing wax */
+  --accent: #bf5b3f;
+  --accent-dim: #d9a08c;
+
+  /* semantic — stamp-pad inks */
+  --ok: #4a7c59;
+  --warn: #a97b23;
+  --error: #b3402e;
+  --info: #5a6fae;
+
+  /* audio-specific */
+  --bitperfect: #4a7c59;
+  --lossy: #a97b23;
+  --hires: #7c5eb0;
+}
+
+:root[data-theme="light"] body {
+  background:
+    radial-gradient(
+      1200px 500px at 12% -10%,
+      color-mix(in srgb, var(--accent) 6%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      1000px 460px at 95% -12%,
+      color-mix(in srgb, var(--info) 5%, transparent),
+      transparent 55%
+    ),
+    var(--bg-base);
+}
+
 @theme inline {
   --color-base: var(--bg-base);
   --color-surface: var(--bg-surface);
