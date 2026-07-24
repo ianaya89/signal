@@ -1,8 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { ScanForm } from "@/components/library/ScanForm";
+import { EditableText } from "@/components/ui/EditableText";
 import { api } from "@/ipc/invoke";
 import type { AlbumSummary } from "@/ipc/types";
 import { artworkUrl } from "@/lib/artwork";
@@ -37,14 +38,18 @@ export function AlbumsView() {
 
 function AlbumCard({ album }: { album: AlbumSummary }) {
   const [artError, setArtError] = useState(false);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const open = () =>
+    void navigate({
+      to: "/albums/$albumId",
+      params: { albumId: String(album.id) },
+    });
 
   return (
-    <Link
-      to="/albums/$albumId"
-      params={{ albumId: String(album.id) }}
-      className="group flex flex-col gap-1"
-    >
-      <div className="aspect-square overflow-hidden rounded-[var(--radius)] border border-subtle bg-raised transition-all duration-120 group-hover:-translate-y-0.5 group-hover:border-focus group-hover:shadow-[0_6px_20px_-6px_color-mix(in_srgb,var(--accent)_35%,transparent)]">
+    <div className="group flex cursor-pointer flex-col gap-1" onClick={open}>
+      <div className="aspect-square overflow-hidden border border-subtle bg-raised group-hover:border-focus">
         {album.artworkPath && !artError ? (
           <img
             src={artworkUrl(album.id)}
@@ -59,13 +64,19 @@ function AlbumCard({ album }: { album: AlbumSummary }) {
           </div>
         )}
       </div>
-      <span className="truncate text-[12px] text-primary group-hover:text-accent">
-        {album.name}
-      </span>
+      <EditableText
+        value={album.name}
+        className="text-[12px] text-primary group-hover:text-accent"
+        inputClassName="w-full text-[12px] text-primary"
+        onSave={async (name) => {
+          await api.renameAlbum(album.id, name);
+          await queryClient.invalidateQueries();
+        }}
+      />
       <span className="truncate text-[11px] text-muted">
         {album.artistName}
         {album.year ? ` · ${album.year}` : ""}
       </span>
-    </Link>
+    </div>
   );
 }

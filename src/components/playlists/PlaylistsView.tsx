@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
+import { EditableText } from "@/components/ui/EditableText";
 import { api } from "@/ipc/invoke";
 
 export function PlaylistsView() {
@@ -52,9 +53,13 @@ export function PlaylistsView() {
       </form>
 
       <Section title="smart" items={smart} smartBadge />
-      <Section title="playlists" items={statics} onDeleted={() =>
-        void queryClient.invalidateQueries({ queryKey: ["playlists"] })
-      } />
+      <Section
+        title="playlists"
+        items={statics}
+        onChanged={() =>
+          void queryClient.invalidateQueries({ queryKey: ["playlists"] })
+        }
+      />
     </div>
   );
 }
@@ -63,13 +68,14 @@ function Section({
   title,
   items,
   smartBadge = false,
-  onDeleted,
+  onChanged,
 }: {
   title: string;
   items: { id: number; name: string; trackCount: number; smart: boolean }[];
   smartBadge?: boolean;
-  onDeleted?: () => void;
+  onChanged?: () => void;
 }) {
+  const navigate = useNavigate();
   if (items.length === 0) return null;
   return (
     <section>
@@ -79,20 +85,36 @@ function Section({
       <ul className="flex flex-col gap-px">
         {items.map((p) => (
           <li key={`${p.smart}-${p.id}`} className="group flex items-center">
-            <Link
-              to="/playlists/$kind/$playlistId"
-              params={{
-                kind: p.smart ? "smart" : "static",
-                playlistId: String(p.id),
-              }}
-              className="flex h-7 min-w-0 flex-1 items-center justify-between rounded-[var(--radius-sm)] px-2 hover:bg-raised"
+            <div
+              onClick={() =>
+                void navigate({
+                  to: "/playlists/$kind/$playlistId",
+                  params: {
+                    kind: p.smart ? "smart" : "static",
+                    playlistId: String(p.id),
+                  },
+                })
+              }
+              className="flex h-7 min-w-0 flex-1 cursor-pointer items-center justify-between px-2 hover:bg-raised"
             >
               <span className="flex min-w-0 items-center gap-2">
-                <span className="truncate text-[12px] text-primary">
-                  {p.name}
-                </span>
+                {p.smart ? (
+                  <span className="truncate text-[12px] text-primary">
+                    {p.name}
+                  </span>
+                ) : (
+                  <EditableText
+                    value={p.name}
+                    className="min-w-0 text-[12px] text-primary"
+                    inputClassName="w-48 text-[12px] text-primary"
+                    onSave={async (name) => {
+                      await api.playlistRename(p.id, name);
+                      onChanged?.();
+                    }}
+                  />
+                )}
                 {smartBadge && (
-                  <span className="shrink-0 rounded-[var(--radius-sm)] bg-raised px-1 text-[9px] text-hires">
+                  <span className="shrink-0 bg-raised px-1 text-[9px] text-hires">
                     smart
                   </span>
                 )}
@@ -102,12 +124,12 @@ function Section({
                   {p.trackCount} tracks
                 </span>
               )}
-            </Link>
-            {!p.smart && onDeleted && (
+            </div>
+            {!p.smart && onChanged && (
               <button
                 type="button"
                 onClick={() => {
-                  void api.playlistDelete(p.id).then(onDeleted);
+                  void api.playlistDelete(p.id).then(onChanged);
                 }}
                 title="delete playlist"
                 className="hidden px-2 text-[11px] text-muted hover:text-error group-hover:block"

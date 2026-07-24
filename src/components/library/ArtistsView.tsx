@@ -1,9 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 
+import { EditableText } from "@/components/ui/EditableText";
 import { api } from "@/ipc/invoke";
 
 export function ArtistsView() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data: artists, isLoading } = useQuery({
     queryKey: ["artists"],
     queryFn: api.listArtists,
@@ -19,19 +22,29 @@ export function ArtistsView() {
   return (
     <div className="py-1">
       {artists.map((artist) => (
-        <Link
+        <div
           key={artist.id}
-          to="/artists/$artistId"
-          params={{ artistId: String(artist.id) }}
-          className="flex h-7 cursor-default items-center justify-between px-3 hover:bg-raised"
+          onClick={() =>
+            void navigate({
+              to: "/artists/$artistId",
+              params: { artistId: String(artist.id) },
+            })
+          }
+          className="flex h-7 cursor-pointer items-center justify-between px-3 hover:bg-raised"
         >
-          <span className="truncate text-[12px] text-primary hover:text-accent">
-            {artist.name}
-          </span>
+          <EditableText
+            value={artist.name}
+            className="min-w-0 text-[12px] text-primary"
+            inputClassName="w-56 text-[12px] text-primary"
+            onSave={async (name) => {
+              await api.renameArtist(artist.id, name);
+              await queryClient.invalidateQueries();
+            }}
+          />
           <span className="shrink-0 text-[11px] text-muted">
             {artist.albumCount} albums · {artist.trackCount} tracks
           </span>
-        </Link>
+        </div>
       ))}
     </div>
   );

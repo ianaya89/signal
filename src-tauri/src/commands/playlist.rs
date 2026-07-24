@@ -65,6 +65,25 @@ pub async fn playlist_create(state: State<'_, AppState>, name: String) -> Result
 
 #[tauri::command]
 #[tracing::instrument(skip(state))]
+pub async fn playlist_rename(
+    state: State<'_, AppState>,
+    playlist_id: i64,
+    name: String,
+) -> Result<(), SignalError> {
+    let trimmed = name.trim();
+    if trimmed.is_empty() {
+        return Err(SignalError::Db("playlist name is empty".into()));
+    }
+    state
+        .db
+        .playlists()
+        .rename(playlist_id, trimmed)
+        .await
+        .db_err()
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
 pub async fn playlist_delete(
     state: State<'_, AppState>,
     playlist_id: i64,

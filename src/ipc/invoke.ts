@@ -51,6 +51,7 @@ export type IpcCommand =
   | "playlist_list"
   | "playlist_get"
   | "playlist_create"
+  | "playlist_rename"
   | "playlist_delete"
   | "playlist_add_tracks"
   | "playlist_remove_track"
@@ -108,6 +109,8 @@ export const api = {
   playlistGet: (playlistId: number, smart: boolean) =>
     ipc<PlaylistDetail>("playlist_get", { playlistId, smart }),
   playlistCreate: (name: string) => ipc<number>("playlist_create", { name }),
+  playlistRename: (playlistId: number, name: string) =>
+    ipc<void>("playlist_rename", { playlistId, name }),
   playlistDelete: (playlistId: number) =>
     ipc<void>("playlist_delete", { playlistId }),
   playlistAddTracks: (playlistId: number, trackIds: number[]) =>

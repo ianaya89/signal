@@ -108,6 +108,7 @@ fn main() {
             commands::playlist::playlist_list,
             commands::playlist::playlist_get,
             commands::playlist::playlist_create,
+            commands::playlist::playlist_rename,
             commands::playlist::playlist_delete,
             commands::playlist::playlist_add_tracks,
             commands::playlist::playlist_remove_track,

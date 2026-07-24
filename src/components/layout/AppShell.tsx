@@ -105,7 +105,7 @@ export function AppShell() {
   return (
     <div className="relative flex h-full flex-col">
       <TitleBar />
-      <div className="flex min-h-0 flex-1 px-1.5">
+      <div className="flex min-h-0 flex-1 px-1">
         {libraryVisible && (
           <>
             <Pane
@@ -181,9 +181,9 @@ function Resizer({ pane }: { pane: "library" | "inspector" }) {
       onMouseDown={onMouseDown}
       onDoubleClick={() => togglePane(pane)}
       title="drag to resize · double-click to hide"
-      className="group flex w-1.5 shrink-0 cursor-col-resize items-center justify-center"
+      className="group flex w-1 shrink-0 cursor-col-resize items-center justify-center"
     >
-      <div className="h-8 w-0.5 rounded-full bg-subtle transition-colors group-hover:bg-accent" />
+      <div className="h-10 w-0.5 bg-subtle group-hover:bg-accent" />
     </div>
   );
 }
@@ -194,13 +194,12 @@ function TitleBar() {
   return (
     <header
       data-tauri-drag-region
-      className="flex h-9 shrink-0 select-none items-center justify-center"
+      className="flex h-9 shrink-0 select-none items-center pl-[84px]"
     >
-      <span
-        data-tauri-drag-region
-        className="pointer-events-none text-[11px] tracking-[0.35em] text-muted"
-      >
-        s i g n a l
+      <span data-tauri-drag-region className="pointer-events-none text-[11px]">
+        <span className="text-accent">❯</span>{" "}
+        <span className="text-secondary">signal</span>
+        <span className="text-muted"> — local-first hi-fi player</span>
       </span>
     </header>
   );

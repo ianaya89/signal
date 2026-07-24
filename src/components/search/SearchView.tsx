@@ -1,6 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 
+import { EditableText } from "@/components/ui/EditableText";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { fmtDuration, fmtQuality, isHires, isLossy } from "@/lib/format";
@@ -89,6 +90,7 @@ export function SearchView() {
 function ResultRow({ track, onPlay }: { track: Track; onPlay: () => void }) {
   const t = track.technical;
   const playing = usePlayerStore((s) => s.trackId === track.id);
+  const queryClient = useQueryClient();
   return (
     <tr
       onDoubleClick={onPlay}
@@ -104,11 +106,19 @@ function ResultRow({ track, onPlay }: { track: Track; onPlay: () => void }) {
       </td>
       <td
         className={cn(
-          "truncate pr-2 text-[12px]",
+          "max-w-0 truncate pr-2 text-[12px]",
           playing ? "text-accent" : "text-primary",
         )}
       >
-        {track.title}
+        <EditableText
+          value={track.title}
+          className="max-w-full"
+          inputClassName="w-full text-[12px] text-primary"
+          onSave={async (title) => {
+            await api.renameTrack(track.id, title);
+            await queryClient.invalidateQueries();
+          }}
+        />
       </td>
       <td className="w-28 pr-2">
         <span

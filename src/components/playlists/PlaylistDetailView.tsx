@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
 import { TrackRow } from "@/components/library/TrackRow";
+import { EditableText } from "@/components/ui/EditableText";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { registerListHandler } from "@/lib/keyboard";
@@ -71,7 +72,20 @@ export function PlaylistDetailView() {
   return (
     <div className="flex h-full flex-col">
       <header className="flex shrink-0 items-center gap-2 border-b border-subtle p-3">
-        <h1 className="text-[16px] text-primary">{data.name}</h1>
+        <h1 className="text-[16px] text-primary">
+          {data.smart ? (
+            data.name
+          ) : (
+            <EditableText
+              value={data.name}
+              inputClassName="w-64 text-[16px] text-primary"
+              onSave={async (name) => {
+                await api.playlistRename(id, name);
+                await queryClient.invalidateQueries();
+              }}
+            />
+          )}
+        </h1>
         {data.smart && (
           <span className="rounded-[var(--radius-sm)] bg-raised px-1.5 py-0.5 text-[10px] text-hires">
             smart

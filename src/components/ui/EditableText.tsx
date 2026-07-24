@@ -36,6 +36,12 @@ export function EditableText({
     }
   };
 
+  // stop row-level Link/double-click handlers from firing while editing
+  const swallow = (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
   if (editing) {
     return (
       <input
@@ -43,6 +49,9 @@ export function EditableText({
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={() => void commit()}
+        onClick={swallow}
+        onMouseDown={(e) => e.stopPropagation()}
+        onDoubleClick={swallow}
         onKeyDown={(e) => {
           e.stopPropagation();
           if (e.key === "Enter") void commit();
@@ -50,7 +59,7 @@ export function EditableText({
         }}
         spellCheck={false}
         className={cn(
-          "rounded-[var(--radius-sm)] border border-focus bg-base/60 px-1 outline-none",
+          "border border-focus bg-base/60 px-1 outline-none",
           inputClassName ?? className,
         )}
       />
@@ -62,7 +71,11 @@ export function EditableText({
       <span className="truncate">{value}</span>
       <button
         type="button"
-        onClick={() => setEditing(true)}
+        onClick={(e) => {
+          swallow(e);
+          setEditing(true);
+        }}
+        onDoubleClick={swallow}
         title="rename"
         className="invisible shrink-0 text-[10px] text-muted hover:text-accent group-hover/edit:visible"
       >

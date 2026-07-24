@@ -32,6 +32,19 @@ impl PlaylistRepo {
             .await
     }
 
+    pub async fn rename(&self, id: i64, new_name: &str) -> sqlx::Result<()> {
+        sqlx::query(
+            "UPDATE playlists SET name = ?2,
+                    updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+             WHERE id = ?1",
+        )
+        .bind(id)
+        .bind(new_name)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
     pub async fn delete(&self, id: i64) -> sqlx::Result<()> {
         sqlx::query("DELETE FROM playlists WHERE id = ?1")
             .bind(id)
