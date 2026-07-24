@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 const SECTIONS = [
   { label: "albums", to: "/", exact: true },
   { label: "artists", to: "/artists", exact: false },
+  { label: "playlists", to: "/playlists", exact: false },
   { label: "stats", to: "/stats", exact: false },
   { label: "logs", to: "/logs", exact: false },
 ] as const;

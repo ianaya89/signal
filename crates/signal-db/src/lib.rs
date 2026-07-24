@@ -10,10 +10,12 @@
 mod pool;
 mod repositories;
 mod row;
+pub mod smart;
 
 pub use pool::DbPool;
 pub use repositories::albums::AlbumRepo;
 pub use repositories::artists::ArtistRepo;
+pub use repositories::playlists::{PlaylistRepo, PlaylistSummary};
 pub use repositories::queue::QueueRepo;
 pub use repositories::settings::SettingsRepo;
 pub use repositories::stats::{DayCount, NameCount, NewPlayEvent, StatsOverview, StatsRepo};

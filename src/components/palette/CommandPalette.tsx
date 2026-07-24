@@ -79,6 +79,20 @@ export function CommandPalette() {
         run: () => navigate({ to: "/logs" }),
       },
       {
+        id: "playlists",
+        label: "go to playlists",
+        run: () => navigate({ to: "/playlists" }),
+      },
+      {
+        id: "save-queue",
+        label: "save-queue <name>",
+        takesArg: true,
+        run: async (arg) => {
+          if (!arg?.trim()) throw new Error("usage: save-queue <name>");
+          await api.queueSaveAsPlaylist(arg.trim());
+        },
+      },
+      {
         id: "next",
         label: "next track",
         hint: "}",

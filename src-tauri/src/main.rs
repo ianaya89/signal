@@ -105,6 +105,13 @@ fn main() {
             commands::device::device_select,
             commands::device::player_set_replaygain,
             commands::device::player_set_exclusive,
+            commands::playlist::playlist_list,
+            commands::playlist::playlist_get,
+            commands::playlist::playlist_create,
+            commands::playlist::playlist_delete,
+            commands::playlist::playlist_add_tracks,
+            commands::playlist::playlist_remove_track,
+            commands::playlist::queue_save_as_playlist,
         ])
         .run(tauri::generate_context!());
 

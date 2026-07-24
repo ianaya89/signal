@@ -6,6 +6,8 @@ import type {
   ArtistDetail,
   ArtistSummary,
   AudioDevice,
+  PlaylistDetail,
+  PlaylistSummary,
   QueueEntry,
   ReplayGainMode,
   StatsOverview,
@@ -45,7 +47,14 @@ export type IpcCommand =
   | "device_list"
   | "device_select"
   | "player_set_replaygain"
-  | "player_set_exclusive";
+  | "player_set_exclusive"
+  | "playlist_list"
+  | "playlist_get"
+  | "playlist_create"
+  | "playlist_delete"
+  | "playlist_add_tracks"
+  | "playlist_remove_track"
+  | "queue_save_as_playlist";
 
 export function ipc<T>(
   command: IpcCommand,
@@ -91,4 +100,16 @@ export const api = {
     ipc<void>("player_set_replaygain", { mode }),
   setExclusive: (exclusive: boolean) =>
     ipc<void>("player_set_exclusive", { exclusive }),
+  playlistList: () => ipc<PlaylistSummary[]>("playlist_list"),
+  playlistGet: (playlistId: number, smart: boolean) =>
+    ipc<PlaylistDetail>("playlist_get", { playlistId, smart }),
+  playlistCreate: (name: string) => ipc<number>("playlist_create", { name }),
+  playlistDelete: (playlistId: number) =>
+    ipc<void>("playlist_delete", { playlistId }),
+  playlistAddTracks: (playlistId: number, trackIds: number[]) =>
+    ipc<void>("playlist_add_tracks", { playlistId, trackIds }),
+  playlistRemoveTrack: (playlistId: number, trackId: number) =>
+    ipc<void>("playlist_remove_track", { playlistId, trackId }),
+  queueSaveAsPlaylist: (name: string) =>
+    ipc<number>("queue_save_as_playlist", { name }),
 };

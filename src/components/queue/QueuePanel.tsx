@@ -43,6 +43,17 @@ export function QueuePanel() {
           )}
           <button
             type="button"
+            onClick={() => {
+              const name = prompt("playlist name:");
+              if (name?.trim()) void api.queueSaveAsPlaylist(name.trim());
+            }}
+            title="save queue as playlist (w)"
+            className="hover:text-accent"
+          >
+            save
+          </button>
+          <button
+            type="button"
             onClick={() => void api.queueClear()}
             className="hover:text-error"
           >

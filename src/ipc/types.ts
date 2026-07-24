@@ -82,6 +82,20 @@ export interface QueueEntry {
   track: Track;
 }
 
+export interface PlaylistSummary {
+  id: number;
+  name: string;
+  trackCount: number;
+  smart: boolean;
+}
+
+export interface PlaylistDetail {
+  id: number;
+  name: string;
+  smart: boolean;
+  tracks: Track[];
+}
+
 export interface AudioDevice {
   id: string;
   name: string;
