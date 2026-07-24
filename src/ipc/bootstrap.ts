@@ -7,6 +7,7 @@ import type {
   ScannerProgressEvent,
 } from "@/ipc/types";
 import { api } from "@/ipc/invoke";
+import { useLogStore } from "@/stores/logStore";
 import type { PlayerStateDto } from "@/stores/playerStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useQueueStore } from "@/stores/queueStore";
@@ -70,4 +71,11 @@ export function bootstrapEvents(queryClient: QueryClient) {
     void useQueueStore.getState().refresh();
   });
   void useQueueStore.getState().refresh();
+
+  void onSignalEvent<{ level: string; target: string; message: string }>(
+    "log:line",
+    (line) => {
+      useLogStore.getState().push(line);
+    },
+  );
 }

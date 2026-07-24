@@ -8,5 +8,7 @@
 mod artwork;
 mod scanner;
 mod tags;
+mod watcher;
 
 pub use scanner::{ScanReport, Scanner, ScannerError};
+pub use watcher::{spawn_watcher, WatcherHandle};

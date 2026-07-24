@@ -9,6 +9,7 @@ import { AlbumDetailView } from "@/components/library/AlbumDetailView";
 import { AlbumsView } from "@/components/library/AlbumsView";
 import { ArtistDetailView } from "@/components/library/ArtistDetailView";
 import { ArtistsView } from "@/components/library/ArtistsView";
+import { LogViewer } from "@/components/logs/LogViewer";
 import { SearchView } from "@/components/search/SearchView";
 import { StatsView } from "@/components/stats/StatsView";
 
@@ -50,6 +51,12 @@ const statsRoute = createRoute({
   component: StatsView,
 });
 
+const logsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/logs",
+  component: LogViewer,
+});
+
 const routeTree = rootRoute.addChildren([
   albumsRoute,
   albumDetailRoute,
@@ -57,6 +64,7 @@ const routeTree = rootRoute.addChildren([
   artistDetailRoute,
   searchRoute,
   statsRoute,
+  logsRoute,
 ]);
 
 export const router = createRouter({ routeTree });

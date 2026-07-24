@@ -113,4 +113,13 @@ impl TrackRepo {
             .fetch_one(&self.pool)
             .await
     }
+
+    /// Returns true when a row was actually deleted.
+    pub async fn delete_by_path(&self, path: &str) -> sqlx::Result<bool> {
+        let result = sqlx::query("DELETE FROM tracks WHERE file_path = ?1")
+            .bind(path)
+            .execute(&self.pool)
+            .await?;
+        Ok(result.rows_affected() > 0)
+    }
 }

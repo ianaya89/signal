@@ -27,6 +27,7 @@ pub struct ScanReport {
     pub errors: u32,
 }
 
+#[derive(Clone)]
 pub struct Scanner {
     db: DbPool,
     events: EventBus,
@@ -102,6 +103,58 @@ impl Scanner {
             errors = report.errors,
             "scan finished"
         );
+        Ok(report)
+    }
+
+    /// Incremental update from filesystem events: imports new audio files,
+    /// removes vanished ones. Emits `scanner:done` so the UI refreshes.
+    #[tracing::instrument(skip(self, changed, removed))]
+    pub async fn apply_fs_changes(
+        &self,
+        changed: Vec<PathBuf>,
+        removed: Vec<PathBuf>,
+    ) -> Result<ScanReport, ScannerError> {
+        let mut report = ScanReport::default();
+        let mut art_done: HashSet<i64> = HashSet::new();
+
+        for path in changed {
+            if !tags::is_audio_file(&path) || !path.is_file() {
+                continue;
+            }
+            match self.import_file(&path, &mut art_done).await {
+                Ok(Imported::Added) => report.added += 1,
+                Ok(Imported::Skipped) => report.skipped += 1,
+                Err(err) => {
+                    report.errors += 1;
+                    tracing::warn!(path = %path.display(), "watch import failed: {err}");
+                }
+            }
+        }
+
+        for path in removed {
+            let path_str = path.to_string_lossy();
+            match self.db.tracks().delete_by_path(&path_str).await {
+                Ok(true) => {
+                    report.removed += 1;
+                    tracing::info!(path = %path.display(), "track removed (file deleted)");
+                }
+                Ok(false) => {}
+                Err(err) => {
+                    report.errors += 1;
+                    tracing::warn!(path = %path.display(), "removal failed: {err}");
+                }
+            }
+        }
+
+        if report.added > 0 || report.removed > 0 {
+            self.events.publish(SignalEvent::ScannerDone {
+                added: report.added,
+                updated: report.updated,
+                removed: report.removed,
+                skipped: report.skipped,
+                errors: report.errors,
+            });
+        }
         Ok(report)
     }
 

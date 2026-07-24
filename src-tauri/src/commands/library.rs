@@ -63,6 +63,9 @@ pub async fn library_scan(state: State<'_, AppState>, root: String) -> Result<()
         tracing::warn!("could not persist library.root: {err}");
     }
 
+    // watcher follows the (possibly new) root
+    state.start_watcher(&root);
+
     let scanner = Scanner::new(
         state.db.clone(),
         state.events.clone(),

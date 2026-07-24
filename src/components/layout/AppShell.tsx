@@ -85,6 +85,9 @@ export function AppShell() {
         case "S":
           void navigate({ to: "/stats" });
           break;
+        case "L":
+          void navigate({ to: "/logs" });
+          break;
         case "b":
           useUiStore.getState().togglePane("library");
           break;

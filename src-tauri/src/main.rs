@@ -6,29 +6,36 @@ mod artwork;
 mod autoplay;
 mod bridge;
 mod commands;
+mod logbus;
 mod recorder;
 mod state;
 
 use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use signal_core::{AppConfig, EventBus};
 use signal_db::DbPool;
 use tauri::Manager;
+use tracing_subscriber::layer::SubscriberExt as _;
+use tracing_subscriber::util::SubscriberInitExt as _;
 
 use crate::state::AppState;
 
 fn main() {
-    tracing_subscriber::fmt()
-        .with_env_filter(
+    let events = EventBus::default();
+
+    tracing_subscriber::registry()
+        .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
         )
+        .with(tracing_subscriber::fmt::layer())
+        .with(logbus::BusLayer::new(events.clone()))
         .init();
 
     let result = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .setup(|app| {
+        .setup(move |app| {
             let data_dir = app.path().app_data_dir()?;
             let cache_dir = app.path().app_cache_dir()?;
             std::fs::create_dir_all(&data_dir)?;
@@ -36,7 +43,6 @@ fn main() {
             let config = AppConfig::new(data_dir, cache_dir);
 
             let db = tauri::async_runtime::block_on(DbPool::connect(&config.db_path))?;
-            let events = EventBus::default();
             bridge::spawn(app.handle().clone(), &events);
             autoplay::spawn(app.handle().clone(), &events);
             recorder::spawn(app.handle().clone(), &events);
@@ -48,7 +54,20 @@ fn main() {
                 db,
                 player,
                 scanning: Arc::new(AtomicBool::new(false)),
+                watcher: Mutex::new(None),
             });
+
+            // watch the stored library root, if any
+            let handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let state = handle.state::<AppState>();
+                match state.db.settings().get("library.root").await {
+                    Ok(Some(root)) => state.start_watcher(std::path::Path::new(&root)),
+                    Ok(None) => {}
+                    Err(err) => tracing::warn!("library.root read failed: {err}"),
+                }
+            });
+
             tracing::info!("signal started");
             Ok(())
         })

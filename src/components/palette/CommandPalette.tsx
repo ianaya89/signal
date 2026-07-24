@@ -73,6 +73,12 @@ export function CommandPalette() {
         run: () => navigate({ to: "/stats" }),
       },
       {
+        id: "logs",
+        label: "go to logs",
+        hint: "L",
+        run: () => navigate({ to: "/logs" }),
+      },
+      {
         id: "next",
         label: "next track",
         hint: "}",

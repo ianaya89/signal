@@ -6,11 +6,12 @@ const SECTIONS = [
   { label: "albums", to: "/", exact: true },
   { label: "artists", to: "/artists", exact: false },
   { label: "stats", to: "/stats", exact: false },
+  { label: "logs", to: "/logs", exact: false },
 ] as const;
 
 const PLANNED = [
-  { label: "genres", milestone: "M3" },
-  { label: "folders", milestone: "M4" },
+  { label: "genres", milestone: "soon" },
+  { label: "folders", milestone: "soon" },
 ] as const;
 
 export function LibraryNav() {
