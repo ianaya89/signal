@@ -5,7 +5,29 @@ import { useEffect, useRef, useState } from "react";
 import { TrackRow } from "@/components/library/TrackRow";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
+import { artworkUrl } from "@/lib/artwork";
 import { registerListHandler } from "@/lib/keyboard";
+
+function AlbumThumb({ albumId, hasArt }: { albumId: number; hasArt: boolean }) {
+  const [artError, setArtError] = useState(false);
+  return (
+    <div className="h-10 w-10 shrink-0 overflow-hidden border border-subtle bg-raised group-hover:border-focus">
+      {hasArt && !artError ? (
+        <img
+          src={artworkUrl(albumId)}
+          alt=""
+          loading="lazy"
+          onError={() => setArtError(true)}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center text-muted">
+          ♪
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function ArtistDetailView() {
   const { artistId } = useParams({ from: "/artists/$artistId" });
@@ -75,14 +97,21 @@ export function ArtistDetailView() {
             <Link
               to="/albums/$albumId"
               params={{ albumId: String(section.album.id) }}
-              className="flex h-8 items-center gap-2 border-b border-subtle bg-surface px-3 hover:text-accent"
+              className="group flex h-14 items-center gap-3 border-b border-subtle bg-surface px-3"
             >
-              <span className="text-[12px] text-primary">
-                {section.album.name}
-              </span>
-              <span className="text-[11px] text-muted">
-                {section.album.year ?? ""}
-              </span>
+              <AlbumThumb
+                albumId={section.album.id}
+                hasArt={section.album.artworkPath !== null}
+              />
+              <div className="min-w-0">
+                <div className="truncate text-[12px] text-primary group-hover:text-accent">
+                  {section.album.name}
+                </div>
+                <div className="text-[11px] text-muted">
+                  {section.album.year ? `${section.album.year} · ` : ""}
+                  {section.album.trackCount} tracks
+                </div>
+              </div>
             </Link>
             <table className="w-full border-collapse">
               <tbody>
