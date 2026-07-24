@@ -112,6 +112,10 @@ fn main() {
             commands::playlist::playlist_add_tracks,
             commands::playlist::playlist_remove_track,
             commands::playlist::queue_save_as_playlist,
+            commands::edit::library_rename_artist,
+            commands::edit::library_rename_album,
+            commands::edit::library_rename_track,
+            commands::edit::library_set_album_artwork,
         ])
         .run(tauri::generate_context!());
 

@@ -54,7 +54,11 @@ export type IpcCommand =
   | "playlist_delete"
   | "playlist_add_tracks"
   | "playlist_remove_track"
-  | "queue_save_as_playlist";
+  | "queue_save_as_playlist"
+  | "library_rename_artist"
+  | "library_rename_album"
+  | "library_rename_track"
+  | "library_set_album_artwork";
 
 export function ipc<T>(
   command: IpcCommand,
@@ -112,4 +116,12 @@ export const api = {
     ipc<void>("playlist_remove_track", { playlistId, trackId }),
   queueSaveAsPlaylist: (name: string) =>
     ipc<number>("queue_save_as_playlist", { name }),
+  renameArtist: (artistId: number, name: string) =>
+    ipc<void>("library_rename_artist", { artistId, name }),
+  renameAlbum: (albumId: number, name: string) =>
+    ipc<void>("library_rename_album", { albumId, name }),
+  renameTrack: (trackId: number, title: string) =>
+    ipc<void>("library_rename_track", { trackId, title }),
+  setAlbumArtwork: (albumId: number, sourcePath: string) =>
+    ipc<void>("library_set_album_artwork", { albumId, sourcePath }),
 };

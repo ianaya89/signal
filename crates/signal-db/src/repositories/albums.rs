@@ -103,6 +103,27 @@ impl AlbumRepo {
         rows.iter().map(track_from_row).collect()
     }
 
+    /// Renames and re-indexes affected FTS rows (see `ArtistRepo::rename`).
+    pub async fn rename(&self, id: i64, new_name: &str) -> sqlx::Result<()> {
+        let mut tx = self.pool.begin().await?;
+
+        sqlx::query("UPDATE albums SET name = ?2 WHERE id = ?1")
+            .bind(id)
+            .bind(new_name)
+            .execute(&mut *tx)
+            .await?;
+
+        let track_ids: Vec<i64> = sqlx::query_scalar("SELECT id FROM tracks WHERE album_id = ?1")
+            .bind(id)
+            .fetch_all(&mut *tx)
+            .await?;
+        for track_id in track_ids {
+            crate::row::refresh_fts_row(&mut tx, track_id).await?;
+        }
+
+        tx.commit().await
+    }
+
     pub async fn set_artwork(&self, id: i64, path: &str) -> sqlx::Result<()> {
         sqlx::query("UPDATE albums SET artwork_path = ?2 WHERE id = ?1")
             .bind(id)

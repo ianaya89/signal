@@ -1,18 +1,22 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
 import { TrackRow } from "@/components/library/TrackRow";
+import { EditableText } from "@/components/ui/EditableText";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { artworkUrl } from "@/lib/artwork";
 import { registerListHandler } from "@/lib/keyboard";
+import { pickImage } from "@/lib/pickFolder";
 
 export function AlbumDetailView() {
   const { albumId } = useParams({ from: "/albums/$albumId" });
   const id = Number(albumId);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [cursor, setCursor] = useState(0);
+  const [artVersion, setArtVersion] = useState(0);
   const { data, isLoading } = useQuery({
     queryKey: ["album", id],
     queryFn: () => api.getAlbum(id),
@@ -57,12 +61,41 @@ export function AlbumDetailView() {
   return (
     <div className="flex h-full flex-col">
       <header className="flex shrink-0 items-end gap-3 border-b border-subtle p-3">
-        <AlbumArt albumId={album.id} hasArt={album.artworkPath !== null} />
+        <AlbumArt
+          albumId={album.id}
+          hasArt={album.artworkPath !== null}
+          version={artVersion}
+          onPick={async () => {
+            const image = await pickImage();
+            if (!image) return;
+            await api.setAlbumArtwork(album.id, image);
+            setArtVersion((v) => v + 1);
+            await queryClient.invalidateQueries();
+          }}
+        />
         <div className="min-w-0">
-          <h1 className="truncate text-[16px] text-primary">{album.name}</h1>
-          <p className="truncate text-[12px] text-secondary">
-            {album.artistName}
-            {album.year ? ` · ${album.year}` : ""} · {album.trackCount} tracks
+          <h1 className="text-[16px] text-primary">
+            <EditableText
+              value={album.name}
+              inputClassName="w-72 text-[16px] text-primary"
+              onSave={async (name) => {
+                await api.renameAlbum(album.id, name);
+                await queryClient.invalidateQueries();
+              }}
+            />
+          </h1>
+          <p className="flex items-center gap-1 text-[12px] text-secondary">
+            <EditableText
+              value={album.artistName}
+              inputClassName="w-48 text-[12px] text-secondary"
+              onSave={async (name) => {
+                await api.renameArtist(album.artistId, name);
+                await queryClient.invalidateQueries();
+              }}
+            />
+            <span className="shrink-0 text-muted">
+              {album.year ? ` · ${album.year}` : ""} · {album.trackCount} tracks
+            </span>
           </p>
         </div>
       </header>
@@ -85,13 +118,28 @@ export function AlbumDetailView() {
   );
 }
 
-function AlbumArt({ albumId, hasArt }: { albumId: number; hasArt: boolean }) {
+function AlbumArt({
+  albumId,
+  hasArt,
+  version,
+  onPick,
+}: {
+  albumId: number;
+  hasArt: boolean;
+  version: number;
+  onPick: () => Promise<void>;
+}) {
   const [artError, setArtError] = useState(false);
   return (
-    <div className="h-20 w-20 shrink-0 overflow-hidden border border-subtle bg-raised">
-      {hasArt && !artError ? (
+    <button
+      type="button"
+      onClick={() => void onPick()}
+      title="change artwork"
+      className="group/art relative h-20 w-20 shrink-0 overflow-hidden rounded-[var(--radius-sm)] border border-subtle bg-raised hover:border-focus"
+    >
+      {(hasArt || version > 0) && !artError ? (
         <img
-          src={artworkUrl(albumId)}
+          src={`${artworkUrl(albumId)}?v=${version}`}
           alt=""
           onError={() => setArtError(true)}
           className="h-full w-full object-cover"
@@ -101,6 +149,9 @@ function AlbumArt({ albumId, hasArt }: { albumId: number; hasArt: boolean }) {
           ♪
         </div>
       )}
-    </div>
+      <span className="absolute inset-0 hidden items-center justify-center bg-black/50 text-[10px] text-primary group-hover/art:flex">
+        change
+      </span>
+    </button>
   );
 }

@@ -11,6 +11,32 @@ use signal_core::{Track, TrackTechnical};
 use sqlx::sqlite::SqliteRow;
 use sqlx::Row;
 
+/// Re-indexes one track's FTS row (delete + reinsert — contentless-delete
+/// tables reject partial-column UPDATE). Mirrors the trigger SQL.
+pub async fn refresh_fts_row(
+    tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+    track_id: i64,
+) -> sqlx::Result<()> {
+    sqlx::query("DELETE FROM tracks_fts WHERE rowid = ?1")
+        .bind(track_id)
+        .execute(&mut **tx)
+        .await?;
+    sqlx::query(
+        "INSERT INTO tracks_fts(rowid, title, artist_name, album_name, genre)
+         SELECT t.id, t.title,
+                (SELECT name FROM artists WHERE id = t.artist_id),
+                (SELECT name FROM albums  WHERE id = t.album_id),
+                (SELECT group_concat(g.name, ' ')
+                   FROM track_genres tg JOIN genres g ON g.id = tg.genre_id
+                  WHERE tg.track_id = t.id)
+         FROM tracks t WHERE t.id = ?1",
+    )
+    .bind(track_id)
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
+}
+
 pub fn to_u32(v: i64) -> u32 {
     u32::try_from(v).unwrap_or_default()
 }

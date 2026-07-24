@@ -1,4 +1,5 @@
 pub mod device;
+pub mod edit;
 pub mod library;
 pub mod player;
 pub mod playlist;

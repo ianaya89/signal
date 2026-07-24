@@ -10,3 +10,12 @@ export async function pickFolder(): Promise<string | null> {
   });
   return typeof selected === "string" ? selected : null;
 }
+
+export async function pickImage(): Promise<string | null> {
+  const selected = await open({
+    multiple: false,
+    title: "choose album artwork",
+    filters: [{ name: "images", extensions: ["jpg", "jpeg", "png"] }],
+  });
+  return typeof selected === "string" ? selected : null;
+}

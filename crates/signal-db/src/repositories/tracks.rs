@@ -114,6 +114,20 @@ impl TrackRepo {
             .await
     }
 
+    /// Retitles a track; the FTS row follows via the update trigger.
+    pub async fn rename(&self, id: i64, new_title: &str) -> sqlx::Result<()> {
+        sqlx::query(
+            "UPDATE tracks SET title = ?2,
+                    modified_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+             WHERE id = ?1",
+        )
+        .bind(id)
+        .bind(new_title)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
     /// Returns true when a row was actually deleted.
     pub async fn delete_by_path(&self, path: &str) -> sqlx::Result<bool> {
         let result = sqlx::query("DELETE FROM tracks WHERE file_path = ?1")

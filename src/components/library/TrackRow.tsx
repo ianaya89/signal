@@ -1,5 +1,7 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 
+import { EditableText } from "@/components/ui/EditableText";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { fmtDuration, fmtQuality, isHires, isLossy } from "@/lib/format";
@@ -21,6 +23,7 @@ export function TrackRow({
   const t = track.technical;
   const playing = usePlayerStore((s) => s.trackId === track.id);
   const ref = useRef<HTMLTableRowElement>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (selected) {
@@ -52,11 +55,19 @@ export function TrackRow({
       </td>
       <td
         className={cn(
-          "truncate pr-2 text-[12px]",
+          "max-w-0 truncate pr-2 text-[12px]",
           playing ? "text-accent" : "text-primary",
         )}
       >
-        {track.title}
+        <EditableText
+          value={track.title}
+          className="max-w-full"
+          inputClassName="w-full text-[12px] text-primary"
+          onSave={async (title) => {
+            await api.renameTrack(track.id, title);
+            await queryClient.invalidateQueries();
+          }}
+        />
       </td>
       <td className="w-32 pr-2">
         <span

@@ -1,8 +1,9 @@
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
 import { TrackRow } from "@/components/library/TrackRow";
+import { EditableText } from "@/components/ui/EditableText";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { artworkUrl } from "@/lib/artwork";
@@ -33,6 +34,7 @@ export function ArtistDetailView() {
   const { artistId } = useParams({ from: "/artists/$artistId" });
   const id = Number(artistId);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [cursor, setCursor] = useState(0);
 
   const { data, isLoading } = useQuery({
@@ -90,7 +92,16 @@ export function ArtistDetailView() {
   return (
     <div className="flex h-full flex-col">
       <header className="shrink-0 border-b border-subtle p-3">
-        <h1 className="text-[16px] text-primary">{data.artist.name}</h1>
+        <h1 className="text-[16px] text-primary">
+          <EditableText
+            value={data.artist.name}
+            inputClassName="w-72 text-[16px] text-primary"
+            onSave={async (name) => {
+              await api.renameArtist(data.artist.id, name);
+              await queryClient.invalidateQueries();
+            }}
+          />
+        </h1>
         <p className="text-[12px] text-secondary">
           {data.artist.albumCount} albums · {data.artist.trackCount} tracks
         </p>

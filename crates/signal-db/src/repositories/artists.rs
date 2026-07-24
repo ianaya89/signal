@@ -60,6 +60,30 @@ impl ArtistRepo {
             .collect()
     }
 
+    /// Renames and re-indexes every affected FTS row in one transaction.
+    /// Contentless-delete FTS5 forbids partial UPDATE, so rows are
+    /// delete+reinserted one by one (docs/03 §3).
+    pub async fn rename(&self, id: i64, new_name: &str) -> sqlx::Result<()> {
+        let mut tx = self.pool.begin().await?;
+
+        sqlx::query("UPDATE artists SET name = ?2 WHERE id = ?1")
+            .bind(id)
+            .bind(new_name)
+            .execute(&mut *tx)
+            .await?;
+
+        let track_ids: Vec<i64> = sqlx::query_scalar("SELECT id FROM tracks WHERE artist_id = ?1")
+            .bind(id)
+            .fetch_all(&mut *tx)
+            .await?;
+
+        for track_id in track_ids {
+            crate::row::refresh_fts_row(&mut tx, track_id).await?;
+        }
+
+        tx.commit().await
+    }
+
     pub async fn get(&self, id: i64) -> sqlx::Result<Option<ArtistSummary>> {
         let row = sqlx::query(
             "SELECT ar.id, ar.name,
