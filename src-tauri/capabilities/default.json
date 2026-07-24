@@ -3,5 +3,11 @@
   "identifier": "default",
   "description": "Main window capabilities",
   "windows": ["main"],
-  "permissions": ["core:default", "dialog:allow-open"]
+  "permissions": [
+    "core:default",
+    "dialog:allow-open",
+    "core:window:allow-set-size",
+    "core:window:allow-set-always-on-top",
+    "core:window:allow-inner-size"
+  ]
 }

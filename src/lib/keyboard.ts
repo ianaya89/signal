@@ -4,7 +4,7 @@
 
 import { create } from "zustand";
 
-export type Mode = "normal" | "palette" | "search";
+export type Mode = "normal" | "palette" | "search" | "help";
 
 interface KeyboardState {
   mode: Mode;

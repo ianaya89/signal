@@ -1,11 +1,13 @@
 import { Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 
+import { HelpOverlay } from "@/components/help/HelpOverlay";
 import { InspectorPane } from "@/components/layout/InspectorPane";
 import { LibraryNav } from "@/components/layout/LibraryNav";
 import { Pane } from "@/components/layout/Pane";
 import { StatusBar } from "@/components/layout/StatusBar";
 import { CommandPalette } from "@/components/palette/CommandPalette";
+import { MiniPlayer } from "@/components/player/MiniPlayer";
 import { QueuePanel } from "@/components/queue/QueuePanel";
 import { api } from "@/ipc/invoke";
 import {
@@ -15,6 +17,7 @@ import {
   ratingArmed,
   useKeyboardStore,
 } from "@/lib/keyboard";
+import { exitMiniWindow } from "@/lib/miniMode";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useUiStore } from "@/stores/uiStore";
 
@@ -23,6 +26,7 @@ let lastVolume = 1;
 
 export function AppShell() {
   const cycleFocus = useUiStore((s) => s.cycleFocus);
+  const miniMode = useUiStore((s) => s.miniMode);
   const libraryVisible = useUiStore((s) => s.libraryVisible);
   const inspectorVisible = useUiStore((s) => s.inspectorVisible);
   const libraryWidth = useUiStore((s) => s.libraryWidth);
@@ -46,7 +50,32 @@ export function AppShell() {
       // input fields swallow everything else
       if (inInput || mode === "palette") return;
 
+      // mini mode: space + esc only
+      if (useUiStore.getState().miniMode) {
+        if (e.key === " ") {
+          e.preventDefault();
+          void api.toggle();
+        } else if (e.key === "Escape") {
+          void exitMiniWindow().then(() =>
+            useUiStore.getState().setMiniMode(false),
+          );
+        }
+        return;
+      }
+
+      if (mode === "help") {
+        if (e.key === "Escape" || e.key === "?") {
+          e.preventDefault();
+          setMode("normal");
+        }
+        return;
+      }
+
       switch (e.key) {
+        case "?":
+          e.preventDefault();
+          setMode("help");
+          return;
         case "Tab":
           e.preventDefault();
           cycleFocus(e.shiftKey ? -1 : 1);
@@ -111,14 +140,30 @@ export function AppShell() {
           armRating();
           break;
         case "0":
-        case "1":
-        case "2":
-        case "3":
         case "4":
         case "5":
           if (ratingArmed()) {
             currentListHandler()?.rate?.(Number(e.key));
           }
+          break;
+        case "1":
+        case "2":
+        case "3":
+          if (ratingArmed()) {
+            currentListHandler()?.rate?.(Number(e.key));
+          } else {
+            const panes = ["library", "main", "inspector"] as const;
+            const pane = panes[Number(e.key) - 1];
+            if (pane) useUiStore.getState().focusPane(pane);
+          }
+          break;
+        case "[":
+          void api.seek(
+            Math.max(usePlayerStore.getState().positionMs - 5000, 0),
+          );
+          break;
+        case "]":
+          void api.seek(usePlayerStore.getState().positionMs + 5000);
           break;
         case "m": {
           const vol = usePlayerStore.getState().volume;
@@ -148,6 +193,10 @@ export function AppShell() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [cycleFocus, navigate]);
+
+  if (miniMode) {
+    return <MiniPlayer />;
+  }
 
   return (
     <div className="relative flex h-full flex-col">
@@ -192,6 +241,7 @@ export function AppShell() {
       </div>
       <StatusBar />
       <CommandPalette />
+      <HelpOverlay />
     </div>
   );
 }

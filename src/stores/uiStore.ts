@@ -40,6 +40,7 @@ function persistLayout(layout: LayoutState) {
 interface UiState extends LayoutState {
   focusedPane: PaneId;
   theme: Theme;
+  miniMode: boolean;
   focusPane: (pane: PaneId) => void;
   cycleFocus: (direction: 1 | -1) => void;
   setTheme: (theme: Theme, persist?: boolean) => void;
@@ -47,12 +48,15 @@ interface UiState extends LayoutState {
   togglePane: (pane: "library" | "inspector") => void;
   setPaneWidth: (pane: "library" | "inspector", width: number) => void;
   restoreLayout: (layout: Partial<LayoutState>) => void;
+  setMiniMode: (mini: boolean) => void;
 }
 
 export const useUiStore = create<UiState>((set, get) => ({
   focusedPane: "library",
   theme: "dark",
+  miniMode: false,
   ...LAYOUT_DEFAULTS,
+  setMiniMode: (mini) => set({ miniMode: mini }),
   focusPane: (pane) => set({ focusedPane: pane }),
   cycleFocus: (direction) =>
     set((s) => {

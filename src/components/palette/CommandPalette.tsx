@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { api } from "@/ipc/invoke";
 import { useKeyboardStore } from "@/lib/keyboard";
+import { enterMiniWindow } from "@/lib/miniMode";
 import { pickFolder } from "@/lib/pickFolder";
 import { cn } from "@/lib/utils";
 import { useScanStore } from "@/stores/scanStore";
@@ -104,6 +105,14 @@ export function CommandPalette() {
         id: "theme",
         label: "theme: toggle dark / light",
         run: () => useUiStore.getState().toggleTheme(),
+      },
+      {
+        id: "mini",
+        label: "mini player",
+        run: async () => {
+          await enterMiniWindow();
+          useUiStore.getState().setMiniMode(true);
+        },
       },
       {
         id: "toggle-library",
