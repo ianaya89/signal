@@ -1,5 +1,7 @@
 import { create } from "zustand";
 
+import type { ReplayGainMode } from "@/ipc/types";
+
 export type PlaybackStatus = "stopped" | "playing" | "paused";
 
 export interface PlayerStateDto {
@@ -9,7 +11,11 @@ export interface PlayerStateDto {
   durationMs: number;
   volume: number;
   deviceId: string | null;
+  replaygain: ReplayGainMode;
+  exclusive: boolean;
   bitPerfect: boolean;
+  sourceRateHz: number | null;
+  outputRateHz: number | null;
 }
 
 interface PlayerStore extends PlayerStateDto {
@@ -24,7 +30,11 @@ export const usePlayerStore = create<PlayerStore>((set) => ({
   durationMs: 0,
   volume: 1,
   deviceId: null,
+  replaygain: "off",
+  exclusive: false,
   bitPerfect: false,
+  sourceRateHz: null,
+  outputRateHz: null,
   applyState: (s) => set(s),
   applyProgress: (positionMs, durationMs) =>
     set(durationMs > 0 ? { positionMs, durationMs } : { positionMs }),

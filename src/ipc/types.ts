@@ -82,6 +82,14 @@ export interface QueueEntry {
   track: Track;
 }
 
+export interface AudioDevice {
+  id: string;
+  name: string;
+  backend: string;
+}
+
+export type ReplayGainMode = "off" | "track" | "album";
+
 export interface DayCount {
   day: string;
   plays: number;

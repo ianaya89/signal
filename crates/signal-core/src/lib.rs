@@ -13,6 +13,6 @@ pub use error::SignalError;
 pub use events::{EventBus, SignalEvent};
 pub use models::{
     Album, AlbumDetail, AlbumSummary, Artist, ArtistSummary, AudioDevice, Genre, PlayEvent,
-    PlaySource, PlaybackStatus, PlayerState, Playlist, QueueItem, SmartOp, SmartPlaylist,
-    SmartRule, Track, TrackTechnical,
+    PlaySource, PlaybackStatus, PlayerState, Playlist, QueueItem, ReplayGainMode, SmartOp,
+    SmartPlaylist, SmartRule, Track, TrackTechnical,
 };

@@ -10,7 +10,7 @@ mod views;
 
 pub use album::Album;
 pub use artist::Artist;
-pub use device::{AudioDevice, PlaybackStatus, PlayerState};
+pub use device::{AudioDevice, PlaybackStatus, PlayerState, ReplayGainMode};
 pub use genre::Genre;
 pub use playlist::{Playlist, SmartOp, SmartPlaylist, SmartRule};
 pub use queue::QueueItem;

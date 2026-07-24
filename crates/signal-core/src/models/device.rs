@@ -16,6 +16,14 @@ pub enum PlaybackStatus {
     Paused,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ReplayGainMode {
+    Off,
+    Track,
+    Album,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlayerState {
@@ -25,7 +33,12 @@ pub struct PlayerState {
     pub duration_ms: u64,
     pub volume: f32,
     pub device_id: Option<String>,
+    pub replaygain: ReplayGainMode,
+    pub exclusive: bool,
     pub bit_perfect: bool,
+    /// Source vs actual output sample rate, when known.
+    pub source_rate_hz: Option<u32>,
+    pub output_rate_hz: Option<u32>,
 }
 
 impl Default for PlayerState {
@@ -37,7 +50,11 @@ impl Default for PlayerState {
             duration_ms: 0,
             volume: 1.0,
             device_id: None,
+            replaygain: ReplayGainMode::Off,
+            exclusive: false,
             bit_perfect: false,
+            source_rate_hz: None,
+            output_rate_hz: None,
         }
     }
 }

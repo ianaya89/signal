@@ -80,6 +80,10 @@ fn main() {
             commands::player::player_next,
             commands::player::player_prev,
             commands::stats::stats_overview,
+            commands::device::device_list,
+            commands::device::device_select,
+            commands::device::player_set_replaygain,
+            commands::device::player_set_exclusive,
         ])
         .run(tauri::generate_context!());
 

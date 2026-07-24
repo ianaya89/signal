@@ -11,7 +11,9 @@ use std::time::{Duration, Instant};
 
 use libmpv2::events::{Event, PropertyData};
 use libmpv2::{mpv_end_file_reason, Format, Mpv};
-use signal_core::{EventBus, PlaybackStatus, PlayerState, SignalEvent};
+use signal_core::{
+    AudioDevice, EventBus, PlaybackStatus, PlayerState, ReplayGainMode, SignalEvent,
+};
 
 use crate::player::{Cmd, PlayerError};
 
@@ -183,18 +185,97 @@ impl Engine {
                 res
             }
             Cmd::SeekMs(ms) => mpv.set_property("time-pos", ms_to_secs(ms)),
-            Cmd::SetVolume(volume) => {
-                let res = mpv.set_property("volume", volume);
-                if res.is_ok() {
-                    self.set_state(|s| s.volume = volume_frac(volume));
-                }
-                res
-            }
+            other => self.apply_audio(mpv, other),
         };
 
         if let Err(err) = result {
             tracing::warn!("mpv command failed: {err}");
         }
+    }
+
+    /// Output-chain commands: volume, `ReplayGain`, device, exclusive, list.
+    fn apply_audio(&mut self, mpv: &Mpv, cmd: Cmd) -> libmpv2::Result<()> {
+        match cmd {
+            Cmd::SetVolume(volume) => {
+                mpv.set_property("volume", volume)?;
+                self.set_state(|s| s.volume = volume_frac(volume));
+            }
+            Cmd::SetReplayGain(mode) => {
+                let value = match mode {
+                    ReplayGainMode::Off => "no",
+                    ReplayGainMode::Track => "track",
+                    ReplayGainMode::Album => "album",
+                };
+                mpv.set_property("replaygain", value)?;
+                self.set_state(|s| s.replaygain = mode);
+            }
+            Cmd::SetDevice(device_id) => {
+                mpv.set_property("audio-device", device_id.as_str())?;
+                self.events.publish(SignalEvent::DeviceChanged {
+                    device_id: device_id.clone(),
+                });
+                self.set_state(|s| s.device_id = Some(device_id));
+            }
+            Cmd::SetExclusive(exclusive) => {
+                mpv.set_property("audio-exclusive", if exclusive { "yes" } else { "no" })?;
+                self.set_state(|s| s.exclusive = exclusive);
+            }
+            Cmd::ListDevices(reply) => {
+                let _ = reply.send(Self::device_list(mpv));
+                return Ok(());
+            }
+            _ => return Ok(()),
+        }
+        self.refresh_bit_perfect(mpv);
+        Ok(())
+    }
+
+    /// Parses mpv's `audio-device-list` JSON into [`AudioDevice`]s.
+    fn device_list(mpv: &Mpv) -> Vec<AudioDevice> {
+        let raw: String = match mpv.get_property("audio-device-list") {
+            Ok(raw) => raw,
+            Err(err) => {
+                tracing::warn!("audio-device-list failed: {err}");
+                return Vec::new();
+            }
+        };
+        let Ok(parsed) = serde_json::from_str::<Vec<serde_json::Value>>(&raw) else {
+            tracing::warn!("audio-device-list parse failed");
+            return Vec::new();
+        };
+        parsed
+            .into_iter()
+            .filter_map(|entry| {
+                let name = entry.get("name")?.as_str()?.to_owned();
+                let description = entry
+                    .get("description")
+                    .and_then(|d| d.as_str())
+                    .unwrap_or(&name)
+                    .to_owned();
+                let backend = name.split('/').next().unwrap_or("auto").to_owned();
+                Some(AudioDevice {
+                    id: name,
+                    name: description,
+                    backend,
+                })
+            })
+            .collect()
+    }
+
+    /// Bit-perfect = source rate reaches the output untouched: no resample,
+    /// full volume, no `ReplayGain` DSP.
+    fn refresh_bit_perfect(&self, mpv: &Mpv) {
+        let source: Option<i64> = mpv.get_property("audio-params/samplerate").ok();
+        let output: Option<i64> = mpv.get_property("audio-out-params/samplerate").ok();
+        let volume: f64 = mpv.get_property("volume").unwrap_or(100.0);
+
+        self.set_state(|s| {
+            s.source_rate_hz = source.and_then(|v| u32::try_from(v).ok());
+            s.output_rate_hz = output.and_then(|v| u32::try_from(v).ok());
+            s.bit_perfect = matches!((source, output), (Some(a), Some(b)) if a == b)
+                && (volume - 100.0).abs() < f64::EPSILON
+                && s.replaygain == ReplayGainMode::Off;
+        });
     }
 
     /// Removes every mpv playlist entry after the current one.
@@ -211,6 +292,8 @@ impl Engine {
             Event::PropertyChange { name, change, .. } => {
                 self.handle_property(name, change);
             }
+            // audio chain is configured by now — read real output params
+            Event::FileLoaded => self.refresh_bit_perfect(mpv),
             Event::StartFile => {
                 // playlist-pos 1 after an EOF means mpv gapless-advanced
                 // into the prefetched next entry.

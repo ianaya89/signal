@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
 
-use signal_core::{EventBus, PlayerState};
+use signal_core::{AudioDevice, EventBus, PlayerState, ReplayGainMode};
 
 use crate::engine;
 
@@ -32,6 +32,11 @@ pub(crate) enum Cmd {
     Stop,
     SeekMs(u64),
     SetVolume(f64),
+    SetReplayGain(ReplayGainMode),
+    SetDevice(String),
+    SetExclusive(bool),
+    /// Reply with the current mpv audio-device-list.
+    ListDevices(Sender<Vec<AudioDevice>>),
 }
 
 /// Non-blocking handle to the mpv thread. Cheap to clone.
@@ -81,6 +86,26 @@ impl Player {
     /// `volume` in 0.0..=100.0 (mpv scale).
     pub fn set_volume(&self, volume: f64) -> Result<(), PlayerError> {
         self.send(Cmd::SetVolume(volume.clamp(0.0, 100.0)))
+    }
+
+    pub fn set_replaygain(&self, mode: ReplayGainMode) -> Result<(), PlayerError> {
+        self.send(Cmd::SetReplayGain(mode))
+    }
+
+    pub fn set_device(&self, device_id: String) -> Result<(), PlayerError> {
+        self.send(Cmd::SetDevice(device_id))
+    }
+
+    pub fn set_exclusive(&self, exclusive: bool) -> Result<(), PlayerError> {
+        self.send(Cmd::SetExclusive(exclusive))
+    }
+
+    /// Blocks briefly on the mpv thread for the device list.
+    pub fn list_devices(&self) -> Result<Vec<AudioDevice>, PlayerError> {
+        let (tx, rx) = std::sync::mpsc::channel();
+        self.send(Cmd::ListDevices(tx))?;
+        rx.recv_timeout(std::time::Duration::from_secs(2))
+            .map_err(|_| PlayerError::Disconnected)
     }
 
     #[must_use]

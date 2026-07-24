@@ -3286,6 +3286,7 @@ name = "signal-player"
 version = "0.1.0"
 dependencies = [
  "libmpv2",
+ "serde_json",
  "signal-core",
  "thiserror 1.0.69",
  "tracing",

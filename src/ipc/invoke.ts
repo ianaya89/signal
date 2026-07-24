@@ -5,7 +5,9 @@ import type {
   AlbumSummary,
   ArtistDetail,
   ArtistSummary,
+  AudioDevice,
   QueueEntry,
+  ReplayGainMode,
   StatsOverview,
   Track,
   TrackWithContext,
@@ -38,7 +40,11 @@ export type IpcCommand =
   | "search_query"
   | "player_next"
   | "player_prev"
-  | "stats_overview";
+  | "stats_overview"
+  | "device_list"
+  | "device_select"
+  | "player_set_replaygain"
+  | "player_set_exclusive";
 
 export function ipc<T>(
   command: IpcCommand,
@@ -76,4 +82,10 @@ export const api = {
   next: () => ipc<boolean>("player_next"),
   prev: () => ipc<void>("player_prev"),
   statsOverview: () => ipc<StatsOverview>("stats_overview"),
+  deviceList: () => ipc<AudioDevice[]>("device_list"),
+  deviceSelect: (deviceId: string) => ipc<void>("device_select", { deviceId }),
+  setReplaygain: (mode: ReplayGainMode) =>
+    ipc<void>("player_set_replaygain", { mode }),
+  setExclusive: (exclusive: boolean) =>
+    ipc<void>("player_set_exclusive", { exclusive }),
 };

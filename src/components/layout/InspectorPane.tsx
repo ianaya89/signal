@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/ipc/invoke";
+import type { ReplayGainMode } from "@/ipc/types";
 import { fmtSampleRate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { usePlayerStore } from "@/stores/playerStore";
@@ -8,14 +9,114 @@ import { usePlayerStore } from "@/stores/playerStore";
 export function InspectorPane() {
   const trackId = usePlayerStore((s) => s.trackId);
 
-  if (trackId === null) {
-    return (
-      <p className="p-3 text-[11px] text-muted">
-        nothing playing — technical data appears here
-      </p>
-    );
-  }
-  return <TrackInspector trackId={trackId} />;
+  return (
+    <div className="flex flex-col">
+      {trackId === null ? (
+        <p className="p-3 text-[11px] text-muted">
+          nothing playing — technical data appears here
+        </p>
+      ) : (
+        <TrackInspector trackId={trackId} />
+      )}
+      <OutputSection />
+    </div>
+  );
+}
+
+const RG_MODES: ReplayGainMode[] = ["off", "track", "album"];
+
+function OutputSection() {
+  const { replaygain, exclusive, bitPerfect, sourceRateHz, outputRateHz, deviceId, status } =
+    usePlayerStore();
+  const { data: devices } = useQuery({
+    queryKey: ["devices"],
+    queryFn: api.deviceList,
+    staleTime: 30_000,
+  });
+
+  return (
+    <div className="border-t border-subtle px-2 py-2">
+      <h3 className="mb-1 text-[10px] uppercase tracking-wider text-muted">
+        output
+      </h3>
+
+      <label className="mb-1 flex items-center justify-between gap-2">
+        <span className="text-[11px] text-muted">device</span>
+        <select
+          value={deviceId ?? "auto"}
+          onChange={(e) => void api.deviceSelect(e.target.value)}
+          className="w-36 truncate rounded-[var(--radius-sm)] border border-subtle bg-base/60 px-1 py-0.5 text-[11px] text-secondary outline-none focus:border-focus"
+        >
+          {!devices?.some((d) => d.id === (deviceId ?? "auto")) && (
+            <option value={deviceId ?? "auto"}>auto</option>
+          )}
+          {devices?.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.name}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-[11px] text-muted">replaygain</span>
+        <div className="flex gap-px overflow-hidden rounded-[var(--radius-sm)] border border-subtle">
+          {RG_MODES.map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => void api.setReplaygain(mode)}
+              className={cn(
+                "px-1.5 py-0.5 text-[10px]",
+                replaygain === mode
+                  ? "bg-raised text-accent"
+                  : "text-muted hover:text-secondary",
+              )}
+            >
+              {mode}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-[11px] text-muted">exclusive</span>
+        <button
+          type="button"
+          onClick={() => void api.setExclusive(!exclusive)}
+          className={cn(
+            "rounded-[var(--radius-sm)] border border-subtle px-1.5 py-0.5 text-[10px]",
+            exclusive ? "bg-raised text-accent" : "text-muted hover:text-secondary",
+          )}
+        >
+          {exclusive ? "on" : "off"}
+        </button>
+      </div>
+
+      {status !== "stopped" && (
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] text-muted">bit perfect</span>
+          <span
+            className={cn(
+              "text-[11px]",
+              bitPerfect ? "text-bitperfect" : "text-warn",
+            )}
+            title={
+              sourceRateHz && outputRateHz
+                ? `${fmtSampleRate(sourceRateHz)} → ${fmtSampleRate(outputRateHz)}`
+                : undefined
+            }
+          >
+            {bitPerfect
+              ? "● yes"
+              : sourceRateHz && outputRateHz && sourceRateHz !== outputRateHz
+                ? `resampled ${fmtSampleRate(sourceRateHz)}→${fmtSampleRate(outputRateHz)}`
+                : "○ no (dsp active)"}
+          </span>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function TrackInspector({ trackId }: { trackId: number }) {
