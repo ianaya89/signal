@@ -90,8 +90,9 @@ export function AppShell() {
   }, [cycleFocus, navigate]);
 
   return (
-    <div className="relative flex h-full flex-col gap-px bg-base p-px">
-      <div className="flex min-h-0 flex-1 gap-px">
+    <div className="relative flex h-full flex-col">
+      <TitleBar />
+      <div className="flex min-h-0 flex-1 gap-1.5 px-1.5">
         <Pane id="library" title="library" className="w-56 shrink-0">
           <LibraryNav />
         </Pane>
@@ -112,5 +113,23 @@ export function AppShell() {
       <StatusBar />
       <CommandPalette />
     </div>
+  );
+}
+
+/** Drag region blending the macOS overlay titlebar into the app; leaves
+ *  room for the traffic lights on the left. */
+function TitleBar() {
+  return (
+    <header
+      data-tauri-drag-region
+      className="flex h-9 shrink-0 select-none items-center justify-center"
+    >
+      <span
+        data-tauri-drag-region
+        className="pointer-events-none text-[11px] tracking-[0.35em] text-muted"
+      >
+        s i g n a l
+      </span>
+    </header>
   );
 }

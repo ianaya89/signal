@@ -41,18 +41,18 @@ export function ScanForm() {
           value={root}
           onChange={(e) => setRoot(e.target.value)}
           spellCheck={false}
-          className="w-72 border border-subtle bg-base px-2 py-1 text-primary outline-none focus:border-focus"
+          className="w-72 rounded-[var(--radius-sm)] border border-subtle bg-base/60 px-2 py-1 text-primary outline-none focus:border-focus"
         />
         <button
           type="submit"
-          className="border border-subtle bg-raised px-3 py-1 text-secondary hover:border-focus hover:text-accent"
+          className="rounded-[var(--radius-sm)] border border-subtle bg-raised px-3 py-1 text-secondary hover:border-focus hover:text-accent"
         >
           scan
         </button>
         <button
           type="button"
           onClick={() => void browse()}
-          className="border border-subtle bg-raised px-3 py-1 text-secondary hover:border-focus hover:text-accent"
+          className="rounded-[var(--radius-sm)] border border-subtle bg-raised px-3 py-1 text-secondary hover:border-focus hover:text-accent"
         >
           browse…
         </button>

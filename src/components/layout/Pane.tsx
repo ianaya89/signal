@@ -18,16 +18,23 @@ export function Pane({ id, title, className, children }: PaneProps) {
     <section
       onMouseDown={() => focusPane(id)}
       className={cn(
-        "flex min-h-0 flex-col border bg-surface transition-colors duration-120",
-        focused ? "border-focus" : "border-subtle",
+        "flex min-h-0 flex-col overflow-hidden rounded-[var(--radius)] border bg-surface transition-colors duration-120",
+        focused
+          ? "border-focus/70 shadow-[0_0_0_1px_color-mix(in_srgb,var(--accent)_25%,transparent)]"
+          : "border-subtle",
         className,
       )}
     >
-      <header className="flex h-6 shrink-0 items-center justify-between border-b border-subtle px-2">
+      <header
+        className={cn(
+          "flex h-6 shrink-0 items-center justify-between border-b border-subtle px-2",
+          focused ? "bg-raised/60" : undefined,
+        )}
+      >
         <span className={cn("text-[11px]", focused ? "text-accent" : "text-muted")}>
           {title}
         </span>
-        {focused && <span className="text-[11px] text-accent">●</span>}
+        {focused && <span className="text-[9px] text-accent">●</span>}
       </header>
       <div className="min-h-0 flex-1 overflow-auto">{children}</div>
     </section>

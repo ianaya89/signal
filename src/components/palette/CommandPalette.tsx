@@ -170,11 +170,11 @@ export function CommandPalette() {
 
   return (
     <div
-      className="absolute inset-0 z-50 flex items-start justify-center bg-black/40 pt-[15vh]"
+      className="absolute inset-0 z-50 flex items-start justify-center bg-black/30 pt-[15vh] backdrop-blur-[2px]"
       onMouseDown={() => setMode("normal")}
     >
       <div
-        className="w-[560px] border border-focus bg-raised shadow-lg"
+        className="w-[560px] overflow-hidden rounded-[var(--radius)] border border-focus/80 bg-raised shadow-[0_18px_50px_-12px_rgba(0,0,0,0.55),0_0_0_1px_color-mix(in_srgb,var(--accent)_20%,transparent)]"
         onMouseDown={(e) => e.stopPropagation()}
       >
         <input

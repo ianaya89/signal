@@ -44,7 +44,7 @@ function AlbumCard({ album }: { album: AlbumSummary }) {
       params={{ albumId: String(album.id) }}
       className="group flex flex-col gap-1"
     >
-      <div className="aspect-square overflow-hidden border border-subtle bg-raised group-hover:border-focus">
+      <div className="aspect-square overflow-hidden rounded-[var(--radius)] border border-subtle bg-raised transition-all duration-120 group-hover:-translate-y-0.5 group-hover:border-focus group-hover:shadow-[0_6px_20px_-6px_color-mix(in_srgb,var(--accent)_35%,transparent)]">
         {album.artworkPath && !artError ? (
           <img
             src={artworkUrl(album.id)}
