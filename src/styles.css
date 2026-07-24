@@ -1,37 +1,37 @@
 @import "tailwindcss";
 
-/* Design tokens — Fairy Floss variant (candy pastels on deep grape).
+/* Design tokens — deep blue-violet dark theme.
    Structure follows docs/10-design-system.md; palette source of truth is
    this file. */
 :root {
-  /* surfaces */
-  --bg-base: #3f3a52; /* window chrome, gaps between panes */
-  --bg-surface: #4b4562; /* pane bodies, rows at rest */
-  --bg-raised: #5a5475; /* selected rows, popovers, kbd chips (classic fairy-floss bg) */
+  /* surfaces — near-black indigo */
+  --bg-base: #12121c; /* window chrome, gaps between panes */
+  --bg-surface: #181826; /* pane bodies, rows at rest */
+  --bg-raised: #232338; /* selected rows, popovers, kbd chips */
 
   /* borders */
-  --border-subtle: #6a6285; /* structural 1px borders */
-  --border-focus: #ffb8d1; /* focused pane / input — focus IS the accent */
+  --border-subtle: #2e2e4a; /* structural 1px borders */
+  --border-focus: #8286f5; /* focused pane / input — focus IS the accent */
 
   /* text */
-  --text-primary: #f8f8f2; /* titles, values */
-  --text-secondary: #d8d2ea; /* artist lines, labels */
-  --text-muted: #a8a1c2; /* timestamps, placeholders, hints */
+  --text-primary: #d8daf0; /* titles, values */
+  --text-secondary: #a5a8cc; /* artist lines, labels */
+  --text-muted: #63678f; /* timestamps, placeholders, hints */
 
-  /* accent */
-  --accent: #ffb8d1; /* candy pink: playing state, focus, links */
-  --accent-dim: #a9799a; /* low-emphasis accent */
+  /* accent — periwinkle blue-violet */
+  --accent: #8286f5; /* playing state, focus, links */
+  --accent-dim: #4c4f96; /* low-emphasis accent */
 
   /* semantic */
-  --ok: #c2ffdf; /* mint */
-  --warn: #ffd39b; /* peach */
-  --error: #ff857f; /* salmon */
-  --info: #c5a3ff; /* lavender */
+  --ok: #73daca; /* teal */
+  --warn: #e0af68; /* amber */
+  --error: #f7768e; /* rose */
+  --info: #7aa2f7; /* blue */
 
   /* audio-specific */
-  --bitperfect: #c2ffdf; /* mint — "this is correct" */
-  --lossy: #ffd39b; /* peach — "a compromise, not wrong" */
-  --hires: #c5a3ff; /* lavender — premium tier */
+  --bitperfect: #73daca; /* teal — "this is correct" */
+  --lossy: #e0af68; /* amber — "a compromise, not wrong" */
+  --hires: #bb9af7; /* violet — premium tier */
 
   --font-mono: ui-monospace, "JetBrains Mono", "SF Mono", "Cascadia Code",
     Menlo, Consolas, monospace;

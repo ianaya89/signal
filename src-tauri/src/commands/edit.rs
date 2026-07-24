@@ -16,34 +16,44 @@ fn valid_name(name: &str) -> Result<&str, SignalError> {
     Ok(trimmed)
 }
 
+/// Returns true when the rename merged into an existing artist.
 #[tauri::command]
 #[tracing::instrument(skip(state))]
 pub async fn library_rename_artist(
     state: State<'_, AppState>,
     artist_id: i64,
     name: String,
-) -> Result<(), SignalError> {
-    state
+) -> Result<bool, SignalError> {
+    let merged = state
         .db
         .artists()
         .rename(artist_id, valid_name(&name)?)
         .await
-        .db_err()
+        .db_err()?;
+    if merged {
+        tracing::info!(artist_id, name, "artist merged into existing");
+    }
+    Ok(merged)
 }
 
+/// Returns true when the rename merged into an existing album.
 #[tauri::command]
 #[tracing::instrument(skip(state))]
 pub async fn library_rename_album(
     state: State<'_, AppState>,
     album_id: i64,
     name: String,
-) -> Result<(), SignalError> {
-    state
+) -> Result<bool, SignalError> {
+    let merged = state
         .db
         .albums()
         .rename(album_id, valid_name(&name)?)
         .await
-        .db_err()
+        .db_err()?;
+    if merged {
+        tracing::info!(album_id, name, "album merged into existing");
+    }
+    Ok(merged)
 }
 
 #[tauri::command]

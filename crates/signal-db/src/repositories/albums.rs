@@ -103,25 +103,73 @@ impl AlbumRepo {
         rows.iter().map(track_from_row).collect()
     }
 
-    /// Renames and re-indexes affected FTS rows (see `ArtistRepo::rename`).
-    pub async fn rename(&self, id: i64, new_name: &str) -> sqlx::Result<()> {
+    /// Renames the album — or, when the same artist already has an album
+    /// with the new name (case-insensitive), MERGES into it: tracks
+    /// repoint, artwork falls back to the source's when the target lacks
+    /// one, the empty album row is deleted. FTS rows re-index in the same
+    /// transaction. Returns true when a merge happened.
+    pub async fn rename(&self, id: i64, new_name: &str) -> sqlx::Result<bool> {
         let mut tx = self.pool.begin().await?;
 
-        sqlx::query("UPDATE albums SET name = ?2 WHERE id = ?1")
-            .bind(id)
-            .bind(new_name)
-            .execute(&mut *tx)
-            .await?;
+        let source: Option<(i64, Option<String>)> =
+            sqlx::query_as("SELECT artist_id, artwork_path FROM albums WHERE id = ?1")
+                .bind(id)
+                .fetch_optional(&mut *tx)
+                .await?;
+        let Some((artist_id, source_art)) = source else {
+            return Ok(false);
+        };
 
-        let track_ids: Vec<i64> = sqlx::query_scalar("SELECT id FROM tracks WHERE album_id = ?1")
+        let target: Option<(i64, Option<String>)> = sqlx::query_as(
+            "SELECT id, artwork_path FROM albums
+             WHERE artist_id = ?1 AND name = ?2 COLLATE NOCASE AND id <> ?3",
+        )
+        .bind(artist_id)
+        .bind(new_name)
+        .bind(id)
+        .fetch_optional(&mut *tx)
+        .await?;
+
+        let affected: Vec<i64> = sqlx::query_scalar("SELECT id FROM tracks WHERE album_id = ?1")
             .bind(id)
             .fetch_all(&mut *tx)
             .await?;
-        for track_id in track_ids {
+
+        let merged = if let Some((keep_id, keep_art)) = target {
+            sqlx::query("UPDATE tracks SET album_id = ?2 WHERE album_id = ?1")
+                .bind(id)
+                .bind(keep_id)
+                .execute(&mut *tx)
+                .await?;
+            if keep_art.is_none() {
+                if let Some(art) = source_art {
+                    sqlx::query("UPDATE albums SET artwork_path = ?2 WHERE id = ?1")
+                        .bind(keep_id)
+                        .bind(art)
+                        .execute(&mut *tx)
+                        .await?;
+                }
+            }
+            sqlx::query("DELETE FROM albums WHERE id = ?1")
+                .bind(id)
+                .execute(&mut *tx)
+                .await?;
+            true
+        } else {
+            sqlx::query("UPDATE albums SET name = ?2 WHERE id = ?1")
+                .bind(id)
+                .bind(new_name)
+                .execute(&mut *tx)
+                .await?;
+            false
+        };
+
+        for track_id in affected {
             crate::row::refresh_fts_row(&mut tx, track_id).await?;
         }
 
-        tx.commit().await
+        tx.commit().await?;
+        Ok(merged)
     }
 
     pub async fn set_artwork(&self, id: i64, path: &str) -> sqlx::Result<()> {

@@ -120,9 +120,9 @@ export const api = {
   queueSaveAsPlaylist: (name: string) =>
     ipc<number>("queue_save_as_playlist", { name }),
   renameArtist: (artistId: number, name: string) =>
-    ipc<void>("library_rename_artist", { artistId, name }),
+    ipc<boolean>("library_rename_artist", { artistId, name }),
   renameAlbum: (albumId: number, name: string) =>
-    ipc<void>("library_rename_album", { albumId, name }),
+    ipc<boolean>("library_rename_album", { albumId, name }),
   renameTrack: (trackId: number, title: string) =>
     ipc<void>("library_rename_track", { trackId, title }),
   setAlbumArtwork: (albumId: number, sourcePath: string) =>

@@ -171,6 +171,77 @@ async fn artists_and_albums_dedupe_case_insensitively() {
 }
 
 #[tokio::test]
+async fn rename_to_existing_merges() {
+    let (db, _dir) = test_db().await;
+
+    // two spellings of the same artist, each with the "same" album
+    let junk = db
+        .artists()
+        .get_or_create("Los Angeles Azules (Www.X.Com)")
+        .await
+        .unwrap();
+    let clean = db
+        .artists()
+        .get_or_create("Los Angeles Azules")
+        .await
+        .unwrap();
+    let junk_album = db
+        .albums()
+        .upsert("Epoca Dorada", junk, None)
+        .await
+        .unwrap();
+    let clean_album = db
+        .albums()
+        .upsert("Epoca Dorada", clean, Some(2000))
+        .await
+        .unwrap();
+    db.tracks()
+        .insert(&new_track("T1", junk, junk_album, "/m/t1.flac"))
+        .await
+        .unwrap();
+    db.tracks()
+        .insert(&new_track("T2", clean, clean_album, "/m/t2.flac"))
+        .await
+        .unwrap();
+
+    // rename junk → clean name: artists merge, colliding albums fuse
+    let merged = db
+        .artists()
+        .rename(junk, "Los Angeles Azules")
+        .await
+        .unwrap();
+    assert!(merged);
+
+    let artists = db.artists().list().await.unwrap();
+    assert_eq!(artists.len(), 1);
+    assert_eq!(artists[0].track_count, 2);
+
+    let albums = db.albums().list_by_artist(clean).await.unwrap();
+    assert_eq!(albums.len(), 1);
+    assert_eq!(albums[0].track_count, 2);
+
+    // album rename → existing album of same artist merges too
+    let other = db
+        .albums()
+        .upsert("Epoca Dorada 2", clean, None)
+        .await
+        .unwrap();
+    db.tracks()
+        .insert(&new_track("T3", clean, other, "/m/t3.flac"))
+        .await
+        .unwrap();
+    let merged = db.albums().rename(other, "epoca dorada").await.unwrap();
+    assert!(merged);
+    let albums = db.albums().list_by_artist(clean).await.unwrap();
+    assert_eq!(albums.len(), 1);
+    assert_eq!(albums[0].track_count, 3);
+
+    // plain rename (no collision) still works
+    let merged = db.artists().rename(clean, "LAA").await.unwrap();
+    assert!(!merged);
+}
+
+#[tokio::test]
 async fn settings_roundtrip() {
     let (db, _dir) = test_db().await;
     assert_eq!(db.settings().get("library.root").await.unwrap(), None);
