@@ -66,8 +66,17 @@ export function SearchView() {
         ) : (
           <table className="w-full border-collapse">
             <tbody>
-              {results.map((track) => (
-                <ResultRow key={track.id} track={track} />
+              {results.map((track, i) => (
+                <ResultRow
+                  key={track.id}
+                  track={track}
+                  onPlay={() =>
+                    void api.playContext(
+                      results.map((t) => t.id),
+                      i,
+                    )
+                  }
+                />
               ))}
             </tbody>
           </table>
@@ -77,12 +86,12 @@ export function SearchView() {
   );
 }
 
-function ResultRow({ track }: { track: Track }) {
+function ResultRow({ track, onPlay }: { track: Track; onPlay: () => void }) {
   const t = track.technical;
   const playing = usePlayerStore((s) => s.trackId === track.id);
   return (
     <tr
-      onDoubleClick={() => void api.play(track.id)}
+      onDoubleClick={onPlay}
       className={cn("h-7 hover:bg-raised", playing ? "bg-raised" : undefined)}
     >
       <td

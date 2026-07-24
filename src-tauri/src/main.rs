@@ -55,6 +55,7 @@ fn main() {
                 player,
                 scanning: Arc::new(AtomicBool::new(false)),
                 watcher: Mutex::new(None),
+                play_context: Mutex::new(state::PlayContext::default()),
             });
 
             // watch the stored library root, if any
@@ -83,6 +84,7 @@ fn main() {
             commands::library::library_get_artist,
             commands::library::library_reset_and_rescan,
             commands::player::player_play,
+            commands::player::player_play_context,
             commands::player::player_toggle,
             commands::player::player_pause,
             commands::player::player_stop,

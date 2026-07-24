@@ -10,10 +10,13 @@ export function TrackRow({
   track,
   selected = false,
   onSelect,
+  onPlay,
 }: {
   track: Track;
   selected?: boolean;
   onSelect?: () => void;
+  /** Defaults to playing the bare track with no follow-on context. */
+  onPlay?: () => void;
 }) {
   const t = track.technical;
   const playing = usePlayerStore((s) => s.trackId === track.id);
@@ -29,7 +32,7 @@ export function TrackRow({
     <tr
       ref={ref}
       onClick={onSelect}
-      onDoubleClick={() => void api.play(track.id)}
+      onDoubleClick={() => (onPlay ? onPlay() : void api.play(track.id))}
       className={cn(
         "h-7 cursor-default",
         selected ? "bg-raised" : "hover:bg-raised/50",

@@ -1,15 +1,15 @@
-//! Queue → player synchronization.
+//! Queue/context → player synchronization.
 //!
-//! The queue is the source of truth; mpv's 2-slot playlist window is a
-//! derived cache. This task:
-//! - stages the queue head as the gapless next whenever a track starts or
-//!   the queue changes (staging PEEKS — the head stays queued),
-//! - pops the head once mpv actually advances into it,
-//! - falls back to pop+play on EOF when nothing was staged (e.g. the file
-//!   appeared in the queue too late to prefetch).
+//! Advance priority: the queue (explicit staging) always wins; the play
+//! context (album/list the current track came from) fills in when the
+//! queue is empty. mpv's 2-slot gapless window is a derived cache:
+//! - stage the next candidate whenever a track starts or the queue changes
+//!   (staging PEEKS — queue head stays queued, context position untouched),
+//! - consume from the right source once mpv actually advances,
+//! - fall back to load+play on EOF when nothing was staged in time.
 
 use signal_core::{EventBus, PlaybackStatus, SignalEvent};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, State};
 
 use crate::state::AppState;
 
@@ -24,45 +24,30 @@ pub fn spawn(app: AppHandle, events: &EventBus) {
             match event {
                 // a track started by explicit user action — (re)stage next
                 SignalEvent::TrackChanged { track_id: Some(_) } => {
-                    staged_next = restage(state.inner(), staged_next).await;
+                    staged_next = restage(&state, staged_next).await;
                 }
-                // mpv gapless-advanced into the staged entry: consume the
-                // queue head it came from, then stage the following track
+                // mpv gapless-advanced into the staged entry: consume it
+                // from whichever source it came from, then stage the next
                 SignalEvent::TrackAutoAdvanced { track_id } => {
-                    match state.db.queue().pop_front().await {
-                        Ok(Some(entry)) if entry.track.id == track_id => {}
-                        Ok(other) => {
-                            let found = other.map(|e| e.track.id);
-                            tracing::warn!(track_id, ?found, "queue/window desync on advance");
-                        }
-                        Err(err) => tracing::error!("queue pop failed: {err}"),
-                    }
-                    state.events.publish(SignalEvent::QueueChanged);
-                    staged_next = restage(state.inner(), None).await;
+                    consume(&state, track_id).await;
+                    staged_next = restage(&state, None).await;
                 }
-                // EOF with nothing staged: legacy pop+play fallback
+                // EOF with nothing staged: load+play fallback
                 SignalEvent::TrackEnded { .. } if staged_next.is_none() => {
-                    match state.db.queue().pop_front().await {
-                        Ok(Some(entry)) => {
-                            state.events.publish(SignalEvent::QueueChanged);
-                            let path = entry.track.technical.file_path.clone();
-                            if !path.is_file() {
-                                tracing::warn!(path = %path.display(), "queued file missing, skipping");
-                                continue;
-                            }
-                            if let Err(err) = state.player.load_and_play(entry.track.id, path) {
-                                tracing::error!("auto-advance failed: {err}");
-                            }
+                    if let Some(track_id) = next_candidate(&state).await {
+                        consume(&state, track_id).await;
+                        if let Err(err) =
+                            crate::commands::player::start_track(&state, track_id).await
+                        {
+                            tracing::error!("auto-advance failed: {err}");
                         }
-                        Ok(None) => {}
-                        Err(err) => tracing::error!("queue read failed: {err}"),
                     }
                 }
                 // user edited the queue: resync the staged slot
                 SignalEvent::QueueChanged
                     if state.player.state().status != PlaybackStatus::Stopped =>
                 {
-                    staged_next = restage(state.inner(), staged_next).await;
+                    staged_next = restage(&state, staged_next).await;
                 }
                 _ => {}
             }
@@ -70,18 +55,43 @@ pub fn spawn(app: AppHandle, events: &EventBus) {
     });
 }
 
-/// Peeks the queue head and syncs it into mpv's next slot. Returns the newly
-/// staged track id (None = nothing stageable).
-async fn restage(state: &AppState, current: Option<i64>) -> Option<i64> {
-    let head = match state.db.queue().first().await {
-        Ok(head) => head,
+/// Next track to play: queue head, else next in the play context.
+pub async fn next_candidate(state: &State<'_, AppState>) -> Option<i64> {
+    match state.db.queue().first().await {
+        Ok(Some(entry)) => return Some(entry.track.id),
+        Ok(None) => {}
         Err(err) => {
             tracing::error!("queue peek failed: {err}");
-            return current;
+            return None;
         }
-    };
+    }
+    state.play_context.lock().ok()?.peek_next()
+}
 
-    let Some(entry) = head else {
+/// Marks `track_id` as consumed: pops it from the queue if it is the head,
+/// otherwise advances the play context onto it.
+pub async fn consume(state: &State<'_, AppState>, track_id: i64) {
+    match state.db.queue().first().await {
+        Ok(Some(entry)) if entry.track.id == track_id => {
+            if let Err(err) = state.db.queue().remove(entry.item.id).await {
+                tracing::error!("queue pop failed: {err}");
+            }
+            state.events.publish(SignalEvent::QueueChanged);
+            return;
+        }
+        Ok(_) => {}
+        Err(err) => tracing::error!("queue peek failed: {err}"),
+    }
+    if let Ok(mut ctx) = state.play_context.lock() {
+        if !ctx.advance_to(track_id) {
+            tracing::debug!(track_id, "advance outside queue and context");
+        }
+    }
+}
+
+/// Syncs the next candidate into mpv's gapless slot. Returns the staged id.
+async fn restage(state: &State<'_, AppState>, current: Option<i64>) -> Option<i64> {
+    let Some(next_id) = next_candidate(state).await else {
         if current.is_some() {
             if let Err(err) = state.player.clear_next() {
                 tracing::error!("clear_next failed: {err}");
@@ -90,16 +100,25 @@ async fn restage(state: &AppState, current: Option<i64>) -> Option<i64> {
         return None;
     };
 
-    let path = entry.track.technical.file_path.clone();
-    if !path.is_file() {
-        tracing::warn!(path = %path.display(), "queue head missing on disk, not staging");
-        return None;
-    }
-    if current == Some(entry.track.id) {
+    if current == Some(next_id) {
         return current; // already staged
     }
-    match state.player.set_next(entry.track.id, path) {
-        Ok(()) => Some(entry.track.id),
+
+    let track = match state.db.tracks().get(next_id).await {
+        Ok(Some(track)) => track,
+        Ok(None) => return None,
+        Err(err) => {
+            tracing::error!("track read failed: {err}");
+            return None;
+        }
+    };
+    let path = track.technical.file_path;
+    if !path.is_file() {
+        tracing::warn!(path = %path.display(), "next track missing on disk, not staging");
+        return None;
+    }
+    match state.player.set_next(next_id, path) {
+        Ok(()) => Some(next_id),
         Err(err) => {
             tracing::error!("set_next failed: {err}");
             None

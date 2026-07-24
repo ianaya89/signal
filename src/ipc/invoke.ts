@@ -25,6 +25,7 @@ export type IpcCommand =
   | "library_get_artist"
   | "library_reset_and_rescan"
   | "player_play"
+  | "player_play_context"
   | "player_toggle"
   | "player_pause"
   | "player_stop"
@@ -67,6 +68,8 @@ export const api = {
   settingsSet: (key: string, value: string) =>
     ipc<void>("settings_set", { key, value }),
   play: (trackId: number) => ipc<void>("player_play", { trackId }),
+  playContext: (trackIds: number[], startIndex: number) =>
+    ipc<void>("player_play_context", { trackIds, startIndex }),
   toggle: () => ipc<void>("player_toggle"),
   stop: () => ipc<void>("player_stop"),
   seek: (positionMs: number) => ipc<void>("player_seek", { positionMs }),

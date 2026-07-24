@@ -57,6 +57,11 @@ export function ArtistDetailView() {
   const cursorRef = useRef(cursor);
   cursorRef.current = cursor;
 
+  const playFrom = (index: number) => {
+    const ids = tracksRef.current.map((t) => t.id);
+    if (ids.length > 0) void api.playContext(ids, index);
+  };
+
   useEffect(() => {
     return registerListHandler({
       move: (delta) =>
@@ -65,16 +70,15 @@ export function ArtistDetailView() {
         ),
       top: () => setCursor(0),
       bottom: () => setCursor(tracksRef.current.length - 1),
-      open: () => {
-        const track = tracksRef.current[cursorRef.current];
-        if (track) void api.play(track.id);
-      },
+      open: () => playFrom(cursorRef.current),
       stage: () => {
         const track = tracksRef.current[cursorRef.current];
         if (track) void api.queueAdd(track.id);
       },
       back: () => void navigate({ to: "/artists" }),
     });
+    // playFrom reads refs only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   if (isLoading || !data) {
@@ -124,6 +128,7 @@ export function ArtistDetailView() {
                       track={track}
                       selected={index === cursor}
                       onSelect={() => setCursor(index)}
+                      onPlay={() => playFrom(index)}
                     />
                   );
                 })}

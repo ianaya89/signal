@@ -16,6 +16,32 @@ pub struct AppState {
     pub scanning: Arc<AtomicBool>,
     /// Live fs watcher on the library root; replaced when the root changes.
     pub watcher: Mutex<Option<WatcherHandle>>,
+    /// Implicit play order (album/list the current track came from). The
+    /// queue always takes priority over it when advancing.
+    pub play_context: Mutex<PlayContext>,
+}
+
+#[derive(Default)]
+pub struct PlayContext {
+    pub track_ids: Vec<i64>,
+    pub position: usize,
+}
+
+impl PlayContext {
+    /// Track that should follow the current one within the context.
+    pub fn peek_next(&self) -> Option<i64> {
+        self.track_ids.get(self.position + 1).copied()
+    }
+
+    /// Moves onto `track_id` if it is the next context entry; true on hit.
+    pub fn advance_to(&mut self, track_id: i64) -> bool {
+        if self.peek_next() == Some(track_id) {
+            self.position += 1;
+            true
+        } else {
+            false
+        }
+    }
 }
 
 impl AppState {

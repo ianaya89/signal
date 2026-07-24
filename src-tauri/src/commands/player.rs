@@ -14,10 +14,40 @@ impl<T> PlayerResultExt<T> for Result<T, signal_player::PlayerError> {
     }
 }
 
-/// Loads the track from the library and starts playback.
+/// Loads the track from the library and starts playback. Clears the play
+/// context — a bare play is a single track.
 #[tauri::command]
 #[tracing::instrument(skip(state))]
 pub async fn player_play(state: State<'_, AppState>, track_id: i64) -> Result<(), SignalError> {
+    if let Ok(mut ctx) = state.play_context.lock() {
+        *ctx = crate::state::PlayContext::default();
+    }
+    start_track(&state, track_id).await
+}
+
+/// Plays `track_ids[start_index]` with the whole list as the implicit
+/// follow-on order (album/artist/search "play from here").
+#[tauri::command]
+#[tracing::instrument(skip(state, track_ids), fields(len = track_ids.len(), start_index))]
+pub async fn player_play_context(
+    state: State<'_, AppState>,
+    track_ids: Vec<i64>,
+    start_index: usize,
+) -> Result<(), SignalError> {
+    let Some(&first) = track_ids.get(start_index) else {
+        return Err(SignalError::Player("start index out of range".into()));
+    };
+    if let Ok(mut ctx) = state.play_context.lock() {
+        ctx.track_ids = track_ids;
+        ctx.position = start_index;
+    }
+    start_track(&state, first).await
+}
+
+pub(crate) async fn start_track(
+    state: &State<'_, AppState>,
+    track_id: i64,
+) -> Result<(), SignalError> {
     let track = state
         .db
         .tracks()
@@ -75,11 +105,17 @@ pub async fn player_get_state(state: State<'_, AppState>) -> Result<PlayerState,
     Ok(state.player.state())
 }
 
-/// Skips to the queue head. Returns false when the queue is empty.
+/// Skips forward: queue head first, else next in the play context.
+/// Returns false when there is nothing to advance to.
 #[tauri::command]
 #[tracing::instrument(skip(state))]
 pub async fn player_next(state: State<'_, AppState>) -> Result<bool, SignalError> {
-    crate::commands::queue::play_queue_head(&state).await
+    let Some(track_id) = crate::autoplay::next_candidate(&state).await else {
+        return Ok(false);
+    };
+    crate::autoplay::consume(&state, track_id).await;
+    start_track(&state, track_id).await?;
+    Ok(true)
 }
 
 /// Restarts the current track (no play history yet to go further back).
