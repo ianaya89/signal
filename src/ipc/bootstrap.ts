@@ -34,6 +34,17 @@ export function bootstrapEvents(queryClient: QueryClient) {
     })
     .catch(() => {});
 
+  void api
+    .settingsGet("ui.layout")
+    .then((raw) => {
+      if (!raw) return;
+      const layout: unknown = JSON.parse(raw);
+      if (typeof layout === "object" && layout !== null) {
+        useUiStore.getState().restoreLayout(layout);
+      }
+    })
+    .catch(() => {});
+
   void onSignalEvent<ScannerProgressEvent>("scanner:progress", (p) => {
     useScanStore.getState().progress(p);
   });

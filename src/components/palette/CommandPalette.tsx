@@ -86,6 +86,18 @@ export function CommandPalette() {
         run: () => useUiStore.getState().toggleTheme(),
       },
       {
+        id: "toggle-library",
+        label: "layout: toggle library pane",
+        hint: "b",
+        run: () => useUiStore.getState().togglePane("library"),
+      },
+      {
+        id: "toggle-inspector",
+        label: "layout: toggle inspector pane",
+        hint: "i",
+        run: () => useUiStore.getState().togglePane("inspector"),
+      },
+      {
         id: "scan-folder",
         label: "scan folder…",
         run: async () => {

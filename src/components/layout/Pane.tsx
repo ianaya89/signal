@@ -7,16 +7,18 @@ interface PaneProps {
   id: PaneId;
   title: string;
   className?: string;
+  style?: React.CSSProperties;
   children: ReactNode;
 }
 
-export function Pane({ id, title, className, children }: PaneProps) {
+export function Pane({ id, title, className, style, children }: PaneProps) {
   const focused = useUiStore((s) => s.focusedPane === id);
   const focusPane = useUiStore((s) => s.focusPane);
 
   return (
     <section
       onMouseDown={() => focusPane(id)}
+      style={style}
       className={cn(
         "flex min-h-0 flex-col overflow-hidden rounded-[var(--radius)] border bg-surface transition-colors duration-120",
         focused

@@ -13,6 +13,10 @@ import { useUiStore } from "@/stores/uiStore";
 
 export function AppShell() {
   const cycleFocus = useUiStore((s) => s.cycleFocus);
+  const libraryVisible = useUiStore((s) => s.libraryVisible);
+  const inspectorVisible = useUiStore((s) => s.inspectorVisible);
+  const libraryWidth = useUiStore((s) => s.libraryWidth);
+  const inspectorWidth = useUiStore((s) => s.inspectorWidth);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -81,6 +85,12 @@ export function AppShell() {
         case "S":
           void navigate({ to: "/stats" });
           break;
+        case "b":
+          useUiStore.getState().togglePane("library");
+          break;
+        case "i":
+          useUiStore.getState().togglePane("inspector");
+          break;
         default:
           break;
       }
@@ -92,26 +102,85 @@ export function AppShell() {
   return (
     <div className="relative flex h-full flex-col">
       <TitleBar />
-      <div className="flex min-h-0 flex-1 gap-1.5 px-1.5">
-        <Pane id="library" title="library" className="w-56 shrink-0">
-          <LibraryNav />
-        </Pane>
-        <Pane id="main" title="main" className="flex-1">
+      <div className="flex min-h-0 flex-1 px-1.5">
+        {libraryVisible && (
+          <>
+            <Pane
+              id="library"
+              title="library"
+              className="shrink-0"
+              style={{ width: libraryWidth }}
+            >
+              <LibraryNav />
+            </Pane>
+            <Resizer pane="library" />
+          </>
+        )}
+        <Pane id="main" title="main" className="min-w-0 flex-1">
           <Outlet />
         </Pane>
-        <Pane id="inspector" title="inspector · queue" className="w-72 shrink-0">
-          <div className="flex h-full flex-col">
-            <div className="min-h-0 flex-1 overflow-auto">
-              <InspectorPane />
-            </div>
-            <div className="max-h-[45%] shrink-0 overflow-auto border-t border-subtle">
-              <QueuePanel />
-            </div>
-          </div>
-        </Pane>
+        {inspectorVisible && (
+          <>
+            <Resizer pane="inspector" />
+            <Pane
+              id="inspector"
+              title="inspector · queue"
+              className="shrink-0"
+              style={{ width: inspectorWidth }}
+            >
+              <div className="flex h-full flex-col">
+                <div className="min-h-0 flex-1 overflow-auto">
+                  <InspectorPane />
+                </div>
+                <div className="max-h-[45%] shrink-0 overflow-auto border-t border-subtle">
+                  <QueuePanel />
+                </div>
+              </div>
+            </Pane>
+          </>
+        )}
       </div>
       <StatusBar />
       <CommandPalette />
+    </div>
+  );
+}
+
+/** Drag handle between panes; drag to resize, double-click to hide. */
+function Resizer({ pane }: { pane: "library" | "inspector" }) {
+  const setPaneWidth = useUiStore((s) => s.setPaneWidth);
+  const togglePane = useUiStore((s) => s.togglePane);
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const start =
+      pane === "library"
+        ? useUiStore.getState().libraryWidth
+        : useUiStore.getState().inspectorWidth;
+
+    const onMove = (ev: MouseEvent) => {
+      const dx = ev.clientX - startX;
+      setPaneWidth(pane, pane === "library" ? start + dx : start - dx);
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+    };
+    document.body.style.cursor = "col-resize";
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
+  return (
+    <div
+      onMouseDown={onMouseDown}
+      onDoubleClick={() => togglePane(pane)}
+      title="drag to resize · double-click to hide"
+      className="group flex w-1.5 shrink-0 cursor-col-resize items-center justify-center"
+    >
+      <div className="h-8 w-0.5 rounded-full bg-subtle transition-colors group-hover:bg-accent" />
     </div>
   );
 }
