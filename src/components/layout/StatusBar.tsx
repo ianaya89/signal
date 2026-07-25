@@ -8,7 +8,7 @@ export function StatusBar() {
     useScanStore();
 
   return (
-    <footer className="mx-1 mb-1 mt-1 flex h-7 shrink-0 items-center justify-between gap-4 border border-subtle bg-surface px-2 text-[11px]">
+    <footer className="mx-2 mb-2 mt-1.5 flex h-7 shrink-0 items-center justify-between gap-4 border border-subtle bg-surface px-2 text-[11px]">
       <TransportBar />
       {scanning ? (
         <span className="min-w-0 shrink-0 truncate text-accent">

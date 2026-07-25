@@ -206,7 +206,9 @@ export function AppShell() {
   return (
     <div className="relative flex h-full flex-col">
       <TitleBar />
-      <div className="flex min-h-0 flex-1 px-1">
+      {/* 8px outer margin keeps square pane corners clear of the native
+          window's rounded corners */}
+      <div className="flex min-h-0 flex-1 px-2">
         {libraryVisible && (
           <>
             <Pane
