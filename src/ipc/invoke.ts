@@ -78,7 +78,9 @@ export type IpcCommand =
   | "smart_playlist_create"
   | "smart_playlist_update"
   | "smart_playlist_delete"
-  | "smart_playlist_rules";
+  | "smart_playlist_rules"
+  | "plugin_set_listenbrainz"
+  | "plugin_status";
 
 export function ipc<T>(
   command: IpcCommand,
@@ -170,4 +172,7 @@ export const api = {
     ipc<void>("smart_playlist_delete", { playlistId }),
   smartRules: (playlistId: number) =>
     ipc<string | null>("smart_playlist_rules", { playlistId }),
+  setListenBrainz: (token: string) =>
+    ipc<boolean>("plugin_set_listenbrainz", { token }),
+  pluginStatus: () => ipc<{ listenbrainz: boolean }>("plugin_status"),
 };

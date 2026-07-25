@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 
@@ -10,6 +11,7 @@ import { CommandPalette } from "@/components/palette/CommandPalette";
 import { DotPlayer } from "@/components/player/DotPlayer";
 import { MiniPlayer } from "@/components/player/MiniPlayer";
 import { QueuePanel } from "@/components/queue/QueuePanel";
+import { EqBars } from "@/components/ui/HeartEqualizer";
 import { Toasts } from "@/components/ui/Toasts";
 import { api } from "@/ipc/invoke";
 import {
@@ -19,6 +21,7 @@ import {
   ratingArmed,
   useKeyboardStore,
 } from "@/lib/keyboard";
+import { dragWindow } from "@/lib/drag";
 import { setWindowMode } from "@/lib/miniMode";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useUiStore } from "@/stores/uiStore";
@@ -208,7 +211,7 @@ export function AppShell() {
       <TitleBar />
       {/* 8px outer margin keeps square pane corners clear of the native
           window's rounded corners */}
-      <div className="flex min-h-0 flex-1 px-2">
+      <div className="flex min-h-0 flex-1 px-2 pt-1.5">
         {libraryVisible && (
           <>
             <Pane
@@ -293,18 +296,38 @@ function Resizer({ pane }: { pane: "library" | "inspector" }) {
   );
 }
 
-/** Drag region blending the macOS overlay titlebar into the app; leaves
- *  room for the traffic lights on the left. */
+/** Integrated titlebar: real surface with a bottom border, wordmark after
+ *  the traffic lights, live now-playing on the right. Whole strip drags. */
 function TitleBar() {
+  const status = usePlayerStore((s) => s.status);
+  const trackId = usePlayerStore((s) => s.trackId);
+  const { data } = useQuery({
+    queryKey: ["track", trackId],
+    queryFn: () => api.getTrack(trackId ?? -1),
+    enabled: trackId !== null,
+    staleTime: Infinity,
+  });
+
   return (
     <header
-      data-tauri-drag-region
-      className="flex h-9 shrink-0 select-none items-center pl-[84px]"
+      onMouseDown={dragWindow}
+      className="flex h-9 shrink-0 select-none items-center justify-between border-b border-subtle bg-surface pl-[84px] pr-3"
     >
-      <span data-tauri-drag-region className="pointer-events-none text-[11px]">
+      <span className="pointer-events-none text-[11px]">
         <span className="text-accent">❯</span>{" "}
         <span className="text-secondary">signal</span>
-        <span className="text-muted"> — local-first hi-fi player</span>
+      </span>
+      <span className="pointer-events-none flex min-w-0 items-center gap-2 text-[11px]">
+        {trackId !== null && data ? (
+          <>
+            <EqBars playing={status === "playing"} />
+            <span className="min-w-0 truncate text-secondary">
+              {data.artistName} — {data.track.title}
+            </span>
+          </>
+        ) : (
+          <span className="text-muted">local-first hi-fi player</span>
+        )}
       </span>
     </header>
   );

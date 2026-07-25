@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex};
 use signal_core::{AppConfig, EventBus};
 use signal_db::DbPool;
 use signal_player::Player;
+use signal_plugins::PluginHost;
 use signal_scanner::{Scanner, WatcherHandle};
 
 /// Arc-free by design: Tauri's `State` wraps this in an Arc already.
@@ -20,6 +21,7 @@ pub struct AppState {
     /// queue always takes priority over it when advancing.
     pub play_context: Mutex<PlayContext>,
     pub play_mode: Mutex<PlayMode>,
+    pub plugins: Arc<PluginHost>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]

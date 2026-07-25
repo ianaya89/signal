@@ -60,6 +60,7 @@ fn main() {
                 watcher: Mutex::new(None),
                 play_context: Mutex::new(state::PlayContext::default()),
                 play_mode: Mutex::new(state::PlayMode::default()),
+                plugins: Arc::new(signal_plugins::PluginHost::default()),
             });
 
             // watch the stored library root + restore play mode
@@ -77,6 +78,9 @@ fn main() {
                             *guard = mode;
                         }
                     }
+                }
+                if let Ok(token) = state.db.settings().get("plugin.listenbrainz.token").await {
+                    state.plugins.set_listenbrainz_token(token);
                 }
             });
 
@@ -102,6 +106,8 @@ fn main() {
             commands::window::window_set_compact,
             commands::session::session_restore,
             commands::info::app_info,
+            commands::plugins::plugin_set_listenbrainz,
+            commands::plugins::plugin_status,
             commands::playlist::smart_playlist_create,
             commands::playlist::smart_playlist_update,
             commands::playlist::smart_playlist_delete,

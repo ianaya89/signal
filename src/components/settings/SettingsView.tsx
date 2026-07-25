@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
@@ -130,6 +131,8 @@ export function SettingsView() {
         </Row>
       </Section>
 
+      <PluginsSection />
+
       <Section title="about">
         <Row label="version">
           <span className="text-[11px] text-secondary">signal v{info?.version}</span>
@@ -146,6 +149,57 @@ export function SettingsView() {
         </Row>
       </Section>
     </div>
+  );
+}
+
+function PluginsSection() {
+  const queryClient = useQueryClient();
+  const [token, setToken] = useState("");
+  const { data: status } = useQuery({
+    queryKey: ["plugin-status"],
+    queryFn: api.pluginStatus,
+  });
+
+  const save = async () => {
+    try {
+      const valid = await api.setListenBrainz(token);
+      toast.ok(valid ? "listenbrainz connected" : "listenbrainz disabled");
+      setToken("");
+      void queryClient.invalidateQueries({ queryKey: ["plugin-status"] });
+    } catch (err) {
+      toast.error(String(err));
+    }
+  };
+
+  return (
+    <Section title="scrobbling">
+      <Row label="listenbrainz">
+        <span
+          className={cn(
+            "text-[11px]",
+            status?.listenbrainz ? "text-ok" : "text-muted",
+          )}
+        >
+          {status?.listenbrainz ? "● connected" : "○ off"}
+        </span>
+      </Row>
+      <Row label="user token">
+        <input
+          value={token}
+          onChange={(e) => setToken(e.target.value)}
+          placeholder="paste token from listenbrainz.org/settings"
+          spellCheck={false}
+          type="password"
+          className="w-72 border border-subtle bg-base/60 px-2 py-0.5 text-[11px] text-primary outline-none focus:border-focus"
+        />
+        <button type="button" onClick={() => void save()} className={BTN}>
+          save
+        </button>
+      </Row>
+      <p className="text-[10px] text-muted">
+        completed listens (≥50% or 4min) are submitted; empty token disables
+      </p>
+    </Section>
   );
 }
 

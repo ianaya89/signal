@@ -10,7 +10,12 @@ repository.workspace = true
 signal-core = { workspace = true }
 signal-db = { workspace = true }
 signal-player = { workspace = true }
+chrono = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
 thiserror = { workspace = true }
+tracing = { workspace = true }
 
 [lints]
 workspace = true

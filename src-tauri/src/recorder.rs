@@ -115,4 +115,24 @@ async fn log(app: &AppHandle, event: NewPlayEvent) {
             "play event recorded"
         );
     }
+
+    // completed listens go out to enabled scrobblers
+    if event.completed && state.plugins.listenbrainz_enabled() {
+        let Ok(Some(track)) = state.db.tracks().get(event.track_id).await else {
+            return;
+        };
+        let album = state.db.albums().get(track.album_id).await.ok().flatten();
+        let listen = signal_plugins::Listen {
+            artist: album
+                .as_ref()
+                .map_or_else(|| "Unknown Artist".to_owned(), |a| a.artist_name.clone()),
+            track: track.title,
+            album: album.map(|a| a.name),
+            listened_at: event.started_at.timestamp(),
+        };
+        let plugins = state.plugins.clone();
+        tauri::async_runtime::spawn(async move {
+            plugins.scrobble(listen).await;
+        });
+    }
 }

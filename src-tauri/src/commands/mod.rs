@@ -4,6 +4,7 @@ pub mod info;
 pub mod library;
 pub mod player;
 pub mod playlist;
+pub mod plugins;
 pub mod queue;
 pub mod search;
 pub mod session;
