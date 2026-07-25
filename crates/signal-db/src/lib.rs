@@ -15,6 +15,7 @@ pub mod smart;
 pub use pool::DbPool;
 pub use repositories::albums::AlbumRepo;
 pub use repositories::artists::ArtistRepo;
+pub use repositories::health::{HealthRepo, HealthReport};
 pub use repositories::playlists::{PlaylistRepo, PlaylistSummary};
 pub use repositories::queue::QueueRepo;
 pub use repositories::settings::SettingsRepo;

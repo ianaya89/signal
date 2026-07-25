@@ -9,6 +9,7 @@ const SECTIONS = [
   { label: "folders", to: "/folders", exact: false },
   { label: "playlists", to: "/playlists", exact: false },
   { label: "stats", to: "/stats", exact: false },
+  { label: "doctor", to: "/doctor", exact: false },
   { label: "logs", to: "/logs", exact: false },
   { label: "settings", to: "/settings", exact: false },
 ] as const;

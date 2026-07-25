@@ -108,6 +108,8 @@ fn main() {
             commands::info::app_info,
             commands::plugins::plugin_set_listenbrainz,
             commands::plugins::plugin_status,
+            commands::health::library_health,
+            commands::health::library_prune_missing,
             commands::playlist::smart_playlist_create,
             commands::playlist::smart_playlist_update,
             commands::playlist::smart_playlist_delete,

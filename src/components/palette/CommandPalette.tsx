@@ -90,6 +90,11 @@ export function CommandPalette() {
         run: () => navigate({ to: "/settings" }),
       },
       {
+        id: "doctor",
+        label: "library doctor",
+        run: () => navigate({ to: "/doctor" }),
+      },
+      {
         id: "save-queue",
         label: "save-queue <name>",
         takesArg: true,

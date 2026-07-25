@@ -1,5 +1,6 @@
 pub mod albums;
 pub mod artists;
+pub mod health;
 pub mod playlists;
 pub mod queue;
 pub mod settings;

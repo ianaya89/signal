@@ -167,6 +167,35 @@ export interface SmartRules {
   limit?: number | null;
 }
 
+export interface HealthTrackRef {
+  id: number;
+  title: string;
+  artistName: string;
+  albumId: number;
+  detail: string;
+}
+
+export interface HealthReport {
+  totalTracks: number;
+  losslessPct: number;
+  score: number;
+  missingFiles: HealthTrackRef[];
+  missingFilesTotal: number;
+  duplicates: {
+    title: string;
+    artistName: string;
+    count: number;
+    trackIds: number[];
+  }[];
+  duplicatesTotal: number;
+  albumsWithoutArt: { id: number; name: string; artistName: string }[];
+  albumsWithoutArtTotal: number;
+  tracksWithoutYear: number;
+  tracksWithoutGenre: number;
+  lowBitrate: HealthTrackRef[];
+  lowBitrateTotal: number;
+}
+
 export interface FolderEntry {
   name: string;
   path: string;

@@ -9,6 +9,7 @@ import type {
   AudioDevice,
   FolderListing,
   GenreSummary,
+  HealthReport,
   PlayMode,
   PlaylistDetail,
   PlaylistSummary,
@@ -80,7 +81,9 @@ export type IpcCommand =
   | "smart_playlist_delete"
   | "smart_playlist_rules"
   | "plugin_set_listenbrainz"
-  | "plugin_status";
+  | "plugin_status"
+  | "library_health"
+  | "library_prune_missing";
 
 export function ipc<T>(
   command: IpcCommand,
@@ -175,4 +178,7 @@ export const api = {
   setListenBrainz: (token: string) =>
     ipc<boolean>("plugin_set_listenbrainz", { token }),
   pluginStatus: () => ipc<{ listenbrainz: boolean }>("plugin_status"),
+  libraryHealth: () => ipc<HealthReport>("library_health"),
+  libraryPruneMissing: (trackIds: number[]) =>
+    ipc<number>("library_prune_missing", { trackIds }),
 };
