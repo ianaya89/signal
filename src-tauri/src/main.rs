@@ -7,6 +7,7 @@ mod autoplay;
 mod bridge;
 mod commands;
 mod logbus;
+mod media_keys;
 mod recorder;
 mod state;
 
@@ -79,6 +80,8 @@ fn main() {
                 }
             });
 
+            media_keys::spawn(app.handle().clone());
+
             tracing::info!("signal started");
             Ok(())
         })
@@ -97,6 +100,7 @@ fn main() {
             commands::library::reveal_in_file_manager,
             commands::library::library_browse_folder,
             commands::window::window_set_compact,
+            commands::session::session_restore,
             commands::library::library_reset_and_rescan,
             commands::player::player_play,
             commands::player::player_play_context,

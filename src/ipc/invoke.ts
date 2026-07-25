@@ -71,7 +71,8 @@ export type IpcCommand =
   | "library_list_genres"
   | "library_get_genre_tracks"
   | "reveal_in_file_manager"
-  | "library_browse_folder";
+  | "library_browse_folder"
+  | "session_restore";
 
 export function ipc<T>(
   command: IpcCommand,
@@ -152,4 +153,6 @@ export const api = {
   revealFile: (path: string) => ipc<void>("reveal_in_file_manager", { path }),
   browseFolder: (path?: string) =>
     ipc<FolderListing>("library_browse_folder", { path }),
+  sessionRestore: () =>
+    ipc<{ trackId: number; positionMs: number } | null>("session_restore"),
 };

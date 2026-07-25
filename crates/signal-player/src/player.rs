@@ -20,6 +20,12 @@ pub(crate) enum Cmd {
         track_id: i64,
         path: PathBuf,
     },
+    /// Load paused at a position — session restore.
+    LoadAt {
+        track_id: i64,
+        path: PathBuf,
+        position_ms: u64,
+    },
     /// Stage/replace the gapless next slot (mpv playlist index 1).
     SetNext {
         track_id: i64,
@@ -56,6 +62,20 @@ impl Player {
 
     pub fn load_and_play(&self, track_id: i64, path: PathBuf) -> Result<(), PlayerError> {
         self.send(Cmd::Load { track_id, path })
+    }
+
+    /// Loads paused at `position_ms` (session restore).
+    pub fn load_paused_at(
+        &self,
+        track_id: i64,
+        path: PathBuf,
+        position_ms: u64,
+    ) -> Result<(), PlayerError> {
+        self.send(Cmd::LoadAt {
+            track_id,
+            path,
+            position_ms,
+        })
     }
 
     /// Prefetch `path` as the gapless next track (replaces any staged next).

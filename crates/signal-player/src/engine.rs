@@ -145,6 +145,29 @@ impl Engine {
                 }
                 res
             }
+            Cmd::LoadAt {
+                track_id,
+                path,
+                position_ms,
+            } => {
+                let path_str = path.to_string_lossy().into_owned();
+                self.window = vec![track_id];
+                self.duration_ms = 0;
+                // mpv >= 0.38: loadfile <url> <flags> <index> <options>
+                let options = format!("start={},pause=yes", ms_to_secs(position_ms));
+                let res = mpv.command("loadfile", &[&path_str, "replace", "-1", &options]);
+                if res.is_ok() {
+                    self.events.publish(SignalEvent::TrackChanged {
+                        track_id: Some(track_id),
+                    });
+                    self.set_state(|s| {
+                        s.status = PlaybackStatus::Paused;
+                        s.track_id = Some(track_id);
+                        s.position_ms = position_ms;
+                    });
+                }
+                res
+            }
             Cmd::SetNext { track_id, path } => {
                 if self.window.first() == Some(&track_id) || self.window.get(1) == Some(&track_id) {
                     Ok(()) // already current or already staged

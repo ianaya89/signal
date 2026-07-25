@@ -13,6 +13,7 @@ import type { PlayerStateDto } from "@/stores/playerStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useQueueStore } from "@/stores/queueStore";
 import { useScanStore } from "@/stores/scanStore";
+import { toast } from "@/stores/toastStore";
 import { useUiStore } from "@/stores/uiStore";
 
 interface ProgressEvent {
@@ -39,6 +40,16 @@ export function bootstrapEvents(queryClient: QueryClient) {
   void api
     .getPlayMode()
     .then((mode) => usePlayModeStore.getState().restore(mode))
+    .catch(() => {});
+
+  // resume where the last session left off (paused)
+  void api
+    .sessionRestore()
+    .then((resume) => {
+      if (resume) {
+        toast.info("resumed — press space to continue");
+      }
+    })
     .catch(() => {});
 
   void api

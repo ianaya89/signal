@@ -5,6 +5,7 @@ pub mod player;
 pub mod playlist;
 pub mod queue;
 pub mod search;
+pub mod session;
 pub mod settings;
 pub mod stats;
 pub mod window;

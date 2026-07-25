@@ -41,6 +41,7 @@ pub fn spawn(app: AppHandle, events: &EventBus) {
     let mut rx = events.subscribe();
     tauri::async_runtime::spawn(async move {
         let mut session: Option<Session> = None;
+        let mut last_persist = std::time::Instant::now();
 
         while let Ok(event) = rx.recv().await {
             match event {
@@ -52,6 +53,18 @@ pub fn spawn(app: AppHandle, events: &EventBus) {
                         s.ms_played = s.ms_played.max(position_ms);
                         if duration_ms > 0 {
                             s.duration_ms = duration_ms;
+                        }
+                        // persist resume point every ~5s for session restore
+                        if last_persist.elapsed().as_secs() >= 5 {
+                            last_persist = std::time::Instant::now();
+                            let state = app.state::<AppState>();
+                            let json = format!(
+                                "{{\"trackId\":{},\"positionMs\":{position_ms}}}",
+                                s.track_id
+                            );
+                            if let Err(err) = state.db.settings().set("session.now", &json).await {
+                                tracing::warn!("session persist failed: {err}");
+                            }
                         }
                     }
                 }
