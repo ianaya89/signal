@@ -1,7 +1,7 @@
 import { getCurrentWindow, LogicalSize, PhysicalSize } from "@tauri-apps/api/window";
 
-const MINI_W = 380;
-const MINI_H = 132;
+const MINI_W = 440;
+const MINI_H = 118;
 
 let savedSize: PhysicalSize | null = null;
 

@@ -3,16 +3,20 @@ import { useRef, useState } from "react";
 
 import { api } from "@/ipc/invoke";
 import { artworkUrl } from "@/lib/artwork";
-import { fmtDuration } from "@/lib/format";
+import { fmtDuration, fmtQuality, isHires, isLossy } from "@/lib/format";
 import { exitMiniWindow } from "@/lib/miniMode";
 import { cn } from "@/lib/utils";
+import { usePlayModeStore } from "@/stores/playModeStore";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useUiStore } from "@/stores/uiStore";
 
-/** Winamp-style compact player: artwork, title, transport, seek. */
+/** Compact always-on-top player. Double-click anywhere inert or hit ⤢/Esc
+ *  to restore the full window. */
 export function MiniPlayer() {
-  const { status, trackId, positionMs, durationMs } = usePlayerStore();
+  const { status, trackId, positionMs, durationMs, volume, bitPerfect } =
+    usePlayerStore();
   const setMiniMode = useUiStore((s) => s.setMiniMode);
+  const { shuffle, repeat, toggleShuffle, cycleRepeat } = usePlayModeStore();
 
   const { data } = useQuery({
     queryKey: ["track", trackId],
@@ -21,57 +25,151 @@ export function MiniPlayer() {
     staleTime: Infinity,
   });
 
-  const expand = () => {
+  const restore = () => {
     void exitMiniWindow().then(() => setMiniMode(false));
   };
 
+  const t = data?.track.technical;
+
   return (
     <div
-      data-tauri-drag-region
-      className="flex h-full select-none flex-col border border-focus bg-surface"
+      onDoubleClick={restore}
+      className="flex h-full select-none flex-col overflow-hidden border border-focus bg-surface"
     >
-      <div data-tauri-drag-region className="flex min-h-0 flex-1 items-center gap-2 p-2">
+      <div className="flex min-h-0 flex-1">
         <MiniArt albumId={data?.track.albumId ?? null} />
-        <div data-tauri-drag-region className="min-w-0 flex-1">
-          <div className="truncate text-[12px] text-primary">
-            {data?.track.title ?? "nothing playing"}
+
+        <div className="flex min-w-0 flex-1 flex-col justify-between px-2 py-1.5">
+          {/* title row + restore */}
+          <div data-tauri-drag-region className="flex items-start gap-1">
+            <div data-tauri-drag-region className="min-w-0 flex-1">
+              <div className="truncate text-[12px] leading-tight text-primary">
+                {data?.track.title ?? "nothing playing"}
+              </div>
+              <div className="truncate text-[10px] text-secondary">
+                {data
+                  ? `${data.artistName}${data.albumName ? ` — ${data.albumName}` : ""}`
+                  : "stage something and press play"}
+              </div>
+            </div>
+            {data && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void api
+                    .toggleFavorite(data.track.id)
+                    .then(() => void 0);
+                }}
+                title="favorite"
+                className={cn(
+                  "shrink-0 text-[11px]",
+                  data.track.favorite
+                    ? "text-accent"
+                    : "text-muted hover:text-accent",
+                )}
+              >
+                {data.track.favorite ? "♥" : "♡"}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={restore}
+              title="restore full window (esc)"
+              className="shrink-0 border border-subtle px-1 text-[11px] text-secondary hover:border-focus hover:text-accent"
+            >
+              ⤢
+            </button>
           </div>
-          <div className="truncate text-[11px] text-muted">
-            {data ? data.artistName : "signal"}
+
+          {/* technical line */}
+          <div data-tauri-drag-region className="flex items-center gap-2 text-[10px]">
+            {t ? (
+              <>
+                <span
+                  className={cn(
+                    isLossy(t.codec)
+                      ? "text-lossy"
+                      : isHires(t.bitDepth, t.sampleRateHz)
+                        ? "text-hires"
+                        : "text-secondary",
+                  )}
+                >
+                  [{t.codec}] [{fmtQuality(t.bitDepth, t.sampleRateHz)}]
+                </span>
+                {bitPerfect && <span className="text-bitperfect">● bit-perfect</span>}
+              </>
+            ) : (
+              <span className="text-muted">—</span>
+            )}
           </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-2 text-[14px]">
-          <button
-            type="button"
-            onClick={() => void api.prev()}
-            className="text-secondary hover:text-accent"
-          >
-            ⏮
-          </button>
-          <button
-            type="button"
-            onClick={() => void api.toggle()}
-            className="text-accent hover:text-primary"
-          >
-            {status === "playing" ? "⏸" : "▶"}
-          </button>
-          <button
-            type="button"
-            onClick={() => void api.next()}
-            className="text-secondary hover:text-accent"
-          >
-            ⏭
-          </button>
-          <button
-            type="button"
-            onClick={expand}
-            title="expand"
-            className="ml-1 text-[11px] text-muted hover:text-accent"
-          >
-            ⤢
-          </button>
+
+          {/* controls row */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 text-[13px]">
+              <button
+                type="button"
+                onClick={() => void api.prev()}
+                title="previous"
+                className="text-secondary hover:text-accent"
+              >
+                ⏮
+              </button>
+              <button
+                type="button"
+                onClick={() => void api.toggle()}
+                title="play / pause (space)"
+                className="text-accent hover:text-primary"
+              >
+                {status === "playing" ? "⏸" : "▶"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void api.next()}
+                title="next"
+                className="text-secondary hover:text-accent"
+              >
+                ⏭
+              </button>
+            </div>
+            <span className="flex items-center gap-1 text-[11px]">
+              <button
+                type="button"
+                onClick={toggleShuffle}
+                title="shuffle"
+                className={shuffle ? "text-accent" : "text-muted hover:text-secondary"}
+              >
+                ⇄
+              </button>
+              <button
+                type="button"
+                onClick={cycleRepeat}
+                title={`repeat: ${repeat}`}
+                className={repeat === "off" ? "text-muted hover:text-secondary" : "text-accent"}
+              >
+                {repeat === "one" ? "⟳¹" : "⟳"}
+              </button>
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={Math.round(volume * 100)}
+              onChange={(e) => void api.setVolume(Number(e.target.value))}
+              onDoubleClick={(e) => e.stopPropagation()}
+              title={`volume ${Math.round(volume * 100)}%`}
+              className="h-0.5 w-14 cursor-pointer appearance-none bg-subtle accent-[var(--accent)]"
+            />
+            <span
+              data-tauri-drag-region
+              className="ml-auto shrink-0 text-[10px] tabular-nums text-muted"
+            >
+              {fmtDuration(positionMs)} / {fmtDuration(durationMs)}
+            </span>
+          </div>
         </div>
       </div>
+
       <MiniSeek positionMs={positionMs} durationMs={durationMs} />
     </div>
   );
@@ -80,16 +178,19 @@ export function MiniPlayer() {
 function MiniArt({ albumId }: { albumId: number | null }) {
   const [err, setErr] = useState(false);
   return (
-    <div className="h-14 w-14 shrink-0 overflow-hidden border border-subtle bg-raised">
+    <div
+      data-tauri-drag-region
+      className="h-full w-[108px] shrink-0 border-r border-subtle bg-raised"
+    >
       {albumId !== null && albumId > 0 && !err ? (
         <img
           src={artworkUrl(albumId)}
           alt=""
           onError={() => setErr(true)}
-          className="h-full w-full object-cover"
+          className="pointer-events-none h-full w-full object-cover"
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center text-muted">
+        <div className="flex h-full w-full items-center justify-center text-xl text-muted">
           ♪
         </div>
       )}
@@ -116,20 +217,17 @@ function MiniSeek({
   };
 
   return (
-    <div className="flex shrink-0 items-center gap-2 border-t border-subtle px-2 py-1">
-      <span className="text-[10px] text-muted">{fmtDuration(positionMs)}</span>
-      <div
-        ref={barRef}
-        onClick={seek}
-        className={cn("relative h-3 flex-1", durationMs > 0 && "cursor-pointer")}
-      >
-        <div className="absolute top-1/2 h-0.5 w-full -translate-y-1/2 bg-subtle" />
-        <div
-          className="absolute top-1/2 h-0.5 -translate-y-1/2 bg-accent"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span className="text-[10px] text-muted">{fmtDuration(durationMs)}</span>
+    <div
+      ref={barRef}
+      onClick={seek}
+      onDoubleClick={(e) => e.stopPropagation()}
+      title="seek"
+      className={cn(
+        "relative h-1.5 w-full shrink-0 bg-raised",
+        durationMs > 0 && "cursor-pointer",
+      )}
+    >
+      <div className="absolute inset-y-0 left-0 bg-accent" style={{ width: `${pct}%` }} />
     </div>
   );
 }
