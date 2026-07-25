@@ -1,5 +1,7 @@
 import { TransportBar } from "@/components/player/TransportBar";
+import { cn } from "@/lib/utils";
 import { useScanStore } from "@/stores/scanStore";
+import { useUiStore } from "@/stores/uiStore";
 
 export function StatusBar() {
   const { scanning, processed, total, currentPath, lastError, summary } =
@@ -26,8 +28,44 @@ export function StatusBar() {
           tab: panes · space: play · /: search · ctrl+p: palette
         </span>
       )}
-      <span className="shrink-0 text-muted">signal v0.1.0</span>
+      <span className="flex shrink-0 items-center gap-2">
+        <PaneToggles />
+        <span className="text-muted">signal v0.1.0</span>
+      </span>
     </footer>
+  );
+}
+
+function PaneToggles() {
+  const libraryVisible = useUiStore((s) => s.libraryVisible);
+  const inspectorVisible = useUiStore((s) => s.inspectorVisible);
+  const togglePane = useUiStore((s) => s.togglePane);
+
+  return (
+    <span className="flex gap-1">
+      <button
+        type="button"
+        onClick={() => togglePane("library")}
+        title="toggle library pane (b)"
+        className={cn(
+          "text-[11px]",
+          libraryVisible ? "text-accent" : "text-muted hover:text-secondary",
+        )}
+      >
+        ◧
+      </button>
+      <button
+        type="button"
+        onClick={() => togglePane("inspector")}
+        title="toggle inspector pane (i)"
+        className={cn(
+          "text-[11px]",
+          inspectorVisible ? "text-accent" : "text-muted hover:text-secondary",
+        )}
+      >
+        ◨
+      </button>
+    </span>
   );
 }
 

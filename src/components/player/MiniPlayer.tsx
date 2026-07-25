@@ -158,7 +158,7 @@ export function MiniPlayer() {
               onChange={(e) => void api.setVolume(Number(e.target.value))}
               onDoubleClick={(e) => e.stopPropagation()}
               title={`volume ${Math.round(volume * 100)}%`}
-              className="h-0.5 w-14 cursor-pointer appearance-none bg-subtle accent-[var(--accent)]"
+              className="vol-slider w-14"
             />
             <span
               data-tauri-drag-region

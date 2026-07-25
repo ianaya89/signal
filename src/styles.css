@@ -119,6 +119,32 @@ body {
   background: color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
+/* square volume slider: block thumb, hairline track */
+input[type="range"].vol-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 12px;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"].vol-slider::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--border-subtle);
+}
+input[type="range"].vol-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 8px;
+  height: 8px;
+  margin-top: -3px;
+  border-radius: 0;
+  background: var(--accent);
+  border: none;
+}
+input[type="range"].vol-slider:hover::-webkit-slider-thumb {
+  background: var(--text-primary);
+}
+
 /* blocky terminal scrollbars */
 ::-webkit-scrollbar {
   width: 8px;

@@ -108,7 +108,7 @@ function VolumeSlider() {
         max={100}
         value={Math.round(volume * 100)}
         onChange={(e) => void api.setVolume(Number(e.target.value))}
-        className="h-0.5 w-16 cursor-pointer appearance-none bg-subtle accent-[var(--accent)]"
+        className="vol-slider w-16"
         title={`${Math.round(volume * 100)}% (m mute, +/- adjust)`}
       />
     </span>

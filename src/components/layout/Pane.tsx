@@ -14,6 +14,7 @@ interface PaneProps {
 export function Pane({ id, title, className, style, children }: PaneProps) {
   const focused = useUiStore((s) => s.focusedPane === id);
   const focusPane = useUiStore((s) => s.focusPane);
+  const togglePane = useUiStore((s) => s.togglePane);
 
   return (
     <section
@@ -29,7 +30,22 @@ export function Pane({ id, title, className, style, children }: PaneProps) {
         <span className={cn("text-[11px]", focused ? "text-accent" : "text-muted")}>
           [ {title} ]
         </span>
-        {focused && <span className="text-[10px] text-accent">▮</span>}
+        <span className="flex items-center gap-1.5">
+          {focused && <span className="text-[10px] text-accent">▮</span>}
+          {id !== "main" && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                togglePane(id);
+              }}
+              title={`hide pane (${id === "library" ? "b" : "i"})`}
+              className="text-[11px] text-muted hover:text-error"
+            >
+              ✕
+            </button>
+          )}
+        </span>
       </header>
       <div className="min-h-0 flex-1 overflow-auto">{children}</div>
     </section>
