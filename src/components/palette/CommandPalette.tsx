@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { api } from "@/ipc/invoke";
 import { useKeyboardStore } from "@/lib/keyboard";
-import { enterMiniWindow } from "@/lib/miniMode";
+import { setWindowMode } from "@/lib/miniMode";
 import { pickFolder } from "@/lib/pickFolder";
 import { cn } from "@/lib/utils";
 import { useScanStore } from "@/stores/scanStore";
@@ -109,10 +109,7 @@ export function CommandPalette() {
       {
         id: "mini",
         label: "mini player",
-        run: async () => {
-          await enterMiniWindow();
-          useUiStore.getState().setMiniMode(true);
-        },
+        run: () => setWindowMode("mini"),
       },
       {
         id: "toggle-library",

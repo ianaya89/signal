@@ -4,18 +4,16 @@ import { useRef, useState } from "react";
 import { api } from "@/ipc/invoke";
 import { artworkUrl } from "@/lib/artwork";
 import { fmtDuration, fmtQuality, isHires, isLossy } from "@/lib/format";
-import { exitMiniWindow } from "@/lib/miniMode";
+import { setWindowMode } from "@/lib/miniMode";
 import { cn } from "@/lib/utils";
 import { usePlayModeStore } from "@/stores/playModeStore";
 import { usePlayerStore } from "@/stores/playerStore";
-import { useUiStore } from "@/stores/uiStore";
 
 /** Compact always-on-top player. Double-click anywhere inert or hit ⤢/Esc
  *  to restore the full window. */
 export function MiniPlayer() {
   const { status, trackId, positionMs, durationMs, volume, bitPerfect } =
     usePlayerStore();
-  const setMiniMode = useUiStore((s) => s.setMiniMode);
   const { shuffle, repeat, toggleShuffle, cycleRepeat } = usePlayModeStore();
 
   const { data } = useQuery({
@@ -26,7 +24,7 @@ export function MiniPlayer() {
   });
 
   const restore = () => {
-    void exitMiniWindow().then(() => setMiniMode(false));
+    void setWindowMode("full");
   };
 
   const t = data?.track.technical;
@@ -76,6 +74,17 @@ export function MiniPlayer() {
                 {data.track.favorite ? "♥" : "♡"}
               </button>
             )}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                void setWindowMode("dot");
+              }}
+              title="collapse to floating dot"
+              className="shrink-0 border border-subtle px-1 text-[11px] text-secondary hover:border-focus hover:text-accent"
+            >
+              ▪
+            </button>
             <button
               type="button"
               onClick={restore}

@@ -7,6 +7,7 @@ import { LibraryNav } from "@/components/layout/LibraryNav";
 import { Pane } from "@/components/layout/Pane";
 import { StatusBar } from "@/components/layout/StatusBar";
 import { CommandPalette } from "@/components/palette/CommandPalette";
+import { DotPlayer } from "@/components/player/DotPlayer";
 import { MiniPlayer } from "@/components/player/MiniPlayer";
 import { QueuePanel } from "@/components/queue/QueuePanel";
 import { Toasts } from "@/components/ui/Toasts";
@@ -18,7 +19,7 @@ import {
   ratingArmed,
   useKeyboardStore,
 } from "@/lib/keyboard";
-import { exitMiniWindow } from "@/lib/miniMode";
+import { setWindowMode } from "@/lib/miniMode";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useUiStore } from "@/stores/uiStore";
 
@@ -27,7 +28,7 @@ let lastVolume = 1;
 
 export function AppShell() {
   const cycleFocus = useUiStore((s) => s.cycleFocus);
-  const miniMode = useUiStore((s) => s.miniMode);
+  const windowMode = useUiStore((s) => s.windowMode);
   const mainTitle = useUiStore((s) => s.mainTitle);
   const libraryVisible = useUiStore((s) => s.libraryVisible);
   const inspectorVisible = useUiStore((s) => s.inspectorVisible);
@@ -52,15 +53,14 @@ export function AppShell() {
       // input fields swallow everything else
       if (inInput || mode === "palette") return;
 
-      // mini mode: space + esc only
-      if (useUiStore.getState().miniMode) {
+      // compact modes: space + esc only (esc steps up: dot → mini → full)
+      const windowMode = useUiStore.getState().windowMode;
+      if (windowMode !== "full") {
         if (e.key === " ") {
           e.preventDefault();
           void api.toggle();
         } else if (e.key === "Escape") {
-          void exitMiniWindow().then(() =>
-            useUiStore.getState().setMiniMode(false),
-          );
+          void setWindowMode(windowMode === "dot" ? "mini" : "full");
         }
         return;
       }
@@ -196,7 +196,10 @@ export function AppShell() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [cycleFocus, navigate]);
 
-  if (miniMode) {
+  if (windowMode === "dot") {
+    return <DotPlayer />;
+  }
+  if (windowMode === "mini") {
     return <MiniPlayer />;
   }
 

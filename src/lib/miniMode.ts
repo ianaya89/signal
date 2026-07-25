@@ -1,24 +1,38 @@
 import { getCurrentWindow, LogicalSize, PhysicalSize } from "@tauri-apps/api/window";
 
-const MINI_W = 440;
-const MINI_H = 118;
+import { useUiStore, type WindowMode } from "@/stores/uiStore";
+
+const SIZES: Record<Exclude<WindowMode, "full">, [number, number]> = {
+  mini: [440, 118],
+  dot: [76, 76],
+};
 
 let savedSize: PhysicalSize | null = null;
 
-export async function enterMiniWindow() {
+/** Switches between full / mini / dot window shapes; remembers the full
+ *  size across the compact modes. */
+export async function setWindowMode(next: WindowMode) {
   const win = getCurrentWindow();
-  savedSize = await win.innerSize();
-  await win.setAlwaysOnTop(true);
-  await win.setSize(new LogicalSize(MINI_W, MINI_H));
-}
+  const prev = useUiStore.getState().windowMode;
+  if (prev === next) return;
 
-export async function exitMiniWindow() {
-  const win = getCurrentWindow();
-  await win.setAlwaysOnTop(false);
-  if (savedSize) {
-    await win.setSize(savedSize);
-    savedSize = null;
-  } else {
-    await win.setSize(new LogicalSize(1280, 800));
+  if (prev === "full") {
+    savedSize = await win.innerSize();
   }
+
+  if (next === "full") {
+    await win.setAlwaysOnTop(false);
+    if (savedSize) {
+      await win.setSize(savedSize);
+      savedSize = null;
+    } else {
+      await win.setSize(new LogicalSize(1280, 800));
+    }
+  } else {
+    const [w, h] = SIZES[next];
+    await win.setAlwaysOnTop(true);
+    await win.setSize(new LogicalSize(w, h));
+  }
+
+  useUiStore.getState().setWindowMode(next);
 }

@@ -4,6 +4,7 @@ import { api } from "@/ipc/invoke";
 
 export type PaneId = "library" | "main" | "inspector";
 export type Theme = "dark" | "light";
+export type WindowMode = "full" | "mini" | "dot";
 
 function applyTheme(theme: Theme) {
   document.documentElement.dataset.theme = theme;
@@ -40,7 +41,7 @@ function persistLayout(layout: LayoutState) {
 interface UiState extends LayoutState {
   focusedPane: PaneId;
   theme: Theme;
-  miniMode: boolean;
+  windowMode: WindowMode;
   mainTitle: string;
   focusPane: (pane: PaneId) => void;
   cycleFocus: (direction: 1 | -1) => void;
@@ -49,17 +50,17 @@ interface UiState extends LayoutState {
   togglePane: (pane: "library" | "inspector") => void;
   setPaneWidth: (pane: "library" | "inspector", width: number) => void;
   restoreLayout: (layout: Partial<LayoutState>) => void;
-  setMiniMode: (mini: boolean) => void;
+  setWindowMode: (mode: WindowMode) => void;
   setMainTitle: (title: string) => void;
 }
 
 export const useUiStore = create<UiState>((set, get) => ({
   focusedPane: "library",
   theme: "dark",
-  miniMode: false,
+  windowMode: "full",
   mainTitle: "albums",
   ...LAYOUT_DEFAULTS,
-  setMiniMode: (mini) => set({ miniMode: mini }),
+  setWindowMode: (mode) => set({ windowMode: mode }),
   setMainTitle: (title) => set({ mainTitle: title }),
   focusPane: (pane) => set({ focusedPane: pane }),
   cycleFocus: (direction) =>

@@ -3,11 +3,10 @@ import { useRef } from "react";
 
 import { api } from "@/ipc/invoke";
 import { fmtDuration } from "@/lib/format";
-import { enterMiniWindow } from "@/lib/miniMode";
+import { setWindowMode } from "@/lib/miniMode";
 import { cn } from "@/lib/utils";
 import { usePlayModeStore } from "@/stores/playModeStore";
 import { usePlayerStore } from "@/stores/playerStore";
-import { useUiStore } from "@/stores/uiStore";
 
 export function TransportBar() {
   const status = usePlayerStore((s) => s.status);
@@ -56,11 +55,7 @@ export function TransportBar() {
       <VolumeSlider />
       <button
         type="button"
-        onClick={() => {
-          void enterMiniWindow().then(() =>
-            useUiStore.getState().setMiniMode(true),
-          );
-        }}
+        onClick={() => void setWindowMode("mini")}
         title="mini player"
         className="shrink-0 text-[11px] text-muted hover:text-accent"
       >
