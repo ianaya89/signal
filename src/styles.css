@@ -131,14 +131,34 @@ body {
     transform: scaleY(1);
   }
 }
+/* gentle breath for the heart mark — amplitude small enough that the
+   silhouette still reads as a heart mid-animation */
+@keyframes eq-pulse-soft {
+  0% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.8);
+  }
+  100% {
+    transform: scaleY(1);
+  }
+}
 .eq-bar {
   transform-origin: center;
   animation-name: eq-pulse;
   animation-iteration-count: infinite;
   animation-timing-function: ease-in-out;
 }
+.eq-bar-soft {
+  transform-origin: center;
+  animation-name: eq-pulse-soft;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+}
 @media (prefers-reduced-motion: reduce) {
-  .eq-bar {
+  .eq-bar,
+  .eq-bar-soft {
     animation: none !important;
   }
 }

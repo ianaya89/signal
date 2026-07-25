@@ -21,16 +21,20 @@ export function HeartEqualizer({
       {bars.map((bar, i) => (
         <span
           key={i}
-          className="eq-bar absolute rounded-full"
+          // paused: no animation at all → bars sit at scale 1, a clean heart
+          className={playing ? "eq-bar-soft absolute rounded-full" : "absolute rounded-full"}
           style={{
             left: bar.x * size,
             top: bar.top * size,
             width: bar.width * size,
             height: bar.height * size,
             background: bar.color,
-            animationDuration: `${0.6 + (i % 4) * 0.17}s`,
-            animationDelay: `${(i % 5) * 90}ms`,
-            animationPlayState: playing ? "running" : "paused",
+            ...(playing
+              ? {
+                  animationDuration: `${0.7 + (i % 4) * 0.16}s`,
+                  animationDelay: `${(i % 5) * 110}ms`,
+                }
+              : null),
           }}
         />
       ))}
