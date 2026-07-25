@@ -85,7 +85,8 @@ export type IpcCommand =
   | "library_health"
   | "library_prune_missing"
   | "playlist_export_m3u"
-  | "library_backup";
+  | "library_backup"
+  | "open_config_file";
 
 export function ipc<T>(
   command: IpcCommand,
@@ -187,4 +188,5 @@ export const api = {
     ipc<number>("playlist_export_m3u", { playlistId, smart, destPath }),
   libraryBackup: (destPath: string) =>
     ipc<void>("library_backup", { destPath }),
+  openConfigFile: () => ipc<string>("open_config_file"),
 };

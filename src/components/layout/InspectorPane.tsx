@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
+import { ChainView } from "@/components/layout/ChainView";
 import { api } from "@/ipc/invoke";
 import type { ReplayGainMode } from "@/ipc/types";
 import { fmtSampleRate } from "@/lib/format";
@@ -18,6 +19,7 @@ export function InspectorPane() {
       ) : (
         <TrackInspector trackId={trackId} />
       )}
+      <ChainView />
       <OutputSection />
     </div>
   );

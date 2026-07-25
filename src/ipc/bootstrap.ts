@@ -95,4 +95,26 @@ export function bootstrapEvents(queryClient: QueryClient) {
       useLogStore.getState().push(line);
     },
   );
+
+  // config.toml [ui] section: theme + custom accent, applied live
+  void onSignalEvent<{ ui: string }>("config:changed", (e) => {
+    try {
+      const ui: unknown = JSON.parse(e.ui);
+      if (typeof ui !== "object" || ui === null) return;
+      const { theme, accent } = ui as { theme?: string; accent?: string };
+      if (theme === "dark" || theme === "light") {
+        useUiStore.getState().setTheme(theme, false);
+      }
+      const root = document.documentElement;
+      if (accent && /^#[0-9a-fA-F]{6}$/.test(accent)) {
+        root.style.setProperty("--accent", accent);
+        root.style.setProperty("--border-focus", accent);
+      } else {
+        root.style.removeProperty("--accent");
+        root.style.removeProperty("--border-focus");
+      }
+    } catch {
+      // malformed config event: ignore
+    }
+  });
 }

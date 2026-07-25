@@ -3696,6 +3696,7 @@ name = "signal-app"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "notify",
  "serde",
  "serde_json",
  "signal-core",
@@ -3710,6 +3711,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-dialog",
  "tokio",
+ "toml 0.8.2",
  "tracing",
  "tracing-subscriber",
 ]

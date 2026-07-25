@@ -6,6 +6,7 @@ mod artwork;
 mod autoplay;
 mod bridge;
 mod commands;
+mod config_file;
 mod logbus;
 mod media_keys;
 mod recorder;
@@ -86,6 +87,7 @@ fn main() {
             });
 
             media_keys::spawn(app.handle().clone());
+            config_file::init(app.handle().clone());
 
             tracing::info!("signal started");
             Ok(())
@@ -107,6 +109,7 @@ fn main() {
             commands::window::window_set_compact,
             commands::session::session_restore,
             commands::info::app_info,
+            commands::info::open_config_file,
             commands::plugins::plugin_set_listenbrainz,
             commands::plugins::plugin_status,
             commands::health::library_health,

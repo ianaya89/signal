@@ -18,7 +18,9 @@ signal-search = { workspace = true }
 signal-plugins = { workspace = true }
 
 chrono = { workspace = true }
+notify = { workspace = true }
 souvlaki = "0.8"
+toml = "0.8"
 tauri = { workspace = true }
 tauri-plugin-dialog = "2"
 tokio = { workspace = true }

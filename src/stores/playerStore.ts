@@ -16,6 +16,9 @@ export interface PlayerStateDto {
   bitPerfect: boolean;
   sourceRateHz: number | null;
   outputRateHz: number | null;
+  decodedFormat: string | null;
+  outputFormat: string | null;
+  ao: string | null;
 }
 
 interface PlayerStore extends PlayerStateDto {
@@ -35,6 +38,9 @@ export const usePlayerStore = create<PlayerStore>((set) => ({
   bitPerfect: false,
   sourceRateHz: null,
   outputRateHz: null,
+  decodedFormat: null,
+  outputFormat: null,
+  ao: null,
   applyState: (s) => set(s),
   applyProgress: (positionMs, durationMs) =>
     set(durationMs > 0 ? { positionMs, durationMs } : { positionMs }),

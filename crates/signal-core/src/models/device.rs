@@ -39,6 +39,11 @@ pub struct PlayerState {
     /// Source vs actual output sample rate, when known.
     pub source_rate_hz: Option<u32>,
     pub output_rate_hz: Option<u32>,
+    /// Decoded sample format (e.g. "s32", "floatp") and what reaches the AO.
+    pub decoded_format: Option<String>,
+    pub output_format: Option<String>,
+    /// Active audio output driver (e.g. "coreaudio").
+    pub ao: Option<String>,
 }
 
 impl Default for PlayerState {
@@ -55,6 +60,9 @@ impl Default for PlayerState {
             bit_perfect: false,
             source_rate_hz: None,
             output_rate_hz: None,
+            decoded_format: None,
+            output_format: None,
+            ao: None,
         }
     }
 }

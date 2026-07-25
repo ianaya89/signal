@@ -95,6 +95,13 @@ export function CommandPalette() {
         run: () => navigate({ to: "/doctor" }),
       },
       {
+        id: "edit-config",
+        label: "edit config.toml",
+        run: async () => {
+          await api.openConfigFile();
+        },
+      },
+      {
         id: "save-queue",
         label: "save-queue <name>",
         takesArg: true,

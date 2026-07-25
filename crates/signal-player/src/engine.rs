@@ -291,10 +291,16 @@ impl Engine {
         let source: Option<i64> = mpv.get_property("audio-params/samplerate").ok();
         let output: Option<i64> = mpv.get_property("audio-out-params/samplerate").ok();
         let volume: f64 = mpv.get_property("volume").unwrap_or(100.0);
+        let decoded_format: Option<String> = mpv.get_property("audio-params/format").ok();
+        let output_format: Option<String> = mpv.get_property("audio-out-params/format").ok();
+        let ao: Option<String> = mpv.get_property("current-ao").ok();
 
         self.set_state(|s| {
             s.source_rate_hz = source.and_then(|v| u32::try_from(v).ok());
             s.output_rate_hz = output.and_then(|v| u32::try_from(v).ok());
+            s.decoded_format = decoded_format;
+            s.output_format = output_format;
+            s.ao = ao;
             s.bit_perfect = matches!((source, output), (Some(a), Some(b)) if a == b)
                 && (volume - 100.0).abs() < f64::EPSILON
                 && s.replaygain == ReplayGainMode::Off;

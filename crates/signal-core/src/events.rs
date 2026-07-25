@@ -57,6 +57,11 @@ pub enum SignalEvent {
         message: String,
     },
     QueueChanged,
+    /// config.toml changed; `ui` is the serialized [ui] section.
+    #[serde(rename_all = "camelCase")]
+    ConfigChanged {
+        ui: String,
+    },
     #[serde(rename_all = "camelCase")]
     LogLine {
         level: String,
@@ -80,6 +85,7 @@ impl SignalEvent {
             Self::ScannerDone { .. } => "scanner:done",
             Self::ScannerError { .. } => "scanner:error",
             Self::QueueChanged => "queue:changed",
+            Self::ConfigChanged { .. } => "config:changed",
             Self::LogLine { .. } => "log:line",
         }
     }

@@ -11,6 +11,7 @@ export type SignalChannel =
   | "scanner:done"
   | "scanner:error"
   | "queue:changed"
+  | "config:changed"
   | "log:line";
 
 export function onSignalEvent<T>(
