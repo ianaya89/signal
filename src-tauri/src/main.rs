@@ -95,6 +95,7 @@ fn main() {
             commands::library::library_list_genres,
             commands::library::library_get_genre_tracks,
             commands::library::reveal_in_file_manager,
+            commands::library::library_browse_folder,
             commands::library::library_reset_and_rescan,
             commands::player::player_play,
             commands::player::player_play_context,

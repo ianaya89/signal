@@ -145,6 +145,19 @@ export interface GenreSummary {
   trackCount: number;
 }
 
+export interface FolderEntry {
+  name: string;
+  path: string;
+  trackCount: number;
+}
+
+export interface FolderListing {
+  root: string;
+  path: string;
+  dirs: FolderEntry[];
+  tracks: Track[];
+}
+
 export interface ScannerProgressEvent {
   processed: number;
   total: number;

@@ -1,0 +1,200 @@
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+
+import { TrackRow } from "@/components/library/TrackRow";
+import { useMainTitle } from "@/hooks/useMainTitle";
+import { api } from "@/ipc/invoke";
+import type { Track } from "@/ipc/types";
+import { registerListHandler } from "@/lib/keyboard";
+import { cn } from "@/lib/utils";
+
+export function FoldersView() {
+  const [path, setPath] = useState<string | null>(null);
+  const [cursor, setCursor] = useState(0);
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["folder", path],
+    queryFn: () => api.browseFolder(path ?? undefined),
+  });
+
+  const relative =
+    data && data.path !== data.root
+      ? data.path.slice(data.root.length).replace(/^\//, "")
+      : "";
+  useMainTitle(relative ? `folders · ${relative}` : "folders");
+
+  // one combined list for the vim cursor: dirs first, tracks after
+  const dirs = data?.dirs ?? [];
+  const tracks = data?.tracks ?? [];
+
+  const stateRef = useRef({ dirs, tracks, cursor, path, root: data?.root });
+  stateRef.current = { dirs, tracks, cursor, path, root: data?.root };
+
+  const enterAt = (index: number) => {
+    const s = stateRef.current;
+    if (index < s.dirs.length) {
+      const dir = s.dirs[index];
+      if (dir) {
+        setPath(dir.path);
+        setCursor(0);
+      }
+      return;
+    }
+    const trackIdx = index - s.dirs.length;
+    const ids = s.tracks.map((t: Track) => t.id);
+    if (ids.length > 0 && s.tracks[trackIdx]) {
+      void api.playContext(ids, trackIdx);
+    }
+  };
+
+  const goUp = () => {
+    const s = stateRef.current;
+    if (!s.path || !s.root || s.path === s.root) return false;
+    const parent = s.path.slice(0, s.path.lastIndexOf("/"));
+    setPath(parent === s.root ? null : parent);
+    setCursor(0);
+    return true;
+  };
+
+  useEffect(() => {
+    return registerListHandler({
+      move: (delta) =>
+        setCursor((c) => {
+          const total =
+            stateRef.current.dirs.length + stateRef.current.tracks.length;
+          return Math.min(Math.max(c + delta, 0), Math.max(total - 1, 0));
+        }),
+      top: () => setCursor(0),
+      bottom: () =>
+        setCursor(
+          Math.max(
+            stateRef.current.dirs.length + stateRef.current.tracks.length - 1,
+            0,
+          ),
+        ),
+      open: () => enterAt(stateRef.current.cursor),
+      stage: () => {
+        const s = stateRef.current;
+        const trackIdx = s.cursor - s.dirs.length;
+        const track = s.tracks[trackIdx];
+        if (track) void api.queueAdd(track.id);
+      },
+      back: () => {
+        goUp();
+      },
+    });
+    // handlers read stateRef only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (isLoading) {
+    return <p className="p-3 text-muted">loading…</p>;
+  }
+  if (error || !data) {
+    return (
+      <p className="p-3 text-[12px] text-error">
+        {error ? String(error) : "no library root — scan first"}
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex h-full flex-col">
+      <Breadcrumb
+        root={data.root}
+        path={data.path}
+        onNavigate={(p) => {
+          setPath(p);
+          setCursor(0);
+        }}
+      />
+      <div className="min-h-0 flex-1 overflow-auto">
+        {dirs.map((dir, i) => (
+          <div
+            key={dir.path}
+            onClick={() => setCursor(i)}
+            onDoubleClick={() => enterAt(i)}
+            className={cn(
+              "flex h-7 cursor-default items-center gap-2 border-l-2 px-2",
+              cursor === i
+                ? "border-focus bg-raised"
+                : "border-transparent hover:bg-raised/50",
+            )}
+          >
+            <span className="text-muted">▸</span>
+            <span className="min-w-0 flex-1 truncate text-[12px] text-primary">
+              {dir.name}
+            </span>
+            <span className="shrink-0 text-[11px] text-muted">
+              {dir.trackCount} tracks
+            </span>
+          </div>
+        ))}
+        {tracks.length > 0 && (
+          <table className="w-full border-collapse">
+            <tbody>
+              {tracks.map((track, i) => (
+                <TrackRow
+                  key={track.id}
+                  track={track}
+                  selected={cursor === dirs.length + i}
+                  onSelect={() => setCursor(dirs.length + i)}
+                  onPlay={() => enterAt(dirs.length + i)}
+                />
+              ))}
+            </tbody>
+          </table>
+        )}
+        {dirs.length === 0 && tracks.length === 0 && (
+          <p className="p-3 text-[12px] text-muted">empty folder</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Breadcrumb({
+  root,
+  path,
+  onNavigate,
+}: {
+  root: string;
+  path: string;
+  onNavigate: (path: string | null) => void;
+}) {
+  const relative = path.startsWith(root) ? path.slice(root.length) : path;
+  const parts = relative.split("/").filter(Boolean);
+
+  return (
+    <div className="flex h-7 shrink-0 items-center gap-1 overflow-x-auto border-b border-subtle px-2 text-[11px]">
+      <button
+        type="button"
+        onClick={() => onNavigate(null)}
+        className={cn(
+          parts.length === 0 ? "text-accent" : "text-secondary hover:text-accent",
+        )}
+      >
+        ~music
+      </button>
+      {parts.map((part, i) => {
+        const target = `${root}/${parts.slice(0, i + 1).join("/")}`;
+        const last = i === parts.length - 1;
+        return (
+          <span key={target} className="flex items-center gap-1">
+            <span className="text-muted">/</span>
+            <button
+              type="button"
+              onClick={() => onNavigate(last ? target : target)}
+              className={cn(
+                "max-w-40 truncate",
+                last ? "text-accent" : "text-secondary hover:text-accent",
+              )}
+            >
+              {part}
+            </button>
+          </span>
+        );
+      })}
+    </div>
+  );
+}

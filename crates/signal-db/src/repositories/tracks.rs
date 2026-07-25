@@ -121,6 +121,31 @@ impl TrackRepo {
         rows.iter().map(track_from_row).collect()
     }
 
+    /// Tracks directly inside `dir` (not in subdirectories).
+    pub async fn list_in_dir(&self, dir: &str) -> sqlx::Result<Vec<Track>> {
+        let prefix = format!("{}/", dir.trim_end_matches('/'));
+        let direct = format!("{prefix}%");
+        let nested = format!("{prefix}%/%");
+        let rows = sqlx::query(
+            "SELECT * FROM tracks
+             WHERE file_path LIKE ?1 AND file_path NOT LIKE ?2
+             ORDER BY file_path",
+        )
+        .bind(direct)
+        .bind(nested)
+        .fetch_all(&self.pool)
+        .await?;
+        rows.iter().map(track_from_row).collect()
+    }
+
+    /// Number of tracks anywhere under `dir`.
+    pub async fn count_under(&self, dir: &str) -> sqlx::Result<i64> {
+        sqlx::query_scalar("SELECT COUNT(*) FROM tracks WHERE file_path LIKE ?1")
+            .bind(format!("{}/%", dir.trim_end_matches('/')))
+            .fetch_one(&self.pool)
+            .await
+    }
+
     pub async fn count(&self) -> sqlx::Result<i64> {
         sqlx::query_scalar("SELECT COUNT(*) FROM tracks")
             .fetch_one(&self.pool)

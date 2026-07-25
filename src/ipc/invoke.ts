@@ -6,6 +6,7 @@ import type {
   ArtistDetail,
   ArtistSummary,
   AudioDevice,
+  FolderListing,
   GenreSummary,
   PlayMode,
   PlaylistDetail,
@@ -69,7 +70,8 @@ export type IpcCommand =
   | "queue_add_next"
   | "library_list_genres"
   | "library_get_genre_tracks"
-  | "reveal_in_file_manager";
+  | "reveal_in_file_manager"
+  | "library_browse_folder";
 
 export function ipc<T>(
   command: IpcCommand,
@@ -148,4 +150,6 @@ export const api = {
   genreTracks: (genreId: number) =>
     ipc<Track[]>("library_get_genre_tracks", { genreId }),
   revealFile: (path: string) => ipc<void>("reveal_in_file_manager", { path }),
+  browseFolder: (path?: string) =>
+    ipc<FolderListing>("library_browse_folder", { path }),
 };

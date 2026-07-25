@@ -6,12 +6,11 @@ const SECTIONS = [
   { label: "albums", to: "/", exact: true },
   { label: "artists", to: "/artists", exact: false },
   { label: "genres", to: "/genres", exact: false },
+  { label: "folders", to: "/folders", exact: false },
   { label: "playlists", to: "/playlists", exact: false },
   { label: "stats", to: "/stats", exact: false },
   { label: "logs", to: "/logs", exact: false },
 ] as const;
-
-const PLANNED = [{ label: "folders", milestone: "soon" }] as const;
 
 export function LibraryNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -38,17 +37,6 @@ export function LibraryNav() {
           </Link>
         );
       })}
-      {PLANNED.map((s) => (
-        <div
-          key={s.label}
-          className="flex h-7 cursor-default items-center justify-between px-2 opacity-60"
-        >
-          <span className="text-muted">{s.label}</span>
-          <span className="rounded-[var(--radius-sm)] bg-raised px-1 text-[10px] text-muted">
-            {s.milestone}
-          </span>
-        </div>
-      ))}
     </nav>
   );
 }

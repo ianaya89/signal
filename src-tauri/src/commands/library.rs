@@ -173,6 +173,89 @@ pub async fn library_get_genre_tracks(
     state.db.tracks().list_by_genre(genre_id).await.db_err()
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FolderEntry {
+    pub name: String,
+    pub path: String,
+    pub track_count: u32,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FolderListing {
+    pub root: String,
+    pub path: String,
+    pub dirs: Vec<FolderEntry>,
+    pub tracks: Vec<signal_core::Track>,
+}
+
+/// Browses the library by directory structure. `path` empty = library root;
+/// anything outside the root is rejected.
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn library_browse_folder(
+    state: State<'_, AppState>,
+    path: Option<String>,
+) -> Result<FolderListing, SignalError> {
+    let root = state
+        .db
+        .settings()
+        .get("library.root")
+        .await
+        .db_err()?
+        .ok_or_else(|| SignalError::Scanner("no library root — scan first".into()))?;
+
+    let dir = match &path {
+        Some(p) if !p.is_empty() => p.clone(),
+        _ => root.clone(),
+    };
+    // no escaping the library root via .. or absolute tricks
+    let canonical = std::path::Path::new(&dir)
+        .canonicalize()
+        .map_err(|_| SignalError::Io(format!("folder not found: {dir}")))?;
+    if !canonical.starts_with(&root) {
+        return Err(SignalError::Io("path outside library root".into()));
+    }
+
+    let mut dirs = Vec::new();
+    let entries = std::fs::read_dir(&canonical).map_err(|e| SignalError::Io(e.to_string()))?;
+    for entry in entries.flatten() {
+        let file_type = match entry.file_type() {
+            Ok(ft) => ft,
+            Err(_) => continue,
+        };
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if !file_type.is_dir() || name.starts_with('.') {
+            continue;
+        }
+        let sub_path = entry.path().to_string_lossy().into_owned();
+        let track_count = state.db.tracks().count_under(&sub_path).await.db_err()?;
+        if track_count > 0 {
+            dirs.push(FolderEntry {
+                name,
+                path: sub_path,
+                track_count: u32::try_from(track_count).unwrap_or_default(),
+            });
+        }
+    }
+    dirs.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+
+    let tracks = state
+        .db
+        .tracks()
+        .list_in_dir(&canonical.to_string_lossy())
+        .await
+        .db_err()?;
+
+    Ok(FolderListing {
+        root,
+        path: canonical.to_string_lossy().into_owned(),
+        dirs,
+        tracks,
+    })
+}
+
 /// Opens the OS file manager with the file selected.
 #[tauri::command]
 #[tracing::instrument]
