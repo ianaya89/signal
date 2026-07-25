@@ -2,14 +2,19 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
+import { SelectionBar } from "@/components/library/SelectionBar";
 import { TrackRow } from "@/components/library/TrackRow";
 import { TrackTableHeader } from "@/components/library/TrackTableHeader";
 import { EditableText } from "@/components/ui/EditableText";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { useMainTitle } from "@/hooks/useMainTitle";
+import { useMultiSelect } from "@/hooks/useMultiSelect";
 import { useTrackSort } from "@/hooks/useTrackSort";
+import { useVirtualWindow } from "@/hooks/useVirtualWindow";
 import { registerListHandler } from "@/lib/keyboard";
+import { pickSavePath } from "@/lib/pickFolder";
+import { toast } from "@/stores/toastStore";
 
 export function PlaylistDetailView() {
   const { kind, playlistId } = useParams({
@@ -33,6 +38,15 @@ export function PlaylistDetailView() {
   tracksRef.current = tracks;
   const cursorRef = useRef(cursor);
   cursorRef.current = cursor;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { selected, handleRowClick, clear } = useMultiSelect(tracks);
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
+  const clearRef = useRef(clear);
+  clearRef.current = clear;
+  const virtual = useVirtualWindow(tracks.length, 28, containerRef, tracks.length > 300);
+  const virtualRef = useRef(virtual);
+  virtualRef.current = virtual;
 
   const playFrom = (index: number) => {
     const ids = tracksRef.current.map((t) => t.id);
@@ -53,9 +67,14 @@ export function PlaylistDetailView() {
   useEffect(() => {
     return registerListHandler({
       move: (delta) =>
-        setCursor((c) =>
-          Math.min(Math.max(c + delta, 0), tracksRef.current.length - 1),
-        ),
+        setCursor((c) => {
+          const next = Math.min(
+            Math.max(c + delta, 0),
+            tracksRef.current.length - 1,
+          );
+          virtualRef.current.ensureVisible(next);
+          return next;
+        }),
       top: () => setCursor(0),
       bottom: () => setCursor(tracksRef.current.length - 1),
       open: () => playFrom(cursorRef.current),
@@ -80,7 +99,13 @@ export function PlaylistDetailView() {
         }
       },
       remove: () => removeAt(cursorRef.current),
-      back: () => void navigate({ to: "/playlists" }),
+      back: () => {
+        if (selectedRef.current.size > 0) {
+          clearRef.current();
+          return;
+        }
+        void navigate({ to: "/playlists" });
+      },
     });
     // handlers read refs only
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -115,8 +140,22 @@ export function PlaylistDetailView() {
         <span className="text-[12px] text-muted">
           {tracks.length} tracks
         </span>
+        <button
+          type="button"
+          onClick={() => {
+            void (async () => {
+              const dest = await pickSavePath(`${data.name}.m3u`, "m3u");
+              if (!dest) return;
+              const count = await api.exportM3u(id, smart, dest);
+              toast.ok(`exported ${count} tracks`);
+            })().catch((e) => toast.error(String(e)));
+          }}
+          className="ml-auto border border-subtle bg-raised px-2 py-0.5 text-[11px] text-secondary hover:border-focus hover:text-accent"
+        >
+          export m3u
+        </button>
       </header>
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div ref={containerRef} className="relative min-h-0 flex-1 overflow-auto">
         {tracks.length === 0 ? (
           <p className="p-3 text-[12px] text-muted">
             {data.smart
@@ -127,18 +166,31 @@ export function PlaylistDetailView() {
           <table className="w-full border-collapse">
             <TrackTableHeader sort={sort} />
             <tbody>
-              {tracks.map((track, i) => (
-                <TrackRow
-                  key={`${track.id}-${i}`}
-                  track={track}
-                  selected={i === cursor}
-                  onSelect={() => setCursor(i)}
-                  onPlay={() => playFrom(i)}
-                />
-              ))}
+              {virtual.padTop > 0 && (
+                <tr style={{ height: virtual.padTop }} aria-hidden />
+              )}
+              {tracks.slice(virtual.start, virtual.end).map((track, offset) => {
+                const i = virtual.start + offset;
+                return (
+                  <TrackRow
+                    key={`${track.id}-${i}`}
+                    track={track}
+                    selected={i === cursor}
+                    multiSelected={selected.has(track.id)}
+                    onSelect={(e) => {
+                      if (!handleRowClick(i, e)) setCursor(i);
+                    }}
+                    onPlay={() => playFrom(i)}
+                  />
+                );
+              })}
+              {virtual.padBottom > 0 && (
+                <tr style={{ height: virtual.padBottom }} aria-hidden />
+              )}
             </tbody>
           </table>
         )}
+        <SelectionBar selected={selected} onClear={clear} />
       </div>
     </div>
   );

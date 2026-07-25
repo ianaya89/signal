@@ -15,12 +15,15 @@ import { toast } from "@/stores/toastStore";
 export function TrackRow({
   track,
   selected = false,
+  multiSelected = false,
   onSelect,
   onPlay,
 }: {
   track: Track;
   selected?: boolean;
-  onSelect?: () => void;
+  /** part of an active multi-selection */
+  multiSelected?: boolean;
+  onSelect?: (e: React.MouseEvent) => void;
   /** Defaults to playing the bare track with no follow-on context. */
   onPlay?: () => void;
 }) {
@@ -45,10 +48,10 @@ export function TrackRow({
   return (
     <tr
       ref={ref}
-      onClick={onSelect}
+      onClick={(e) => onSelect?.(e)}
       onDoubleClick={() => (onPlay ? onPlay() : void api.play(track.id))}
       onContextMenu={(e) => {
-        onSelect?.();
+        onSelect?.(e);
         openMenu(
           e,
           buildTrackMenu({
@@ -62,7 +65,11 @@ export function TrackRow({
       }}
       className={cn(
         "group h-7 cursor-default",
-        selected ? "bg-raised" : "hover:bg-raised/50",
+        multiSelected
+          ? "bg-accent-dim/30"
+          : selected
+            ? "bg-raised"
+            : "hover:bg-raised/50",
       )}
     >
       <td

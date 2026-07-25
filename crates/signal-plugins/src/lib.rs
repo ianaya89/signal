@@ -1,5 +1,5 @@
 //! Plugin host. Network-touching integrations live here, opt-in and off by
-//! default (no-telemetry principle). First real plugin: ListenBrainz.
+//! default (no-telemetry principle). First real plugin: `ListenBrainz`.
 //! Design: `docs/08-plugins.md`.
 
 #![allow(clippy::missing_errors_doc)]
@@ -34,10 +34,7 @@ impl PluginHost {
 
     #[must_use]
     pub fn listenbrainz_enabled(&self) -> bool {
-        self.listenbrainz_token
-            .read()
-            .map(|t| t.is_some())
-            .unwrap_or(false)
+        self.listenbrainz_token.read().is_ok_and(|t| t.is_some())
     }
 
     /// Submits a completed listen to every enabled scrobbler. Failures are
@@ -53,7 +50,7 @@ impl PluginHost {
         }
     }
 
-    /// Validates a token against the ListenBrainz API.
+    /// Validates a token against the `ListenBrainz` API.
     pub async fn validate_listenbrainz(&self, token: &str) -> Result<bool, reqwest::Error> {
         listenbrainz::validate(&self.http, token).await
     }

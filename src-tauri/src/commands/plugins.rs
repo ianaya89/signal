@@ -4,7 +4,7 @@ use tauri::State;
 use crate::commands::DbResultExt;
 use crate::state::AppState;
 
-/// Stores + activates the ListenBrainz token (empty string disables).
+/// Stores + activates the `ListenBrainz` token (empty string disables).
 /// Returns whether the token validated against the API.
 #[tauri::command]
 #[tracing::instrument(skip(state, token))]

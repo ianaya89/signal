@@ -18,13 +18,30 @@ pub fn spawn(app: AppHandle, events: &EventBus) {
     tauri::async_runtime::spawn(async move {
         // track id currently staged in mpv's next slot, if any
         let mut staged_next: Option<i64> = None;
+        // last playing track, to append to history when a new one starts
+        let mut last_track: Option<i64> = None;
 
         while let Ok(event) = rx.recv().await {
             let state = app.state::<AppState>();
             match event {
                 // a track started by explicit user action — (re)stage next
-                SignalEvent::TrackChanged { track_id: Some(_) } => {
+                SignalEvent::TrackChanged { track_id: Some(id) } => {
+                    if let Some(prev) = last_track.replace(id) {
+                        if prev != id {
+                            if let Ok(mut history) = state.play_history.lock() {
+                                history.push(prev);
+                                let overflow =
+                                    history.len().saturating_sub(crate::state::HISTORY_CAP);
+                                if overflow > 0 {
+                                    history.drain(..overflow);
+                                }
+                            }
+                        }
+                    }
                     staged_next = restage(&state, staged_next).await;
+                }
+                SignalEvent::TrackChanged { track_id: None } => {
+                    last_track = None;
                 }
                 // mpv gapless-advanced into the staged entry: consume it
                 // from whichever source it came from, then stage the next

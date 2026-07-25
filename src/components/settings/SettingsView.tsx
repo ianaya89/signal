@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { ReplayGainMode } from "@/ipc/types";
-import { pickFolder } from "@/lib/pickFolder";
+import { pickFolder, pickSavePath } from "@/lib/pickFolder";
 import { cn } from "@/lib/utils";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useScanStore } from "@/stores/scanStore";
@@ -145,6 +145,21 @@ export function SettingsView() {
             title="reveal in finder"
           >
             {info?.dbPath}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              void (async () => {
+                const stamp = new Date().toISOString().slice(0, 10);
+                const dest = await pickSavePath(`signal-backup-${stamp}.db`, "db");
+                if (!dest) return;
+                await api.libraryBackup(dest);
+                toast.ok("database backed up");
+              })().catch((e) => toast.error(String(e)));
+            }}
+            className={BTN}
+          >
+            backup…
           </button>
         </Row>
       </Section>

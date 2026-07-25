@@ -61,6 +61,7 @@ fn main() {
                 play_context: Mutex::new(state::PlayContext::default()),
                 play_mode: Mutex::new(state::PlayMode::default()),
                 plugins: Arc::new(signal_plugins::PluginHost::default()),
+                play_history: Mutex::new(Vec::new()),
             });
 
             // watch the stored library root + restore play mode
@@ -110,6 +111,8 @@ fn main() {
             commands::plugins::plugin_status,
             commands::health::library_health,
             commands::health::library_prune_missing,
+            commands::export::playlist_export_m3u,
+            commands::export::library_backup,
             commands::playlist::smart_playlist_create,
             commands::playlist::smart_playlist_update,
             commands::playlist::smart_playlist_delete,

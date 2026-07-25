@@ -118,11 +118,25 @@ pub async fn player_next(state: State<'_, AppState>) -> Result<bool, SignalError
     Ok(true)
 }
 
-/// Restarts the current track (no play history yet to go further back).
+/// Beyond ~3s into a track, restarts it; near the start, steps back
+/// through the play history.
 #[tauri::command]
 #[tracing::instrument(skip(state))]
 pub async fn player_prev(state: State<'_, AppState>) -> Result<(), SignalError> {
-    state.player.seek_ms(0).player_err()
+    let position = state.player.state().position_ms;
+    if position > 3000 {
+        return state.player.seek_ms(0).player_err();
+    }
+
+    let previous = state
+        .play_history
+        .lock()
+        .ok()
+        .and_then(|mut history| history.pop());
+    match previous {
+        Some(track_id) => start_track(&state, track_id).await,
+        None => state.player.seek_ms(0).player_err(),
+    }
 }
 
 /// Sets shuffle/repeat; persisted so it survives restarts.

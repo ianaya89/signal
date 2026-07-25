@@ -2,8 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
+import { SelectionBar } from "@/components/library/SelectionBar";
 import { TrackRow } from "@/components/library/TrackRow";
 import { useMainTitle } from "@/hooks/useMainTitle";
+import { useMultiSelect } from "@/hooks/useMultiSelect";
+import { useVirtualWindow } from "@/hooks/useVirtualWindow";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { registerListHandler } from "@/lib/keyboard";
@@ -71,6 +74,15 @@ export function GenreDetailView() {
   tracksRef.current = list;
   const cursorRef = useRef(cursor);
   cursorRef.current = cursor;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { selected, handleRowClick, clear } = useMultiSelect(list);
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
+  const clearRef = useRef(clear);
+  clearRef.current = clear;
+  const virtual = useVirtualWindow(list.length, 28, containerRef, list.length > 300);
+  const virtualRef = useRef(virtual);
+  virtualRef.current = virtual;
 
   const playFrom = (index: number) => {
     const ids = tracksRef.current.map((t) => t.id);
@@ -80,9 +92,14 @@ export function GenreDetailView() {
   useEffect(() => {
     return registerListHandler({
       move: (delta) =>
-        setCursor((c) =>
-          Math.min(Math.max(c + delta, 0), tracksRef.current.length - 1),
-        ),
+        setCursor((c) => {
+          const next = Math.min(
+            Math.max(c + delta, 0),
+            tracksRef.current.length - 1,
+          );
+          virtualRef.current.ensureVisible(next);
+          return next;
+        }),
       top: () => setCursor(0),
       bottom: () => setCursor(tracksRef.current.length - 1),
       open: () => playFrom(cursorRef.current),
@@ -90,7 +107,13 @@ export function GenreDetailView() {
         const track = tracksRef.current[cursorRef.current];
         if (track) void api.queueAdd(track.id);
       },
-      back: () => void navigate({ to: "/genres" }),
+      back: () => {
+        if (selectedRef.current.size > 0) {
+          clearRef.current();
+          return;
+        }
+        void navigate({ to: "/genres" });
+      },
     });
     // playFrom reads refs only
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -101,20 +124,31 @@ export function GenreDetailView() {
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-auto">
+    <div ref={containerRef} className="relative min-h-0 flex-1 overflow-auto">
       <table className="w-full border-collapse">
         <tbody>
-          {list.map((track, i) => (
-            <TrackRow
-              key={track.id}
-              track={track}
-              selected={i === cursor}
-              onSelect={() => setCursor(i)}
-              onPlay={() => playFrom(i)}
-            />
-          ))}
+          {virtual.padTop > 0 && <tr style={{ height: virtual.padTop }} aria-hidden />}
+          {list.slice(virtual.start, virtual.end).map((track, offset) => {
+            const i = virtual.start + offset;
+            return (
+              <TrackRow
+                key={track.id}
+                track={track}
+                selected={i === cursor}
+                multiSelected={selected.has(track.id)}
+                onSelect={(e) => {
+                  if (!handleRowClick(i, e)) setCursor(i);
+                }}
+                onPlay={() => playFrom(i)}
+              />
+            );
+          })}
+          {virtual.padBottom > 0 && (
+            <tr style={{ height: virtual.padBottom }} aria-hidden />
+          )}
         </tbody>
       </table>
+      <SelectionBar selected={selected} onClear={clear} />
     </div>
   );
 }

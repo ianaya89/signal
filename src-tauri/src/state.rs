@@ -22,7 +22,11 @@ pub struct AppState {
     pub play_context: Mutex<PlayContext>,
     pub play_mode: Mutex<PlayMode>,
     pub plugins: Arc<PluginHost>,
+    /// Recently played track ids, newest last (drives `player_prev`).
+    pub play_history: Mutex<Vec<i64>>,
 }
+
+pub const HISTORY_CAP: usize = 100;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]

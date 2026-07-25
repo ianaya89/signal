@@ -83,7 +83,9 @@ export type IpcCommand =
   | "plugin_set_listenbrainz"
   | "plugin_status"
   | "library_health"
-  | "library_prune_missing";
+  | "library_prune_missing"
+  | "playlist_export_m3u"
+  | "library_backup";
 
 export function ipc<T>(
   command: IpcCommand,
@@ -181,4 +183,8 @@ export const api = {
   libraryHealth: () => ipc<HealthReport>("library_health"),
   libraryPruneMissing: (trackIds: number[]) =>
     ipc<number>("library_prune_missing", { trackIds }),
+  exportM3u: (playlistId: number, smart: boolean, destPath: string) =>
+    ipc<number>("playlist_export_m3u", { playlistId, smart, destPath }),
+  libraryBackup: (destPath: string) =>
+    ipc<void>("library_backup", { destPath }),
 };

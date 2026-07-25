@@ -1,4 +1,4 @@
-//! ListenBrainz submission API (https://listenbrainz.readthedocs.io):
+//! `ListenBrainz` submission API (<https://listenbrainz.readthedocs.io>):
 //! token auth, no request signing.
 
 use serde::Serialize;
@@ -27,6 +27,8 @@ struct Payload<'a> {
 }
 
 #[derive(Serialize)]
+// field names ARE the ListenBrainz wire format
+#[allow(clippy::struct_field_names)]
 struct TrackMetadata<'a> {
     artist_name: &'a str,
     track_name: &'a str,

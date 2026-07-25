@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
+import { SelectionBar } from "@/components/library/SelectionBar";
 import { TrackRow } from "@/components/library/TrackRow";
 import { TrackTableHeader } from "@/components/library/TrackTableHeader";
 import { EditableText } from "@/components/ui/EditableText";
@@ -9,6 +10,7 @@ import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { artworkUrl } from "@/lib/artwork";
 import { useMainTitle } from "@/hooks/useMainTitle";
+import { useMultiSelect } from "@/hooks/useMultiSelect";
 import { useTrackSort } from "@/hooks/useTrackSort";
 import { registerListHandler } from "@/lib/keyboard";
 import { pickImage } from "@/lib/pickFolder";
@@ -32,6 +34,11 @@ export function AlbumDetailView() {
   tracksRef.current = tracks;
   const cursorRef = useRef(cursor);
   cursorRef.current = cursor;
+  const { selected, handleRowClick, clear } = useMultiSelect(tracks);
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
+  const clearRef = useRef(clear);
+  clearRef.current = clear;
 
   const playFrom = (index: number) => {
     const ids = tracksRef.current.map((t) => t.id);
@@ -67,7 +74,13 @@ export function AlbumDetailView() {
             .then(() => queryClient.invalidateQueries());
         }
       },
-      back: () => void navigate({ to: "/" }),
+      back: () => {
+        if (selectedRef.current.size > 0) {
+          clearRef.current();
+          return;
+        }
+        void navigate({ to: "/" });
+      },
     });
     // playFrom reads refs only
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -120,7 +133,7 @@ export function AlbumDetailView() {
           </p>
         </div>
       </header>
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className="relative min-h-0 flex-1 overflow-auto">
         <table className="w-full border-collapse">
           <TrackTableHeader sort={sort} />
           <tbody>
@@ -129,12 +142,16 @@ export function AlbumDetailView() {
                 key={track.id}
                 track={track}
                 selected={i === cursor}
-                onSelect={() => setCursor(i)}
+                multiSelected={selected.has(track.id)}
+                onSelect={(e) => {
+                  if (!handleRowClick(i, e)) setCursor(i);
+                }}
                 onPlay={() => playFrom(i)}
               />
             ))}
           </tbody>
         </table>
+        <SelectionBar selected={selected} onClear={clear} />
       </div>
     </div>
   );
