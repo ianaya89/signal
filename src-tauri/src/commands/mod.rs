@@ -7,6 +7,7 @@ pub mod queue;
 pub mod search;
 pub mod settings;
 pub mod stats;
+pub mod window;
 
 use signal_core::SignalError;
 

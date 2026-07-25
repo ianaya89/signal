@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow, LogicalSize, PhysicalSize } from "@tauri-apps/api/window";
 
 import { useUiStore, type WindowMode } from "@/stores/uiStore";
@@ -19,6 +20,9 @@ export async function setWindowMode(next: WindowMode) {
   if (prev === "full") {
     savedSize = await win.innerSize();
   }
+
+  // hide the native chrome (traffic lights) while compact
+  await invoke("window_set_compact", { compact: next !== "full" }).catch(() => {});
 
   if (next === "full") {
     await win.setAlwaysOnTop(false);

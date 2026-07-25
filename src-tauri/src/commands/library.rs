@@ -221,9 +221,8 @@ pub async fn library_browse_folder(
     let mut dirs = Vec::new();
     let entries = std::fs::read_dir(&canonical).map_err(|e| SignalError::Io(e.to_string()))?;
     for entry in entries.flatten() {
-        let file_type = match entry.file_type() {
-            Ok(ft) => ft,
-            Err(_) => continue,
+        let Ok(file_type) = entry.file_type() else {
+            continue;
         };
         let name = entry.file_name().to_string_lossy().into_owned();
         if !file_type.is_dir() || name.starts_with('.') {
@@ -239,7 +238,7 @@ pub async fn library_browse_folder(
             });
         }
     }
-    dirs.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    dirs.sort_by_key(|d| d.name.to_lowercase());
 
     let tracks = state
         .db
