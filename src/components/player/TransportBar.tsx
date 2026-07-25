@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { useRef } from "react";
 
+import { SeekBar } from "@/components/player/SeekBar";
 import { api } from "@/ipc/invoke";
 import { fmtDuration } from "@/lib/format";
 import { EqBars } from "@/components/ui/HeartEqualizer";
@@ -49,7 +49,7 @@ export function TransportBar() {
       <span className="shrink-0 text-[11px] text-muted">
         {fmtDuration(positionMs)}
       </span>
-      <SeekBar positionMs={positionMs} durationMs={durationMs} />
+      <SeekBar positionMs={positionMs} durationMs={durationMs} className="min-w-24 flex-1" />
       <span className="shrink-0 text-[11px] text-muted">
         {fmtDuration(durationMs)}
       </span>
@@ -125,35 +125,3 @@ function NowPlayingTitle({ trackId }: { trackId: number }) {
   );
 }
 
-function SeekBar({
-  positionMs,
-  durationMs,
-}: {
-  positionMs: number;
-  durationMs: number;
-}) {
-  const barRef = useRef<HTMLDivElement>(null);
-  const pct = durationMs > 0 ? (positionMs / durationMs) * 100 : 0;
-
-  const seek = (e: React.MouseEvent) => {
-    const bar = barRef.current;
-    if (!bar || durationMs === 0) return;
-    const rect = bar.getBoundingClientRect();
-    const frac = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
-    void api.seek(Math.round(frac * durationMs));
-  };
-
-  return (
-    <div
-      ref={barRef}
-      onClick={seek}
-      className="group relative h-4 min-w-24 flex-1 cursor-pointer"
-    >
-      <div className="absolute top-1/2 h-0.5 w-full -translate-y-1/2 bg-subtle" />
-      <div
-        className="absolute top-1/2 h-0.5 -translate-y-1/2 bg-accent"
-        style={{ width: `${pct}%` }}
-      />
-    </div>
-  );
-}

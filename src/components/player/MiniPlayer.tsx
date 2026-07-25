@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useState } from "react";
 
+import { SeekBar } from "@/components/player/SeekBar";
 import { api } from "@/ipc/invoke";
 import { artworkUrl } from "@/lib/artwork";
 import { fmtDuration, fmtQuality, isHires, isLossy } from "@/lib/format";
@@ -186,7 +187,7 @@ export function MiniPlayer() {
         </div>
       </div>
 
-      <MiniSeek positionMs={positionMs} durationMs={durationMs} />
+      <SeekBar positionMs={positionMs} durationMs={durationMs} thick className="w-full shrink-0" />
     </div>
   );
 }
@@ -232,36 +233,3 @@ function MiniArt({
   );
 }
 
-function MiniSeek({
-  positionMs,
-  durationMs,
-}: {
-  positionMs: number;
-  durationMs: number;
-}) {
-  const barRef = useRef<HTMLDivElement>(null);
-  const pct = durationMs > 0 ? (positionMs / durationMs) * 100 : 0;
-
-  const seek = (e: React.MouseEvent) => {
-    const bar = barRef.current;
-    if (!bar || durationMs === 0) return;
-    const rect = bar.getBoundingClientRect();
-    const frac = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
-    void api.seek(Math.round(frac * durationMs));
-  };
-
-  return (
-    <div
-      ref={barRef}
-      data-no-drag
-      onClick={seek}
-      title="seek"
-      className={cn(
-        "relative h-1.5 w-full shrink-0 bg-raised",
-        durationMs > 0 && "cursor-pointer",
-      )}
-    >
-      <div className="absolute inset-y-0 left-0 bg-accent" style={{ width: `${pct}%` }} />
-    </div>
-  );
-}

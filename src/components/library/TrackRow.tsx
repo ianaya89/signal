@@ -133,7 +133,40 @@ export function TrackRow({
       <td className="w-12 pr-3 text-right text-[11px] text-muted">
         {fmtDuration(track.durationMs)}
       </td>
-      <td className="w-8 pr-2 text-right">
+      <td className="w-14 whitespace-nowrap pr-2 text-right">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            const statics = (playlists ?? []).filter((p) => !p.smart);
+            openMenu(
+              e,
+              statics.length === 0
+                ? [{ label: "no playlists yet — create one first", disabled: true }]
+                : statics.map((p) => ({
+                    label: p.name,
+                    onClick: () => {
+                      void api
+                        .playlistAddTracks(p.id, [track.id])
+                        .then(() => {
+                          toast.ok(`added to ${p.name}`);
+                          void queryClient.invalidateQueries({
+                            queryKey: ["playlists"],
+                          });
+                          void queryClient.invalidateQueries({
+                            queryKey: ["playlist"],
+                          });
+                        })
+                        .catch(() => toast.error("could not add"));
+                    },
+                  })),
+            );
+          }}
+          title="add to playlist"
+          className="mr-1 text-[11px] text-muted hover:text-accent"
+        >
+          ≡+
+        </button>
         <button
           type="button"
           onClick={(e) => {
