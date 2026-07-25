@@ -48,7 +48,7 @@ function PaneToggles() {
         onClick={() => togglePane("library")}
         title="toggle library pane (b)"
         className={cn(
-          "text-[11px]",
+          "text-[12px]",
           libraryVisible ? "text-accent" : "text-muted hover:text-secondary",
         )}
       >
@@ -59,7 +59,7 @@ function PaneToggles() {
         onClick={() => togglePane("inspector")}
         title="toggle inspector pane (i)"
         className={cn(
-          "text-[11px]",
+          "text-[12px]",
           inspectorVisible ? "text-accent" : "text-muted hover:text-secondary",
         )}
       >

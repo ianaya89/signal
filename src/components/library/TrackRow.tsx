@@ -163,7 +163,7 @@ export function TrackRow({
             );
           }}
           title="add to playlist"
-          className="mr-1 text-[11px] text-muted hover:text-accent"
+          className="mr-1 text-[12px] text-muted hover:text-accent"
         >
           ≡+
         </button>
@@ -174,7 +174,7 @@ export function TrackRow({
             void api.queueAdd(track.id).then(() => toast.ok("staged to queue"));
           }}
           title="add to queue (a)"
-          className="text-[11px] text-muted hover:text-accent"
+          className="text-[12px] text-muted hover:text-accent"
         >
           +
         </button>

@@ -59,7 +59,7 @@ export function TransportBar() {
         type="button"
         onClick={() => void setWindowMode("mini")}
         title="mini player"
-        className="shrink-0 text-[11px] text-muted hover:text-accent"
+        className="shrink-0 text-[12px] text-muted hover:text-accent"
       >
         ▣
       </button>
@@ -75,7 +75,7 @@ function ModeButtons() {
         type="button"
         onClick={toggleShuffle}
         title="shuffle"
-        className={cn("text-[11px]", shuffle ? "text-accent" : "text-muted hover:text-secondary")}
+        className={cn("text-[12px]", shuffle ? "text-accent" : "text-muted hover:text-secondary")}
       >
         ⇄
       </button>
@@ -84,7 +84,7 @@ function ModeButtons() {
         onClick={cycleRepeat}
         title={`repeat: ${repeat}`}
         className={cn(
-          "text-[11px]",
+          "text-[12px]",
           repeat === "off" ? "text-muted hover:text-secondary" : "text-accent",
         )}
       >

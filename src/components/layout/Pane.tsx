@@ -40,7 +40,7 @@ export function Pane({ id, title, className, style, children }: PaneProps) {
                 togglePane(id);
               }}
               title={`hide pane (${id === "library" ? "b" : "i"})`}
-              className="text-[11px] text-muted hover:text-error"
+              className="text-[12px] text-muted hover:text-error"
             >
               ✕
             </button>
