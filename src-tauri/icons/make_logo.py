@@ -7,7 +7,11 @@ Pure stdlib (zlib PNG writer)."""
 import struct, zlib, sys, math, random
 
 SIZE = 1024
-CORNER_R = int(SIZE * 0.22)
+# macOS icon grid: the squircle body fills ~82.4% of the canvas, the rest
+# is transparent margin — edge-to-edge icons look oversized in the Dock.
+MARGIN = int(SIZE * 0.088)
+BODY = SIZE - 2 * MARGIN
+CORNER_R = int(BODY * 0.225)
 
 # dark blue-violet theme
 BG_TOP = (0x1B, 0x1B, 0x2E)   # lighter indigo, top-left
@@ -31,12 +35,12 @@ def heart_ys(x):
     return lo, hi
 
 N_BARS = 11
-bar_w = SIZE * 0.052
-gap = SIZE * 0.026
+bar_w = BODY * 0.052
+gap = BODY * 0.026
 total = N_BARS * bar_w + (N_BARS - 1) * gap
 x0 = (SIZE - total) / 2
-scale = SIZE * 0.30
-cy = SIZE * 0.54
+scale = BODY * 0.30
+cy = MARGIN + BODY * 0.54
 
 bars = []
 for i in range(N_BARS):
@@ -75,10 +79,13 @@ def bar_alpha(px, py):
     return None, 0.0
 
 def corner_alpha(px, py):
-    """Rounded-rect mask with 2px AA edge."""
+    """Rounded-rect mask (inset body) with 2px AA edge."""
+    x0b, x1b = MARGIN, SIZE - 1 - MARGIN
+    if px < x0b or px > x1b or py < x0b or py > x1b:
+        return 0.0
     r = CORNER_R
-    x = min(px, SIZE - 1 - px)
-    y = min(py, SIZE - 1 - py)
+    x = min(px - x0b, x1b - px)
+    y = min(py - x0b, x1b - py)
     if x >= r or y >= r:
         return 1.0
     d = math.hypot(r - x, r - y)
@@ -92,7 +99,7 @@ rows = []
 for py in range(SIZE):
     row = bytearray()
     for px in range(SIZE):
-        t = (px + py) / (2 * SIZE)
+        t = (max(px - MARGIN, 0) + max(py - MARGIN, 0)) / (2 * BODY)
         bg = tuple(int(BG_TOP[c] + (BG_BOT[c] - BG_TOP[c]) * t) for c in range(3))
         col, a = bar_alpha(px, py)
         if col and a > 0:
