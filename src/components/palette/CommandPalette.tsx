@@ -175,7 +175,15 @@ export function CommandPalette() {
 
   const matches = useMemo(() => {
     const q = input.trim().toLowerCase();
-    if (!q) return commands;
+    if (!q) {
+      // recently used commands float to the top
+      const recent = loadRecent();
+      return [...commands].sort((a, b) => {
+        const ra = recent.indexOf(a.id);
+        const rb = recent.indexOf(b.id);
+        return (ra === -1 ? 99 : ra) - (rb === -1 ? 99 : rb);
+      });
+    }
     return commands.filter((c) => {
       if (c.takesArg) {
         const verb = c.id.toLowerCase();
@@ -202,6 +210,7 @@ export function CommandPalette() {
   const execute = async () => {
     const cmd = matches[selected];
     if (!cmd) return;
+    saveRecent(cmd.id);
     setMode("normal");
     const arg = cmd.takesArg ? input.split(" ").slice(1).join(" ") || undefined : undefined;
     try {
@@ -273,6 +282,27 @@ export function CommandPalette() {
       </div>
     </div>
   );
+}
+
+const RECENT_KEY = "palette.recent";
+
+function loadRecent(): string[] {
+  try {
+    const raw = localStorage.getItem(RECENT_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecent(id: string) {
+  const next = [id, ...loadRecent().filter((x) => x !== id)].slice(0, 8);
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+  } catch {
+    // storage full/blocked: recents are a nicety, not a requirement
+  }
 }
 
 function fuzzy(haystack: string, needle: string): boolean {

@@ -150,6 +150,7 @@ function TrackInspector({ trackId }: { trackId: number }) {
     ["dr", t.drScore !== null ? String(t.drScore) : null],
     ["encoder", t.encoder],
     ["size", fmtBytes(t.fileSizeBytes)],
+    ["md5", t.md5 ? t.md5.slice(0, 12) : null],
   ];
 
   return (
@@ -170,9 +171,14 @@ function TrackInspector({ trackId }: { trackId: number }) {
         ))}
       </dl>
       <div className="mt-auto border-t border-subtle p-2">
-        <p className="truncate text-[10px] text-muted" title={t.filePath}>
+        <button
+          type="button"
+          onClick={() => void api.revealFile(t.filePath)}
+          title="reveal in finder"
+          className="w-full truncate text-left text-[10px] text-muted hover:text-accent"
+        >
           {t.filePath}
-        </p>
+        </button>
       </div>
     </div>
   );

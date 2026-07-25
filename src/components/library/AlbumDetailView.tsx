@@ -3,10 +3,13 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
 import { TrackRow } from "@/components/library/TrackRow";
+import { TrackTableHeader } from "@/components/library/TrackTableHeader";
 import { EditableText } from "@/components/ui/EditableText";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { artworkUrl } from "@/lib/artwork";
+import { useMainTitle } from "@/hooks/useMainTitle";
+import { useTrackSort } from "@/hooks/useTrackSort";
 import { registerListHandler } from "@/lib/keyboard";
 import { pickImage } from "@/lib/pickFolder";
 
@@ -22,7 +25,9 @@ export function AlbumDetailView() {
     queryFn: () => api.getAlbum(id),
   });
 
-  const tracks = data?.tracks ?? [];
+  useMainTitle(data ? `album · ${data.album.name}` : undefined);
+  const sort = useTrackSort(data?.tracks ?? []);
+  const tracks = sort.sorted;
   const tracksRef = useRef<Track[]>(tracks);
   tracksRef.current = tracks;
   const cursorRef = useRef(cursor);
@@ -117,6 +122,7 @@ export function AlbumDetailView() {
       </header>
       <div className="min-h-0 flex-1 overflow-auto">
         <table className="w-full border-collapse">
+          <TrackTableHeader sort={sort} />
           <tbody>
             {tracks.map((track, i) => (
               <TrackRow

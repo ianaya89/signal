@@ -43,14 +43,18 @@ export function MiniPlayer() {
           {/* title row + restore */}
           <div data-tauri-drag-region className="flex items-start gap-1">
             <div data-tauri-drag-region className="min-w-0 flex-1">
-              <div className="truncate text-[12px] leading-tight text-primary">
-                {data?.track.title ?? "nothing playing"}
-              </div>
-              <div className="truncate text-[10px] text-secondary">
-                {data
-                  ? `${data.artistName}${data.albumName ? ` — ${data.albumName}` : ""}`
-                  : "stage something and press play"}
-              </div>
+              <Scrolling
+                text={data?.track.title ?? "nothing playing"}
+                className="text-[12px] leading-tight text-primary"
+              />
+              <Scrolling
+                text={
+                  data
+                    ? `${data.artistName}${data.albumName ? ` — ${data.albumName}` : ""}`
+                    : "stage something and press play"
+                }
+                className="text-[10px] text-secondary"
+              />
             </div>
             {data && (
               <button
@@ -171,6 +175,18 @@ export function MiniPlayer() {
       </div>
 
       <MiniSeek positionMs={positionMs} durationMs={durationMs} />
+    </div>
+  );
+}
+
+/** Marquee only when the text plausibly overflows; static otherwise. */
+function Scrolling({ text, className }: { text: string; className?: string }) {
+  const long = text.length > 34;
+  return (
+    <div className={cn(long ? "marquee" : "truncate", className)}>
+      <span style={long ? { ["--marquee-shift" as never]: "-45%" } : undefined}>
+        {text}
+      </span>
     </div>
   );
 }

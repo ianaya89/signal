@@ -41,6 +41,7 @@ interface UiState extends LayoutState {
   focusedPane: PaneId;
   theme: Theme;
   miniMode: boolean;
+  mainTitle: string;
   focusPane: (pane: PaneId) => void;
   cycleFocus: (direction: 1 | -1) => void;
   setTheme: (theme: Theme, persist?: boolean) => void;
@@ -49,14 +50,17 @@ interface UiState extends LayoutState {
   setPaneWidth: (pane: "library" | "inspector", width: number) => void;
   restoreLayout: (layout: Partial<LayoutState>) => void;
   setMiniMode: (mini: boolean) => void;
+  setMainTitle: (title: string) => void;
 }
 
 export const useUiStore = create<UiState>((set, get) => ({
   focusedPane: "library",
   theme: "dark",
   miniMode: false,
+  mainTitle: "albums",
   ...LAYOUT_DEFAULTS,
   setMiniMode: (mini) => set({ miniMode: mini }),
+  setMainTitle: (title) => set({ mainTitle: title }),
   focusPane: (pane) => set({ focusedPane: pane }),
   cycleFocus: (direction) =>
     set((s) => {

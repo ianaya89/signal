@@ -7,6 +7,7 @@ import { EditableText } from "@/components/ui/EditableText";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { artworkUrl } from "@/lib/artwork";
+import { useMainTitle } from "@/hooks/useMainTitle";
 import { registerListHandler } from "@/lib/keyboard";
 
 function AlbumThumb({ albumId, hasArt }: { albumId: number; hasArt: boolean }) {
@@ -42,6 +43,7 @@ export function ArtistDetailView() {
     queryFn: () => api.getArtist(id),
   });
 
+  useMainTitle(data ? `artist · ${data.artist.name}` : undefined);
   const albumQueries = useQueries({
     queries: (data?.albums ?? []).map((album) => ({
       queryKey: ["album", album.id],

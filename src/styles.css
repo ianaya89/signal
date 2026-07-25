@@ -119,6 +119,31 @@ body {
   background: color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
+/* marquee for overflowing one-line labels (mini player) */
+@keyframes marquee-x {
+  0%,
+  12% {
+    transform: translateX(0);
+  }
+  88%,
+  100% {
+    transform: translateX(var(--marquee-shift, -40%));
+  }
+}
+.marquee {
+  overflow: hidden;
+  white-space: nowrap;
+}
+.marquee > span {
+  display: inline-block;
+  animation: marquee-x 9s ease-in-out infinite alternate;
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee > span {
+    animation: none;
+  }
+}
+
 /* square volume slider: block thumb, hairline track */
 input[type="range"].vol-slider {
   -webkit-appearance: none;

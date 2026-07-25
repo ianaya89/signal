@@ -3,9 +3,11 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { EditableText } from "@/components/ui/EditableText";
+import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 
 export function PlaylistsView() {
+  useMainTitle("playlists");
   const queryClient = useQueryClient();
   const { data: playlists, isLoading } = useQuery({
     queryKey: ["playlists"],

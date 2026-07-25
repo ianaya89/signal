@@ -7,9 +7,11 @@ import type { Track } from "@/ipc/types";
 import { fmtDuration, fmtQuality, isHires, isLossy } from "@/lib/format";
 import { useKeyboardStore } from "@/lib/keyboard";
 import { cn } from "@/lib/utils";
+import { useMainTitle } from "@/hooks/useMainTitle";
 import { usePlayerStore } from "@/stores/playerStore";
 
 export function SearchView() {
+  useMainTitle("search");
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);

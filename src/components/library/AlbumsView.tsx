@@ -7,9 +7,11 @@ import { EditableText } from "@/components/ui/EditableText";
 import { api } from "@/ipc/invoke";
 import type { AlbumSummary } from "@/ipc/types";
 import { artworkUrl } from "@/lib/artwork";
+import { useMainTitle } from "@/hooks/useMainTitle";
 import { useScanStore } from "@/stores/scanStore";
 
 export function AlbumsView() {
+  useMainTitle("albums");
   const scanning = useScanStore((s) => s.scanning);
   const { data: albums, isLoading } = useQuery({
     queryKey: ["albums"],

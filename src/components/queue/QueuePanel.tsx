@@ -1,11 +1,16 @@
+import { useRef, useState } from "react";
+
 import { api } from "@/ipc/invoke";
 import { fmtDuration } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useQueueStore } from "@/stores/queueStore";
 
 export function QueuePanel() {
   const entries = useQueueStore((s) => s.entries);
   const playing = usePlayerStore((s) => s.status === "playing");
+  const dragIndex = useRef<number | null>(null);
+  const [dragOver, setDragOver] = useState<number | null>(null);
 
   if (entries.length === 0) {
     return (
@@ -65,7 +70,35 @@ export function QueuePanel() {
         {entries.map((entry, i) => (
           <li
             key={entry.item.id}
-            className="group flex h-6 items-center gap-2 px-2 hover:bg-raised"
+            draggable
+            onDragStart={() => {
+              dragIndex.current = i;
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(i);
+            }}
+            onDragLeave={() => setDragOver((d) => (d === i ? null : d))}
+            onDrop={(e) => {
+              e.preventDefault();
+              const from = dragIndex.current;
+              dragIndex.current = null;
+              setDragOver(null);
+              if (from === null || from === i) return;
+              const next = [...entries];
+              const moved = next.splice(from, 1)[0];
+              if (!moved) return;
+              next.splice(i, 0, moved);
+              void api.queueMove(next.map((x) => x.item.id));
+            }}
+            onDragEnd={() => {
+              dragIndex.current = null;
+              setDragOver(null);
+            }}
+            className={cn(
+              "group flex h-6 cursor-grab items-center gap-2 px-2 hover:bg-raised active:cursor-grabbing",
+              dragOver === i ? "border-t border-accent" : undefined,
+            )}
           >
             <span className="w-4 shrink-0 text-right text-[10px] text-muted">
               {i + 1}

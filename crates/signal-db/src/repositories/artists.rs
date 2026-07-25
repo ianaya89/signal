@@ -160,6 +160,28 @@ impl ArtistRepo {
         Ok(merged)
     }
 
+    /// Genres with track counts, most-used first.
+    pub async fn list_genres(&self) -> sqlx::Result<Vec<(i64, String, u32)>> {
+        let rows = sqlx::query(
+            "SELECT g.id, g.name, COUNT(tg.track_id) AS cnt
+             FROM genres g
+             JOIN track_genres tg ON tg.genre_id = g.id
+             GROUP BY g.id
+             ORDER BY cnt DESC, g.name COLLATE NOCASE",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        rows.iter()
+            .map(|r| {
+                Ok((
+                    r.try_get("id")?,
+                    r.try_get("name")?,
+                    to_u32(r.try_get::<i64, _>("cnt")?),
+                ))
+            })
+            .collect()
+    }
+
     pub async fn get(&self, id: i64) -> sqlx::Result<Option<ArtistSummary>> {
         let row = sqlx::query(
             "SELECT ar.id, ar.name,

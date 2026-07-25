@@ -6,6 +6,7 @@ import type {
   ArtistDetail,
   ArtistSummary,
   AudioDevice,
+  GenreSummary,
   PlayMode,
   PlaylistDetail,
   PlaylistSummary,
@@ -64,7 +65,11 @@ export type IpcCommand =
   | "track_set_rating"
   | "track_toggle_favorite"
   | "player_set_mode"
-  | "player_get_mode";
+  | "player_get_mode"
+  | "queue_add_next"
+  | "library_list_genres"
+  | "library_get_genre_tracks"
+  | "reveal_in_file_manager";
 
 export function ipc<T>(
   command: IpcCommand,
@@ -138,4 +143,9 @@ export const api = {
     ipc<boolean>("track_toggle_favorite", { trackId }),
   setPlayMode: (mode: PlayMode) => ipc<void>("player_set_mode", { mode }),
   getPlayMode: () => ipc<PlayMode>("player_get_mode"),
+  queueAddNext: (trackId: number) => ipc<void>("queue_add_next", { trackId }),
+  listGenres: () => ipc<GenreSummary[]>("library_list_genres"),
+  genreTracks: (genreId: number) =>
+    ipc<Track[]>("library_get_genre_tracks", { genreId }),
+  revealFile: (path: string) => ipc<void>("reveal_in_file_manager", { path }),
 };

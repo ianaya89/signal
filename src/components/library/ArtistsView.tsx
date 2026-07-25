@@ -2,9 +2,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 
 import { EditableText } from "@/components/ui/EditableText";
+import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 
 export function ArtistsView() {
+  useMainTitle("artists");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: artists, isLoading } = useQuery({

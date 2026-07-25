@@ -121,6 +121,13 @@ export interface NameCount {
   count: number;
 }
 
+export interface AlbumPlayCount {
+  albumId: number;
+  name: string;
+  artistName: string;
+  plays: number;
+}
+
 export interface StatsOverview {
   totalPlays: number;
   totalMsPlayed: number;
@@ -128,6 +135,14 @@ export interface StatsOverview {
   heatmap: DayCount[];
   topArtists: NameCount[];
   topCodecs: NameCount[];
+  topAlbums: AlbumPlayCount[];
+  hourly: number[];
+}
+
+export interface GenreSummary {
+  id: number;
+  name: string;
+  trackCount: number;
 }
 
 export interface ScannerProgressEvent {

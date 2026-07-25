@@ -37,6 +37,15 @@ pub async fn queue_add(state: State<'_, AppState>, track_id: i64) -> Result<(), 
     Ok(())
 }
 
+/// Stages at the head — plays right after the current track.
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn queue_add_next(state: State<'_, AppState>, track_id: i64) -> Result<(), SignalError> {
+    state.db.queue().push_front(track_id).await.db_err()?;
+    notify(&state);
+    Ok(())
+}
+
 #[tauri::command]
 #[tracing::instrument(skip(state))]
 pub async fn queue_remove(

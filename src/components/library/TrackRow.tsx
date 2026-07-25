@@ -1,12 +1,16 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 
+import { buildTrackMenu } from "@/components/library/trackMenu";
+import { useContextMenu } from "@/components/ui/ContextMenu";
 import { EditableText } from "@/components/ui/EditableText";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { fmtDuration, fmtQuality, isHires, isLossy } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { usePlayerStore } from "@/stores/playerStore";
+import { toast } from "@/stores/toastStore";
 
 export function TrackRow({
   track,
@@ -24,6 +28,13 @@ export function TrackRow({
   const playing = usePlayerStore((s) => s.trackId === track.id);
   const ref = useRef<HTMLTableRowElement>(null);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { open: openMenu, menu } = useContextMenu();
+  const { data: playlists } = useQuery({
+    queryKey: ["playlists"],
+    queryFn: api.playlistList,
+    staleTime: 30_000,
+  });
 
   useEffect(() => {
     if (selected) {
@@ -36,6 +47,19 @@ export function TrackRow({
       ref={ref}
       onClick={onSelect}
       onDoubleClick={() => (onPlay ? onPlay() : void api.play(track.id))}
+      onContextMenu={(e) => {
+        onSelect?.();
+        openMenu(
+          e,
+          buildTrackMenu({
+            track,
+            playlists,
+            queryClient,
+            navigate: (opts) => void navigate(opts as never),
+            onPlay,
+          }),
+        );
+      }}
       className={cn(
         "group h-7 cursor-default",
         selected ? "bg-raised" : "hover:bg-raised/50",
@@ -88,9 +112,10 @@ export function TrackRow({
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            void api
-              .toggleFavorite(track.id)
-              .then(() => queryClient.invalidateQueries());
+            void api.toggleFavorite(track.id).then((fav) => {
+              toast.ok(fav ? "♥ favorited" : "unfavorited");
+              return queryClient.invalidateQueries();
+            });
           }}
           title="favorite (f)"
           className={cn(
@@ -113,13 +138,14 @@ export function TrackRow({
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            void api.queueAdd(track.id);
+            void api.queueAdd(track.id).then(() => toast.ok("staged to queue"));
           }}
           title="add to queue (a)"
           className="text-[11px] text-muted hover:text-accent"
         >
           +
         </button>
+        {menu}
       </td>
     </tr>
   );

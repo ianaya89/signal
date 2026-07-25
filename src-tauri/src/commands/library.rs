@@ -140,6 +140,64 @@ pub async fn library_reset_and_rescan(state: State<'_, AppState>) -> Result<(), 
     library_scan(state, root).await
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GenreSummary {
+    pub id: i64,
+    pub name: String,
+    pub track_count: u32,
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn library_list_genres(
+    state: State<'_, AppState>,
+) -> Result<Vec<GenreSummary>, SignalError> {
+    let genres = state.db.artists().list_genres().await.db_err()?;
+    Ok(genres
+        .into_iter()
+        .map(|(id, name, track_count)| GenreSummary {
+            id,
+            name,
+            track_count,
+        })
+        .collect())
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn library_get_genre_tracks(
+    state: State<'_, AppState>,
+    genre_id: i64,
+) -> Result<Vec<signal_core::Track>, SignalError> {
+    state.db.tracks().list_by_genre(genre_id).await.db_err()
+}
+
+/// Opens the OS file manager with the file selected.
+#[tauri::command]
+#[tracing::instrument]
+pub async fn reveal_in_file_manager(path: String) -> Result<(), SignalError> {
+    #[cfg(target_os = "macos")]
+    let result = std::process::Command::new("open")
+        .args(["-R", &path])
+        .spawn();
+    #[cfg(target_os = "linux")]
+    let result = std::process::Command::new("xdg-open")
+        .arg(
+            std::path::Path::new(&path)
+                .parent()
+                .unwrap_or(std::path::Path::new("/")),
+        )
+        .spawn();
+    #[cfg(target_os = "windows")]
+    let result = std::process::Command::new("explorer")
+        .args(["/select,", &path])
+        .spawn();
+
+    result.map_err(|e| SignalError::Io(e.to_string()))?;
+    Ok(())
+}
+
 /// Track + its artist/album display names, for now-playing UI + inspector.
 #[tauri::command]
 #[tracing::instrument(skip(state))]

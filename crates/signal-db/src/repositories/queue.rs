@@ -57,6 +57,19 @@ impl QueueRepo {
         .await
     }
 
+    /// Inserts at the head (min position - 1; negatives are fine, order is
+    /// read via ORDER BY position).
+    pub async fn push_front(&self, track_id: i64) -> sqlx::Result<i64> {
+        sqlx::query_scalar(
+            "INSERT INTO queue_items (position, track_id)
+             VALUES ((SELECT COALESCE(MIN(position), 1) - 1 FROM queue_items), ?1)
+             RETURNING id",
+        )
+        .bind(track_id)
+        .fetch_one(&self.pool)
+        .await
+    }
+
     pub async fn remove(&self, queue_item_id: i64) -> sqlx::Result<()> {
         sqlx::query("DELETE FROM queue_items WHERE id = ?1")
             .bind(queue_item_id)

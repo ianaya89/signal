@@ -9,6 +9,7 @@ import { StatusBar } from "@/components/layout/StatusBar";
 import { CommandPalette } from "@/components/palette/CommandPalette";
 import { MiniPlayer } from "@/components/player/MiniPlayer";
 import { QueuePanel } from "@/components/queue/QueuePanel";
+import { Toasts } from "@/components/ui/Toasts";
 import { api } from "@/ipc/invoke";
 import {
   armRating,
@@ -27,6 +28,7 @@ let lastVolume = 1;
 export function AppShell() {
   const cycleFocus = useUiStore((s) => s.cycleFocus);
   const miniMode = useUiStore((s) => s.miniMode);
+  const mainTitle = useUiStore((s) => s.mainTitle);
   const libraryVisible = useUiStore((s) => s.libraryVisible);
   const inspectorVisible = useUiStore((s) => s.inspectorVisible);
   const libraryWidth = useUiStore((s) => s.libraryWidth);
@@ -215,7 +217,7 @@ export function AppShell() {
             <Resizer pane="library" />
           </>
         )}
-        <Pane id="main" title="main" className="min-w-0 flex-1">
+        <Pane id="main" title={mainTitle} className="min-w-0 flex-1">
           <Outlet />
         </Pane>
         {inspectorVisible && (
@@ -242,6 +244,7 @@ export function AppShell() {
       <StatusBar />
       <CommandPalette />
       <HelpOverlay />
+      <Toasts />
     </div>
   );
 }

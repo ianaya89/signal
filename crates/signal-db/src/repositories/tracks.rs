@@ -108,6 +108,19 @@ impl TrackRepo {
             .await
     }
 
+    pub async fn list_by_genre(&self, genre_id: i64) -> sqlx::Result<Vec<Track>> {
+        let rows = sqlx::query(
+            "SELECT t.* FROM tracks t
+             JOIN track_genres tg ON tg.track_id = t.id
+             WHERE tg.genre_id = ?1
+             ORDER BY t.artist_id, t.album_id, t.disc_no, t.track_no",
+        )
+        .bind(genre_id)
+        .fetch_all(&self.pool)
+        .await?;
+        rows.iter().map(track_from_row).collect()
+    }
+
     pub async fn count(&self) -> sqlx::Result<i64> {
         sqlx::query_scalar("SELECT COUNT(*) FROM tracks")
             .fetch_one(&self.pool)

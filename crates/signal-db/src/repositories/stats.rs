@@ -31,6 +31,15 @@ pub struct NameCount {
 
 #[derive(Debug, Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct AlbumPlayCount {
+    pub album_id: i64,
+    pub name: String,
+    pub artist_name: String,
+    pub plays: u32,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct StatsOverview {
     pub total_plays: u32,
     pub total_ms_played: u64,
@@ -38,6 +47,9 @@ pub struct StatsOverview {
     pub heatmap: Vec<DayCount>,
     pub top_artists: Vec<NameCount>,
     pub top_codecs: Vec<NameCount>,
+    pub top_albums: Vec<AlbumPlayCount>,
+    /// plays per hour of day, index 0-23
+    pub hourly: Vec<u32>,
 }
 
 pub struct StatsRepo {
@@ -133,6 +145,33 @@ impl StatsRepo {
         .fetch_all(&self.pool)
         .await?;
 
+        let top_albums = sqlx::query(
+            "SELECT al.id AS album_id, al.name AS name, ar.name AS artist_name,
+                    COUNT(*) AS plays
+             FROM play_events pe
+             JOIN tracks t ON t.id = pe.track_id
+             JOIN albums al ON al.id = t.album_id
+             JOIN artists ar ON ar.id = al.artist_id
+             WHERE pe.skipped = 0
+             GROUP BY al.id ORDER BY plays DESC LIMIT 8",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        let hourly_rows = sqlx::query(
+            "SELECT CAST(strftime('%H', started_at) AS INTEGER) AS hour, COUNT(*) AS cnt
+             FROM play_events WHERE skipped = 0 GROUP BY hour",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        let mut hourly = vec![0u32; 24];
+        for row in &hourly_rows {
+            let hour: i64 = row.try_get("hour")?;
+            if let Some(slot) = usize::try_from(hour).ok().and_then(|h| hourly.get_mut(h)) {
+                *slot = to_u32(row.try_get::<i64, _>("cnt")?);
+            }
+        }
+
         Ok(StatsOverview {
             total_plays: to_u32(totals.try_get::<i64, _>("plays")?),
             total_ms_played: u64::try_from(totals.try_get::<i64, _>("ms")?).unwrap_or_default(),
@@ -148,6 +187,18 @@ impl StatsRepo {
                 .collect::<sqlx::Result<_>>()?,
             top_artists: name_counts(&top_artists)?,
             top_codecs: name_counts(&top_codecs)?,
+            top_albums: top_albums
+                .iter()
+                .map(|r| {
+                    Ok(AlbumPlayCount {
+                        album_id: r.try_get("album_id")?,
+                        name: r.try_get("name")?,
+                        artist_name: r.try_get("artist_name")?,
+                        plays: to_u32(r.try_get::<i64, _>("plays")?),
+                    })
+                })
+                .collect::<sqlx::Result<_>>()?,
+            hourly,
         })
     }
 }

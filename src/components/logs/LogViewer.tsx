@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
+import { useMainTitle } from "@/hooks/useMainTitle";
 import { useLogStore } from "@/stores/logStore";
 
 const LEVELS = ["ERROR", "WARN", "INFO", "DEBUG"] as const;
@@ -19,6 +20,7 @@ function levelClass(level: string): string {
 }
 
 export function LogViewer() {
+  useMainTitle("logs");
   const lines = useLogStore((s) => s.lines);
   const clear = useLogStore((s) => s.clear);
   const [minLevel, setMinLevel] = useState<string>("DEBUG");
