@@ -119,6 +119,30 @@ body {
   background: color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
+/* equalizer bars: oscillate while animation-play-state is running */
+@keyframes eq-pulse {
+  0% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.45);
+  }
+  100% {
+    transform: scaleY(1);
+  }
+}
+.eq-bar {
+  transform-origin: center;
+  animation-name: eq-pulse;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .eq-bar {
+    animation: none !important;
+  }
+}
+
 /* marquee for overflowing one-line labels (mini player) */
 @keyframes marquee-x {
   0%,

@@ -4,8 +4,10 @@ import { useRef, useState } from "react";
 import { api } from "@/ipc/invoke";
 import { artworkUrl } from "@/lib/artwork";
 import { fmtDuration, fmtQuality, isHires, isLossy } from "@/lib/format";
+import { dragWindow } from "@/lib/drag";
 import { setWindowMode } from "@/lib/miniMode";
 import { cn } from "@/lib/utils";
+import { EqBars, HeartEqualizer } from "@/components/ui/HeartEqualizer";
 import { usePlayModeStore } from "@/stores/playModeStore";
 import { usePlayerStore } from "@/stores/playerStore";
 
@@ -31,16 +33,16 @@ export function MiniPlayer() {
 
   return (
     <div
-      onDoubleClick={restore}
-      className="flex h-full select-none flex-col overflow-hidden border border-focus bg-surface"
+      onMouseDown={dragWindow}
+      className="flex h-full cursor-grab select-none flex-col overflow-hidden border border-focus bg-surface active:cursor-grabbing"
     >
       <div className="flex min-h-0 flex-1">
-        <MiniArt albumId={data?.track.albumId ?? null} />
+        <MiniArt albumId={data?.track.albumId ?? null} playing={status === "playing"} />
 
         <div className="flex min-w-0 flex-1 flex-col justify-between px-2 py-1.5">
           {/* title row + restore */}
-          <div data-tauri-drag-region className="flex items-start gap-1">
-            <div data-tauri-drag-region className="min-w-0 flex-1">
+          <div className="flex items-start gap-1">
+            <div className="min-w-0 flex-1">
               <Scrolling
                 text={data?.track.title ?? "nothing playing"}
                 className="text-[12px] leading-tight text-primary"
@@ -96,7 +98,7 @@ export function MiniPlayer() {
           </div>
 
           {/* technical line */}
-          <div data-tauri-drag-region className="flex items-center gap-2 text-[10px]">
+          <div className="flex items-center gap-2 text-[10px]">
             {t ? (
               <>
                 <span
@@ -111,6 +113,7 @@ export function MiniPlayer() {
                   [{t.codec}] [{fmtQuality(t.bitDepth, t.sampleRateHz)}]
                 </span>
                 {bitPerfect && <span className="text-bitperfect">● bit-perfect</span>}
+                <EqBars playing={status === "playing"} className="ml-auto" />
               </>
             ) : (
               <span className="text-muted">—</span>
@@ -174,7 +177,7 @@ export function MiniPlayer() {
               className="vol-slider w-14"
             />
             <span
-              data-tauri-drag-region
+             
               className="ml-auto shrink-0 text-[10px] tabular-nums text-muted"
             >
               {fmtDuration(positionMs)} / {fmtDuration(durationMs)}
@@ -200,11 +203,17 @@ function Scrolling({ text, className }: { text: string; className?: string }) {
   );
 }
 
-function MiniArt({ albumId }: { albumId: number | null }) {
+function MiniArt({
+  albumId,
+  playing,
+}: {
+  albumId: number | null;
+  playing: boolean;
+}) {
   const [err, setErr] = useState(false);
   return (
     <div
-      data-tauri-drag-region
+     
       className="h-full w-[108px] shrink-0 border-r border-subtle bg-raised"
     >
       {albumId !== null && albumId > 0 && !err ? (
@@ -215,8 +224,8 @@ function MiniArt({ albumId }: { albumId: number | null }) {
           className="pointer-events-none h-full w-full object-cover"
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center text-xl text-muted">
-          ♪
+        <div className="flex h-full w-full items-center justify-center">
+          <HeartEqualizer size={72} playing={playing} />
         </div>
       )}
     </div>
@@ -244,8 +253,8 @@ function MiniSeek({
   return (
     <div
       ref={barRef}
+      data-no-drag
       onClick={seek}
-      onDoubleClick={(e) => e.stopPropagation()}
       title="seek"
       className={cn(
         "relative h-1.5 w-full shrink-0 bg-raised",

@@ -3,6 +3,7 @@ import { useRef } from "react";
 
 import { api } from "@/ipc/invoke";
 import { fmtDuration } from "@/lib/format";
+import { EqBars } from "@/components/ui/HeartEqualizer";
 import { setWindowMode } from "@/lib/miniMode";
 import { cn } from "@/lib/utils";
 import { usePlayModeStore } from "@/stores/playModeStore";
@@ -20,6 +21,7 @@ export function TransportBar() {
 
   return (
     <div className="flex min-w-0 flex-1 items-center gap-3">
+      <EqBars playing={status === "playing"} className="shrink-0" />
       <button
         type="button"
         onClick={() => void api.prev()}
