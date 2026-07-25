@@ -15,6 +15,7 @@ import { LogViewer } from "@/components/logs/LogViewer";
 import { PlaylistDetailView } from "@/components/playlists/PlaylistDetailView";
 import { PlaylistsView } from "@/components/playlists/PlaylistsView";
 import { SearchView } from "@/components/search/SearchView";
+import { SettingsView } from "@/components/settings/SettingsView";
 import { StatsView } from "@/components/stats/StatsView";
 
 const rootRoute = createRootRoute({ component: AppShell });
@@ -61,6 +62,12 @@ const logsRoute = createRoute({
   component: LogViewer,
 });
 
+const settingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/settings",
+  component: SettingsView,
+});
+
 const foldersRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/folders",
@@ -104,6 +111,7 @@ const routeTree = rootRoute.addChildren([
   genresRoute,
   genreDetailRoute,
   foldersRoute,
+  settingsRoute,
 ]);
 
 export const router = createRouter({ routeTree });

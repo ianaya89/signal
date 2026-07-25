@@ -121,6 +121,64 @@ pub async fn playlist_remove_track(
         .db_err()
 }
 
+#[tauri::command]
+#[tracing::instrument(skip(state, rules))]
+pub async fn smart_playlist_create(
+    state: State<'_, AppState>,
+    name: String,
+    rules: String,
+) -> Result<i64, SignalError> {
+    let trimmed = name.trim();
+    if trimmed.is_empty() {
+        return Err(SignalError::Db("name is empty".into()));
+    }
+    state
+        .db
+        .playlists()
+        .create_smart(trimmed, &rules)
+        .await
+        .db_err()
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state, rules))]
+pub async fn smart_playlist_update(
+    state: State<'_, AppState>,
+    playlist_id: i64,
+    name: String,
+    rules: String,
+) -> Result<(), SignalError> {
+    state
+        .db
+        .playlists()
+        .update_smart(playlist_id, name.trim(), &rules)
+        .await
+        .db_err()
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn smart_playlist_delete(
+    state: State<'_, AppState>,
+    playlist_id: i64,
+) -> Result<(), SignalError> {
+    state
+        .db
+        .playlists()
+        .delete_smart(playlist_id)
+        .await
+        .db_err()
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn smart_playlist_rules(
+    state: State<'_, AppState>,
+    playlist_id: i64,
+) -> Result<Option<String>, SignalError> {
+    state.db.playlists().smart_rules(playlist_id).await.db_err()
+}
+
 /// Snapshots the current queue into a new playlist (doc 09's `w` — "write").
 #[tauri::command]
 #[tracing::instrument(skip(state))]

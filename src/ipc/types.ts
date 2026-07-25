@@ -145,6 +145,28 @@ export interface GenreSummary {
   trackCount: number;
 }
 
+export interface AppInfo {
+  version: string;
+  dbPath: string;
+  cacheDir: string;
+  libraryRoot: string | null;
+  trackCount: number;
+}
+
+export interface SmartCondition {
+  field: string;
+  op: string;
+  value: string | number | boolean;
+}
+
+export interface SmartRules {
+  match: "all" | "any";
+  conditions: SmartCondition[];
+  order_by?: string;
+  order_dir?: "asc" | "desc";
+  limit?: number | null;
+}
+
 export interface FolderEntry {
   name: string;
   path: string;

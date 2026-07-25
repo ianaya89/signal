@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type {
   AlbumDetail,
   AlbumSummary,
+  AppInfo,
   ArtistDetail,
   ArtistSummary,
   AudioDevice,
@@ -72,7 +73,12 @@ export type IpcCommand =
   | "library_get_genre_tracks"
   | "reveal_in_file_manager"
   | "library_browse_folder"
-  | "session_restore";
+  | "session_restore"
+  | "app_info"
+  | "smart_playlist_create"
+  | "smart_playlist_update"
+  | "smart_playlist_delete"
+  | "smart_playlist_rules";
 
 export function ipc<T>(
   command: IpcCommand,
@@ -155,4 +161,13 @@ export const api = {
     ipc<FolderListing>("library_browse_folder", { path }),
   sessionRestore: () =>
     ipc<{ trackId: number; positionMs: number } | null>("session_restore"),
+  appInfo: () => ipc<AppInfo>("app_info"),
+  smartCreate: (name: string, rules: string) =>
+    ipc<number>("smart_playlist_create", { name, rules }),
+  smartUpdate: (playlistId: number, name: string, rules: string) =>
+    ipc<void>("smart_playlist_update", { playlistId, name, rules }),
+  smartDelete: (playlistId: number) =>
+    ipc<void>("smart_playlist_delete", { playlistId }),
+  smartRules: (playlistId: number) =>
+    ipc<string | null>("smart_playlist_rules", { playlistId }),
 };

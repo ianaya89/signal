@@ -2,9 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
+import { SmartEditor } from "@/components/playlists/SmartEditor";
 import { EditableText } from "@/components/ui/EditableText";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
+import type { SmartRules } from "@/ipc/types";
+import { toast } from "@/stores/toastStore";
 
 export function PlaylistsView() {
   useMainTitle("playlists");
@@ -14,6 +17,7 @@ export function PlaylistsView() {
     queryFn: api.playlistList,
   });
   const [name, setName] = useState("");
+  const [smartOpen, setSmartOpen] = useState(false);
 
   const create = useMutation({
     mutationFn: (n: string) => api.playlistCreate(n),
@@ -22,6 +26,17 @@ export function PlaylistsView() {
       void queryClient.invalidateQueries({ queryKey: ["playlists"] });
     },
   });
+
+  const saveSmart = async (smartName: string, rules: SmartRules) => {
+    try {
+      await api.smartCreate(smartName, JSON.stringify(rules));
+      setSmartOpen(false);
+      toast.ok(`smart playlist "${smartName}" created`);
+      void queryClient.invalidateQueries({ queryKey: ["playlists"] });
+    } catch (err) {
+      toast.error(String(err));
+    }
+  };
 
   if (isLoading) {
     return <p className="p-3 text-muted">loading…</p>;
@@ -52,9 +67,27 @@ export function PlaylistsView() {
         >
           create
         </button>
+        <button
+          type="button"
+          onClick={() => setSmartOpen((v) => !v)}
+          className="rounded-[var(--radius-sm)] border border-subtle bg-raised px-3 py-1 text-[12px] text-secondary hover:border-focus hover:text-hires"
+        >
+          + smart
+        </button>
       </form>
 
-      <Section title="smart" items={smart} smartBadge />
+      {smartOpen && (
+        <SmartEditor onSave={saveSmart} onCancel={() => setSmartOpen(false)} />
+      )}
+
+      <Section
+        title="smart"
+        items={smart}
+        smartBadge
+        onChanged={() =>
+          void queryClient.invalidateQueries({ queryKey: ["playlists"] })
+        }
+      />
       <Section
         title="playlists"
         items={statics}
@@ -127,14 +160,17 @@ function Section({
                 </span>
               )}
             </div>
-            {!p.smart && onChanged && (
+            {onChanged && (
               <button
                 type="button"
                 onClick={() => {
-                  void api.playlistDelete(p.id).then(onChanged);
+                  void (p.smart
+                    ? api.smartDelete(p.id)
+                    : api.playlistDelete(p.id)
+                  ).then(onChanged);
                 }}
-                title="delete playlist"
-                className="hidden px-2 text-[11px] text-muted hover:text-error group-hover:block"
+                title={p.smart ? "delete smart playlist" : "delete playlist"}
+                className="hidden px-2 text-[12px] text-muted hover:text-error group-hover:block"
               >
                 ✕
               </button>

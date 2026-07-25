@@ -85,6 +85,11 @@ export function CommandPalette() {
         run: () => navigate({ to: "/playlists" }),
       },
       {
+        id: "settings",
+        label: "go to settings",
+        run: () => navigate({ to: "/settings" }),
+      },
+      {
         id: "save-queue",
         label: "save-queue <name>",
         takesArg: true,

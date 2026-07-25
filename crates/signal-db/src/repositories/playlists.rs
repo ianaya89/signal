@@ -151,6 +151,52 @@ impl PlaylistRepo {
         rows.iter().map(track_from_row).collect()
     }
 
+    /// Validates rules by compiling before storing.
+    pub async fn create_smart(&self, name: &str, rules_json: &str) -> sqlx::Result<i64> {
+        smart::compile(rules_json)
+            .map_err(|e| sqlx::Error::Protocol(format!("smart rules: {e}")))?;
+        sqlx::query_scalar(
+            "INSERT INTO smart_playlists (name, rules, sort_order)
+             VALUES (?1, ?2, (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM smart_playlists))
+             RETURNING id",
+        )
+        .bind(name)
+        .bind(rules_json)
+        .fetch_one(&self.pool)
+        .await
+    }
+
+    pub async fn update_smart(&self, id: i64, name: &str, rules_json: &str) -> sqlx::Result<()> {
+        smart::compile(rules_json)
+            .map_err(|e| sqlx::Error::Protocol(format!("smart rules: {e}")))?;
+        sqlx::query(
+            "UPDATE smart_playlists SET name = ?2, rules = ?3,
+                    updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+             WHERE id = ?1",
+        )
+        .bind(id)
+        .bind(name)
+        .bind(rules_json)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn delete_smart(&self, id: i64) -> sqlx::Result<()> {
+        sqlx::query("DELETE FROM smart_playlists WHERE id = ?1")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn smart_rules(&self, id: i64) -> sqlx::Result<Option<String>> {
+        sqlx::query_scalar("SELECT rules FROM smart_playlists WHERE id = ?1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+    }
+
     /// Runs a smart playlist's compiled rules.
     pub async fn resolve_smart(&self, smart_id: i64) -> sqlx::Result<Vec<Track>> {
         let rules: Option<String> =
