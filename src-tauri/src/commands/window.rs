@@ -17,9 +17,20 @@ pub async fn window_set_compact<R: Runtime>(
     } else {
         window.set_decorations(true).map_err(err)?;
         #[cfg(target_os = "macos")]
-        window
-            .set_title_bar_style(tauri::TitleBarStyle::Overlay)
-            .map_err(err)?;
+        {
+            window
+                .set_title_bar_style(tauri::TitleBarStyle::Overlay)
+                .map_err(err)?;
+            // tao races here: set_decorations applies its style mask async on
+            // the main queue, while the overlay style applies sync — the late
+            // decorations mask drops FullSizeContentView, leaving an opaque
+            // native titlebar band. Re-apply overlay after that mask lands.
+            let win = window.clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_millis(80)).await;
+                let _ = win.set_title_bar_style(tauri::TitleBarStyle::Overlay);
+            });
+        }
     }
     let _ = window.app_handle();
     Ok(())
