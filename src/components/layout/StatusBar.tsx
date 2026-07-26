@@ -34,7 +34,7 @@ export function StatusBar() {
           type="button"
           onClick={() => void setWindowMode("mini")}
           title="mini player"
-          className="text-[13px] text-muted hover:text-accent"
+          className="flex items-center text-[13px] leading-none text-muted hover:text-accent"
         >
           ▣
         </button>
@@ -42,7 +42,7 @@ export function StatusBar() {
           type="button"
           onClick={() => void setWindowMode("dot")}
           title="pulse mode (cmd+p)"
-          className="text-[13px] text-muted hover:text-accent"
+          className="flex items-center text-[11px] leading-none text-muted hover:text-accent"
         >
           ●
         </button>

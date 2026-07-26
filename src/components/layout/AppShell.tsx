@@ -18,6 +18,7 @@ import {
 import { QueuePanel } from "@/components/queue/QueuePanel";
 import { HeartEqualizer } from "@/components/ui/HeartEqualizer";
 import { Toasts } from "@/components/ui/Toasts";
+import { TooltipLayer } from "@/components/ui/TooltipLayer";
 import { api } from "@/ipc/invoke";
 import {
   armRating,
@@ -213,7 +214,12 @@ export function AppShell() {
     return <DotPlayer />;
   }
   if (windowMode === "mini") {
-    return <MiniPlayer />;
+    return (
+      <>
+        <MiniPlayer />
+        <TooltipLayer />
+      </>
+    );
   }
 
   return (
@@ -263,6 +269,7 @@ export function AppShell() {
       <CommandPalette />
       <HelpOverlay />
       <Toasts />
+      <TooltipLayer />
     </div>
   );
 }

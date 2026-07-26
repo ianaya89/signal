@@ -103,6 +103,11 @@ body,
   height: 100%;
 }
 
+/* pulse mode floats chrome-less over the desktop: only heart + controls */
+html[data-wm="dot"] body {
+  background: transparent;
+}
+
 body {
   background: var(--bg-base);
   color: var(--text-primary);

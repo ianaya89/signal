@@ -26,7 +26,7 @@ signal-player = { path = "crates/signal-player" }
 signal-search = { path = "crates/signal-search" }
 signal-plugins = { path = "crates/signal-plugins" }
 
-tauri = { version = "2" }
+tauri = { version = "2", features = ["macos-private-api"] }
 tauri-build = "2"
 
 tokio = { version = "1.41", features = ["rt-multi-thread", "macros", "sync", "time", "fs", "net", "io-util"] }

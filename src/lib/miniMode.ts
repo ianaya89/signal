@@ -9,7 +9,9 @@ import {
 
 import { useUiStore, type WindowMode } from "@/stores/uiStore";
 
-const SIZES: Record<Exclude<WindowMode, "full">, [number, number]> = {
+type CompactMode = Exclude<WindowMode, "full">;
+
+const SIZES: Record<CompactMode, [number, number]> = {
   mini: [440, 118],
   dot: [76, 76],
 };
@@ -19,9 +21,42 @@ let savedPosition: PhysicalPosition | null = null;
 // where the user was before collapsing to the dot — restore goes back there
 let dotCameFrom: Exclude<WindowMode, "dot"> = "full";
 
-/** Switches between full / mini / dot window shapes; remembers the full
- *  window's size AND position across the compact modes, clamping back
- *  on-screen if the restore would land outside the monitor. */
+const posKey = (mode: CompactMode) => `wm.pos.${mode}`;
+
+function loadPos(mode: CompactMode): PhysicalPosition | null {
+  try {
+    const raw = localStorage.getItem(posKey(mode));
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      typeof (parsed as { x: unknown }).x === "number" &&
+      typeof (parsed as { y: unknown }).y === "number"
+    ) {
+      return new PhysicalPosition(
+        (parsed as { x: number }).x,
+        (parsed as { y: number }).y,
+      );
+    }
+  } catch {
+    // corrupted entry: fall through to default placement
+  }
+  return null;
+}
+
+function savePos(mode: CompactMode, pos: PhysicalPosition) {
+  try {
+    localStorage.setItem(posKey(mode), JSON.stringify({ x: pos.x, y: pos.y }));
+  } catch {
+    // storage full/blocked: position memory is a nicety
+  }
+}
+
+/** Switches between full / mini / dot window shapes. Remembers the full
+ *  window's size and position, and each compact mode's last dragged spot
+ *  (persisted), clamping back on-screen if a restore would land outside
+ *  the monitor. */
 export async function setWindowMode(next: WindowMode) {
   const win = getCurrentWindow();
   const prev = useUiStore.getState().windowMode;
@@ -30,6 +65,8 @@ export async function setWindowMode(next: WindowMode) {
   if (prev === "full") {
     savedSize = await win.innerSize();
     savedPosition = await win.outerPosition();
+  } else {
+    savePos(prev, await win.outerPosition());
   }
   if (next === "dot") {
     dotCameFrom = prev === "mini" ? "mini" : "full";
@@ -37,6 +74,7 @@ export async function setWindowMode(next: WindowMode) {
 
   // hide the native chrome (traffic lights) while compact
   await invoke("window_set_compact", { compact: next !== "full" }).catch(() => {});
+  document.documentElement.dataset.wm = next;
 
   if (next === "full") {
     await win.setAlwaysOnTop(false);
@@ -55,7 +93,10 @@ export async function setWindowMode(next: WindowMode) {
     const [w, h] = SIZES[next];
     await win.setAlwaysOnTop(true);
     await win.setSize(new LogicalSize(w, h));
-    // the compact window keeps its dragged spot, but never off-screen
+    const remembered = loadPos(next);
+    if (remembered) {
+      await win.setPosition(remembered);
+    }
     await clampOnScreen();
   }
 
