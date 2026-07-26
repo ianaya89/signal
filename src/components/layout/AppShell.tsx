@@ -10,8 +10,9 @@ import { StatusBar } from "@/components/layout/StatusBar";
 import { CommandPalette } from "@/components/palette/CommandPalette";
 import { DotPlayer } from "@/components/player/DotPlayer";
 import { MiniPlayer } from "@/components/player/MiniPlayer";
+import { ModeButtons, VolumeSlider } from "@/components/player/TransportBar";
 import { QueuePanel } from "@/components/queue/QueuePanel";
-import { EqBars } from "@/components/ui/HeartEqualizer";
+import { HeartEqualizer } from "@/components/ui/HeartEqualizer";
 import { Toasts } from "@/components/ui/Toasts";
 import { api } from "@/ipc/invoke";
 import {
@@ -300,8 +301,10 @@ function Resizer({ pane }: { pane: "library" | "inspector" }) {
   );
 }
 
-/** Integrated titlebar: real surface with a bottom border, wordmark after
- *  the traffic lights, live now-playing on the right. Whole strip drags. */
+/** Integrated titlebar: app mark (the heart, alive while playing) +
+ *  wordmark on the left, now-playing plus the secondary transport
+ *  controls on the right — decompressing the bottom bar. Drags anywhere
+ *  inert. */
 function TitleBar() {
   const status = usePlayerStore((s) => s.status);
   const trackId = usePlayerStore((s) => s.trackId);
@@ -317,21 +320,39 @@ function TitleBar() {
       onMouseDown={dragWindow}
       className="flex h-9 shrink-0 select-none items-center justify-between border-b border-subtle bg-surface pl-[84px] pr-3"
     >
-      <span className="pointer-events-none text-[11px]">
+      <span className="pointer-events-none flex items-center gap-1.5 text-[11px]">
+        <HeartEqualizer size={16} playing={status === "playing"} />
         <span className="text-accent">❯</span>{" "}
         <span className="text-secondary">signal</span>
       </span>
-      <span className="pointer-events-none flex min-w-0 items-center gap-2 text-[11px]">
+      <span className="flex min-w-0 items-center gap-3 text-[11px]">
         {trackId !== null && data ? (
-          <>
-            <EqBars playing={status === "playing"} />
-            <span className="min-w-0 truncate text-secondary">
-              {data.artistName} — {data.track.title}
-            </span>
-          </>
+          <span className="pointer-events-none min-w-0 truncate text-secondary">
+            {data.artistName} — {data.track.title}
+          </span>
         ) : (
-          <span className="text-muted">local-first hi-fi player</span>
+          <span className="pointer-events-none text-muted">
+            local-first hi-fi player
+          </span>
         )}
+        <ModeButtons />
+        <VolumeSlider />
+        <button
+          type="button"
+          onClick={() => void setWindowMode("mini")}
+          title="mini player"
+          className="shrink-0 text-[12px] text-muted hover:text-accent"
+        >
+          ▣
+        </button>
+        <button
+          type="button"
+          onClick={() => void setWindowMode("dot")}
+          title="pulse mode"
+          className="shrink-0 text-[12px] text-muted hover:text-accent"
+        >
+          ●
+        </button>
       </span>
     </header>
   );

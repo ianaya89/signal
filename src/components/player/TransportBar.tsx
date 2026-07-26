@@ -3,8 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { SeekBar } from "@/components/player/SeekBar";
 import { api } from "@/ipc/invoke";
 import { fmtDuration } from "@/lib/format";
-import { EqBars } from "@/components/ui/HeartEqualizer";
-import { setWindowMode } from "@/lib/miniMode";
 import { cn } from "@/lib/utils";
 import { usePlayModeStore } from "@/stores/playModeStore";
 import { usePlayerStore } from "@/stores/playerStore";
@@ -21,7 +19,6 @@ export function TransportBar() {
 
   return (
     <div className="flex min-w-0 flex-1 items-center gap-3">
-      <EqBars playing={status === "playing"} className="shrink-0" />
       <button
         type="button"
         onClick={() => void api.prev()}
@@ -53,21 +50,11 @@ export function TransportBar() {
       <span className="shrink-0 text-[11px] text-muted">
         {fmtDuration(durationMs)}
       </span>
-      <ModeButtons />
-      <VolumeSlider />
-      <button
-        type="button"
-        onClick={() => void setWindowMode("mini")}
-        title="mini player"
-        className="shrink-0 text-[12px] text-muted hover:text-accent"
-      >
-        ▣
-      </button>
     </div>
   );
 }
 
-function ModeButtons() {
+export function ModeButtons() {
   const { shuffle, repeat, toggleShuffle, cycleRepeat } = usePlayModeStore();
   return (
     <span className="flex shrink-0 gap-1.5">
@@ -94,7 +81,7 @@ function ModeButtons() {
   );
 }
 
-function VolumeSlider() {
+export function VolumeSlider() {
   const volume = usePlayerStore((s) => s.volume);
   return (
     <span className="flex shrink-0 items-center gap-1">
