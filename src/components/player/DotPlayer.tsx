@@ -16,7 +16,7 @@ export function DotPlayer() {
     <div
       onMouseDown={dragWindow}
       onDoubleClick={() => void setWindowMode("full")}
-      className="group/dot relative flex h-full w-full cursor-grab items-center justify-center border border-transparent transition-colors duration-100 hover:border-subtle hover:bg-base/75 hover:backdrop-blur-sm active:cursor-grabbing"
+      className="group/dot relative flex h-full w-full cursor-grab items-center justify-center border border-transparent transition-colors duration-100 hover:border-subtle hover:bg-base active:cursor-grabbing"
     >
       <span
         className="pointer-events-none"
@@ -28,7 +28,7 @@ export function DotPlayer() {
         <HeartEqualizer size={52} playing={playing} />
       </span>
       <div
-        className="absolute inset-x-1 bottom-1 flex items-center justify-center gap-2 bg-base/90 py-0.5 opacity-0 transition-opacity duration-100 group-hover/dot:opacity-100"
+        className="absolute inset-x-1 bottom-1 flex items-center justify-center gap-2 py-0.5 opacity-0 transition-opacity duration-100 group-hover/dot:opacity-100"
         onDoubleClick={(e) => e.stopPropagation()}
       >
         <button
