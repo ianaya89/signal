@@ -1,4 +1,4 @@
-import { setWindowMode } from "@/lib/miniMode";
+import { exitDotMode, setWindowMode } from "@/lib/miniMode";
 import { dragWindow } from "@/lib/drag";
 import { cn } from "@/lib/utils";
 import { HeartEqualizer } from "@/components/ui/HeartEqualizer";
@@ -15,7 +15,7 @@ export function DotPlayer() {
   return (
     <div
       onMouseDown={dragWindow}
-      title="signal — drag to move · click: mini · double-click: full"
+      title="signal — drag to move · click: back · double-click: full"
       className={cn(
         "group/dot flex h-full w-full cursor-grab items-center justify-center border bg-surface p-[6px] active:cursor-grabbing",
         playing ? "border-accent" : "border-subtle",
@@ -24,7 +24,7 @@ export function DotPlayer() {
       <div className="relative h-full w-full overflow-hidden border border-subtle bg-base/60 hover:border-focus">
         <button
           type="button"
-          onClick={() => void setWindowMode("mini")}
+          onClick={() => void exitDotMode()}
           onDoubleClick={(e) => {
             e.stopPropagation();
             void setWindowMode("full");

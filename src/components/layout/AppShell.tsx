@@ -22,7 +22,7 @@ import {
   useKeyboardStore,
 } from "@/lib/keyboard";
 import { dragWindow } from "@/lib/drag";
-import { setWindowMode } from "@/lib/miniMode";
+import { exitDotMode, setWindowMode } from "@/lib/miniMode";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useUiStore } from "@/stores/uiStore";
 
@@ -63,7 +63,11 @@ export function AppShell() {
           e.preventDefault();
           void api.toggle();
         } else if (e.key === "Escape") {
-          void setWindowMode(windowMode === "dot" ? "mini" : "full");
+          if (windowMode === "dot") {
+            void exitDotMode();
+          } else {
+            void setWindowMode("full");
+          }
         }
         return;
       }

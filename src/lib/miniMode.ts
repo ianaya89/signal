@@ -16,6 +16,8 @@ const SIZES: Record<Exclude<WindowMode, "full">, [number, number]> = {
 
 let savedSize: PhysicalSize | null = null;
 let savedPosition: PhysicalPosition | null = null;
+// where the user was before collapsing to the dot — restore goes back there
+let dotCameFrom: Exclude<WindowMode, "dot"> = "full";
 
 /** Switches between full / mini / dot window shapes; remembers the full
  *  window's size AND position across the compact modes, clamping back
@@ -28,6 +30,9 @@ export async function setWindowMode(next: WindowMode) {
   if (prev === "full") {
     savedSize = await win.innerSize();
     savedPosition = await win.outerPosition();
+  }
+  if (next === "dot") {
+    dotCameFrom = prev === "mini" ? "mini" : "full";
   }
 
   // hide the native chrome (traffic lights) while compact
@@ -57,7 +62,13 @@ export async function setWindowMode(next: WindowMode) {
   useUiStore.getState().setWindowMode(next);
 }
 
-/** Centers the window when it does not meaningfully overlap its monitor. */
+/** Returns to whatever mode was active before collapsing into the dot. */
+export async function exitDotMode() {
+  await setWindowMode(dotCameFrom);
+}
+
+/** Repositions the window so it fits fully inside its monitor; centers
+ *  only when it cannot fit at all. */
 async function clampOnScreen() {
   const win = getCurrentWindow();
   const monitor = await currentMonitor();
@@ -68,13 +79,14 @@ async function clampOnScreen() {
   const m = monitor.position;
   const ms = monitor.size;
 
-  const MARGIN = 40; // px of the window that must stay reachable
-  const offLeft = pos.x + size.width < m.x + MARGIN;
-  const offRight = pos.x > m.x + ms.width - MARGIN;
-  const offTop = pos.y < m.y; // titlebar above the screen is unreachable
-  const offBottom = pos.y > m.y + ms.height - MARGIN;
-
-  if (offLeft || offRight || offTop || offBottom) {
+  if (size.width > ms.width || size.height > ms.height) {
     await win.center();
+    return;
+  }
+
+  const x = Math.min(Math.max(pos.x, m.x), m.x + ms.width - size.width);
+  const y = Math.min(Math.max(pos.y, m.y), m.y + ms.height - size.height);
+  if (x !== pos.x || y !== pos.y) {
+    await win.setPosition(new PhysicalPosition(x, y));
   }
 }
