@@ -129,6 +129,11 @@ export function CommandPalette() {
         run: () => setWindowMode("mini"),
       },
       {
+        id: "pulse",
+        label: "pulse mode (floating dot)",
+        run: () => setWindowMode("dot"),
+      },
+      {
         id: "toggle-library",
         label: "layout: toggle library pane",
         hint: "b",
