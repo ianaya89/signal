@@ -17,6 +17,7 @@ import type {
   ReplayGainMode,
   StatsOverview,
   Track,
+  TrackMetaEdit,
   TrackWithContext,
 } from "@/ipc/types";
 
@@ -67,6 +68,8 @@ export type IpcCommand =
   | "library_set_album_artwork"
   | "track_set_rating"
   | "track_toggle_favorite"
+  | "track_update_metadata"
+  | "album_update_info"
   | "player_set_mode"
   | "player_get_mode"
   | "queue_add_next"
@@ -156,6 +159,14 @@ export const api = {
     ipc<void>("library_set_album_artwork", { albumId, sourcePath }),
   setRating: (trackId: number, rating: number) =>
     ipc<void>("track_set_rating", { trackId, rating }),
+  updateTrackMetadata: (trackId: number, meta: TrackMetaEdit) =>
+    ipc<void>("track_update_metadata", { trackId, meta }),
+  updateAlbumInfo: (
+    albumId: number,
+    name: string,
+    artist: string,
+    year: number | null,
+  ) => ipc<boolean>("album_update_info", { albumId, name, artist, year }),
   toggleFavorite: (trackId: number) =>
     ipc<boolean>("track_toggle_favorite", { trackId }),
   setPlayMode: (mode: PlayMode) => ipc<void>("player_set_mode", { mode }),

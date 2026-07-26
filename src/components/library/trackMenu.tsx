@@ -3,6 +3,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { MenuItem } from "@/components/ui/ContextMenu";
 import { api } from "@/ipc/invoke";
 import type { PlaylistSummary, Track } from "@/ipc/types";
+import { useEditStore } from "@/stores/editStore";
 import { toast } from "@/stores/toastStore";
 
 interface TrackMenuDeps {
@@ -74,6 +75,42 @@ export function buildTrackMenu({
           to: "/artists/$artistId",
           params: { artistId: String(track.artistId) },
         }),
+    },
+    { label: "", separator: true },
+    {
+      label: "rate",
+      submenu: [
+        {
+          label: "✦ like",
+          onClick: () => {
+            void api.setRating(track.id, 4).then(() => {
+              toast.ok("✦ liked");
+              void queryClient.invalidateQueries();
+            });
+          },
+        },
+        {
+          label: "✦✦ love",
+          onClick: () => {
+            void api.setRating(track.id, 5).then(() => {
+              toast.ok("✦✦ loved");
+              void queryClient.invalidateQueries();
+            });
+          },
+        },
+        {
+          label: "clear rating",
+          onClick: () => {
+            void api.setRating(track.id, 0).then(() => {
+              void queryClient.invalidateQueries();
+            });
+          },
+        },
+      ],
+    },
+    {
+      label: "edit metadata…",
+      onClick: () => useEditStore.getState().openTrack(track.id),
     },
     { label: "", separator: true },
     {

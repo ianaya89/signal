@@ -114,7 +114,28 @@ export function TrackRow({
           [{t.codec}] [{fmtQuality(t.bitDepth, t.sampleRateHz)}]
         </span>
       </td>
-      <td className="w-12 pr-1 text-right text-[11px]">
+      <td className="w-16 whitespace-nowrap pr-1 text-right text-[11px]">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            const rating = track.rating ?? 0;
+            const next = rating >= 5 ? 0 : rating >= 4 ? 5 : 4;
+            void api.setRating(track.id, next).then(() => {
+              if (next > 0) toast.ok(next === 5 ? "✦✦ loved" : "✦ liked");
+              return queryClient.invalidateQueries();
+            });
+          }}
+          title="rate: like ✦ / love ✦✦"
+          className={cn(
+            "mr-1 text-[11px]",
+            (track.rating ?? 0) >= 4
+              ? "text-warn"
+              : "text-muted opacity-0 hover:text-warn group-hover:opacity-100",
+          )}
+        >
+          {(track.rating ?? 0) >= 5 ? "✦✦" : (track.rating ?? 0) >= 4 ? "✦" : "✧"}
+        </button>
         <button
           type="button"
           onClick={(e) => {
@@ -134,7 +155,7 @@ export function TrackRow({
         >
           {track.favorite ? "♥" : "♡"}
         </button>
-        {track.rating ? (
+        {(track.rating ?? 0) > 0 && (track.rating ?? 0) < 4 ? (
           <span className="ml-1 text-[10px] text-warn">{track.rating}★</span>
         ) : null}
       </td>

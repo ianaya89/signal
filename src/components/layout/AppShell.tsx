@@ -1,6 +1,7 @@
 import { Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 
+import { MetadataDialog } from "@/components/edit/MetadataDialog";
 import { HelpOverlay } from "@/components/help/HelpOverlay";
 import { InspectorPane } from "@/components/layout/InspectorPane";
 import { LibraryNav } from "@/components/layout/LibraryNav";
@@ -268,6 +269,7 @@ export function AppShell() {
       <StatusBar />
       <CommandPalette />
       <HelpOverlay />
+      <MetadataDialog />
       <Toasts />
       <TooltipLayer />
     </div>

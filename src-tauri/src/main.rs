@@ -162,6 +162,8 @@ fn main() {
             commands::edit::library_set_album_artwork,
             commands::edit::track_set_rating,
             commands::edit::track_toggle_favorite,
+            commands::edit::track_update_metadata,
+            commands::edit::album_update_info,
             commands::player::player_set_mode,
             commands::player::player_get_mode,
         ])

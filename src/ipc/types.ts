@@ -68,6 +68,17 @@ export interface TrackWithContext {
   track: Track;
   artistName: string;
   albumName: string;
+  genre: string | null;
+}
+
+export interface TrackMetaEdit {
+  title: string;
+  artist: string;
+  album: string;
+  year: number | null;
+  trackNo: number | null;
+  discNo: number | null;
+  genre: string | null;
 }
 
 export interface QueueItem {

@@ -296,15 +296,23 @@ pub async fn library_get_track(
         .ok_or_else(|| SignalError::Db(format!("track {track_id} not found")))?;
 
     let album = state.db.albums().get(track.album_id).await.db_err()?;
-    let (album_name, artist_name) = album.map_or_else(
-        || (String::new(), String::new()),
-        |a| (a.name, a.artist_name),
-    );
+    let album_name = album.map_or_else(String::new, |a| a.name);
+    // the track's own artist, not the album artist — they differ on
+    // compilations and after manual edits
+    let artist_name = state
+        .db
+        .artists()
+        .get(track.artist_id)
+        .await
+        .db_err()?
+        .map_or_else(String::new, |a| a.name);
+    let genre = state.db.tracks().genre_of(track.id).await.db_err()?;
 
     Ok(TrackWithContext {
         track,
         artist_name,
         album_name,
+        genre,
     })
 }
 
@@ -314,6 +322,7 @@ pub struct TrackWithContext {
     pub track: signal_core::Track,
     pub artist_name: String,
     pub album_name: String,
+    pub genre: Option<String>,
 }
 
 #[tauri::command]

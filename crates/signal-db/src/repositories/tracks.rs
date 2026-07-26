@@ -18,6 +18,20 @@ pub struct NewTrack {
     pub technical: TrackTechnical,
 }
 
+/// Full-form metadata edit from the UI. Names are matched case-insensitively
+/// against existing rows (find-or-create); an empty album detaches the track.
+#[derive(Debug, Clone)]
+pub struct TrackMetadataUpdate {
+    pub title: String,
+    pub artist_name: String,
+    pub album_name: String,
+    pub year: Option<i64>,
+    pub track_no: Option<i64>,
+    pub disc_no: Option<i64>,
+    /// `None` leaves genres untouched; `Some("")` clears them.
+    pub genre: Option<String>,
+}
+
 pub struct TrackRepo {
     pool: SqlitePool,
 }
@@ -182,6 +196,151 @@ impl TrackRepo {
         .bind(new_title)
         .execute(&self.pool)
         .await?;
+        Ok(())
+    }
+
+    /// First linked genre name, if any (edit-form prefill).
+    pub async fn genre_of(&self, id: i64) -> sqlx::Result<Option<String>> {
+        sqlx::query_scalar(
+            "SELECT g.name FROM track_genres tg
+             JOIN genres g ON g.id = tg.genre_id
+             WHERE tg.track_id = ?1
+             ORDER BY g.name LIMIT 1",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+    }
+
+    /// Applies a full metadata edit: artist/album re-pointed by name
+    /// (find-or-create, case-insensitive), genres replaced, orphaned
+    /// album/artist rows swept, FTS re-indexed — one transaction.
+    #[allow(clippy::too_many_lines)] // linear sequence; splitting hides the tx flow
+    pub async fn update_metadata(&self, id: i64, meta: &TrackMetadataUpdate) -> sqlx::Result<()> {
+        let mut tx = self.pool.begin().await?;
+
+        let old: Option<(i64, Option<i64>)> =
+            sqlx::query_as("SELECT artist_id, album_id FROM tracks WHERE id = ?1")
+                .bind(id)
+                .fetch_optional(&mut *tx)
+                .await?;
+        let Some((old_artist_id, old_album_id)) = old else {
+            return Ok(());
+        };
+
+        let artist_id: i64 =
+            match sqlx::query_scalar("SELECT id FROM artists WHERE name = ?1 COLLATE NOCASE")
+                .bind(&meta.artist_name)
+                .fetch_optional(&mut *tx)
+                .await?
+            {
+                Some(found) => found,
+                None => {
+                    sqlx::query_scalar("INSERT INTO artists (name) VALUES (?1) RETURNING id")
+                        .bind(&meta.artist_name)
+                        .fetch_one(&mut *tx)
+                        .await?
+                }
+            };
+
+        let album_name = meta.album_name.trim();
+        let album_id: Option<i64> = if album_name.is_empty() {
+            None
+        } else {
+            let found: Option<i64> = sqlx::query_scalar(
+                "SELECT id FROM albums
+                 WHERE artist_id = ?1 AND name = ?2 COLLATE NOCASE",
+            )
+            .bind(artist_id)
+            .bind(album_name)
+            .fetch_optional(&mut *tx)
+            .await?;
+            Some(match found {
+                Some(existing) => existing,
+                None => {
+                    sqlx::query_scalar(
+                        "INSERT INTO albums (name, artist_id, year) VALUES (?1, ?2, ?3)
+                         RETURNING id",
+                    )
+                    .bind(album_name)
+                    .bind(artist_id)
+                    .bind(meta.year)
+                    .fetch_one(&mut *tx)
+                    .await?
+                }
+            })
+        };
+
+        sqlx::query(
+            "UPDATE tracks SET title = ?2, artist_id = ?3, album_id = ?4,
+                    year = ?5, track_no = ?6, disc_no = ?7,
+                    modified_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+             WHERE id = ?1",
+        )
+        .bind(id)
+        .bind(meta.title.trim())
+        .bind(artist_id)
+        .bind(album_id)
+        .bind(meta.year)
+        .bind(meta.track_no)
+        .bind(meta.disc_no)
+        .execute(&mut *tx)
+        .await?;
+
+        if let Some(genre) = &meta.genre {
+            sqlx::query("DELETE FROM track_genres WHERE track_id = ?1")
+                .bind(id)
+                .execute(&mut *tx)
+                .await?;
+            let genre = genre.trim();
+            if !genre.is_empty() {
+                let genre_id: i64 = match sqlx::query_scalar(
+                    "SELECT id FROM genres WHERE name = ?1 COLLATE NOCASE",
+                )
+                .bind(genre)
+                .fetch_optional(&mut *tx)
+                .await?
+                {
+                    Some(found) => found,
+                    None => {
+                        sqlx::query_scalar("INSERT INTO genres (name) VALUES (?1) RETURNING id")
+                            .bind(genre)
+                            .fetch_one(&mut *tx)
+                            .await?
+                    }
+                };
+                sqlx::query("INSERT INTO track_genres (track_id, genre_id) VALUES (?1, ?2)")
+                    .bind(id)
+                    .bind(genre_id)
+                    .execute(&mut *tx)
+                    .await?;
+            }
+        }
+
+        if let Some(old_album) = old_album_id {
+            if album_id != Some(old_album) {
+                sqlx::query(
+                    "DELETE FROM albums WHERE id = ?1
+                     AND NOT EXISTS (SELECT 1 FROM tracks WHERE album_id = ?1)",
+                )
+                .bind(old_album)
+                .execute(&mut *tx)
+                .await?;
+            }
+        }
+        if old_artist_id != artist_id {
+            sqlx::query(
+                "DELETE FROM artists WHERE id = ?1
+                 AND NOT EXISTS (SELECT 1 FROM tracks WHERE artist_id = ?1)
+                 AND NOT EXISTS (SELECT 1 FROM albums WHERE artist_id = ?1)",
+            )
+            .bind(old_artist_id)
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        crate::row::refresh_fts_row(&mut tx, id).await?;
+        tx.commit().await?;
         Ok(())
     }
 

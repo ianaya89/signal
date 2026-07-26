@@ -11,6 +11,7 @@ import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { artworkUrl } from "@/lib/artwork";
 import { useMainTitle } from "@/hooks/useMainTitle";
+import { useEditStore } from "@/stores/editStore";
 import { useMultiSelect } from "@/hooks/useMultiSelect";
 import { useTrackSort } from "@/hooks/useTrackSort";
 import { registerListHandler } from "@/lib/keyboard";
@@ -134,6 +135,14 @@ export function AlbumDetailView() {
             </span>
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => useEditStore.getState().openAlbum(album.id)}
+          title="edit album metadata"
+          className="ml-auto shrink-0 border border-subtle px-2 py-0.5 text-[11px] text-muted hover:border-focus hover:text-accent"
+        >
+          edit
+        </button>
       </header>
       <div className="relative min-h-0 flex-1 overflow-auto">
         <table className="w-full border-collapse">

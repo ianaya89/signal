@@ -5,7 +5,7 @@ const COLUMNS: { key: SortKey; label: string; className: string }[] = [
   { key: "default", label: "#", className: "w-10 pr-2 text-right" },
   { key: "title", label: "title", className: "pr-2 text-left" },
   { key: "codec", label: "codec", className: "w-32 pr-2 text-left" },
-  { key: "rating", label: "♥", className: "w-12 pr-1 text-right" },
+  { key: "rating", label: "✦♥", className: "w-16 pr-1 text-right" },
   { key: "duration", label: "dur", className: "w-12 pr-3 text-right" },
 ];
 

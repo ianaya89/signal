@@ -22,7 +22,7 @@ pub use repositories::settings::SettingsRepo;
 pub use repositories::stats::{
     AlbumPlayCount, DayCount, NameCount, NewPlayEvent, StatsOverview, StatsRepo,
 };
-pub use repositories::tracks::{NewTrack, TrackRepo};
+pub use repositories::tracks::{NewTrack, TrackMetadataUpdate, TrackRepo};
 pub use row::track_from_row;
 
 pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("../../migrations");

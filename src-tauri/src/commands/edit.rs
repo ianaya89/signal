@@ -110,6 +110,66 @@ pub async fn track_toggle_favorite(
     Ok(next)
 }
 
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrackMetaArgs {
+    pub title: String,
+    pub artist: String,
+    pub album: String,
+    pub year: Option<i64>,
+    pub track_no: Option<i64>,
+    pub disc_no: Option<i64>,
+    pub genre: Option<String>,
+}
+
+/// Full metadata edit from the UI form. Database-only, like every edit
+/// here: audio file tags stay untouched.
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn track_update_metadata(
+    state: State<'_, AppState>,
+    track_id: i64,
+    meta: TrackMetaArgs,
+) -> Result<(), SignalError> {
+    let update = signal_db::TrackMetadataUpdate {
+        title: valid_name(&meta.title)?.to_string(),
+        artist_name: valid_name(&meta.artist)?.to_string(),
+        album_name: meta.album,
+        year: meta.year,
+        track_no: meta.track_no,
+        disc_no: meta.disc_no,
+        genre: meta.genre,
+    };
+    state
+        .db
+        .tracks()
+        .update_metadata(track_id, &update)
+        .await
+        .db_err()
+}
+
+/// Returns true when the edit merged into an existing album.
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn album_update_info(
+    state: State<'_, AppState>,
+    album_id: i64,
+    name: String,
+    artist: String,
+    year: Option<i64>,
+) -> Result<bool, SignalError> {
+    let merged = state
+        .db
+        .albums()
+        .update_info(album_id, valid_name(&name)?, valid_name(&artist)?, year)
+        .await
+        .db_err()?;
+    if merged {
+        tracing::info!(album_id, name, "album edit merged into existing");
+    }
+    Ok(merged)
+}
+
 /// Copies a user-picked image into the artwork cache and points the album
 /// at it (original file stays where it is).
 #[tauri::command]
