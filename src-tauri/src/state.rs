@@ -48,26 +48,44 @@ pub struct PlayMode {
 pub struct PlayContext {
     pub track_ids: Vec<i64>,
     pub position: usize,
+    /// Tracks already visited this shuffle round — standard shuffle plays
+    /// everything once before repeating.
+    played: std::collections::HashSet<i64>,
 }
 
 impl PlayContext {
     /// Track that should follow the current one, honoring shuffle/repeat.
-    /// Shuffle picks pseudo-randomly (excluding the current position);
-    /// repeat-all wraps at the end.
+    /// Shuffle exhausts unplayed tracks first; repeat-all restarts the
+    /// round (or wraps, in linear order) at the end.
     pub fn peek_next(&self, mode: PlayMode) -> Option<i64> {
         if self.track_ids.is_empty() {
             return None;
         }
         if mode.shuffle && self.track_ids.len() > 1 {
-            // cheap deterministic-ish jitter; no external RNG dependency
+            let current = self.track_ids.get(self.position).copied();
+            let unplayed: Vec<i64> = self
+                .track_ids
+                .iter()
+                .copied()
+                .filter(|id| !self.played.contains(id) && Some(*id) != current)
+                .collect();
+            let pool = if unplayed.is_empty() {
+                if mode.repeat != Repeat::All {
+                    return None; // round exhausted
+                }
+                self.track_ids
+                    .iter()
+                    .copied()
+                    .filter(|id| Some(*id) != current)
+                    .collect()
+            } else {
+                unplayed
+            };
+            // cheap jitter; no external RNG dependency
             let nanos = std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .map_or(7, |d| d.subsec_nanos() as usize);
-            let mut idx = nanos % self.track_ids.len();
-            if idx == self.position {
-                idx = (idx + 1) % self.track_ids.len();
-            }
-            return self.track_ids.get(idx).copied();
+            return pool.get(nanos % pool.len()).copied();
         }
         match self.track_ids.get(self.position + 1) {
             Some(&id) => Some(id),
@@ -79,6 +97,14 @@ impl PlayContext {
     /// Moves onto `track_id` wherever it sits in the context; true on hit.
     pub fn jump_to(&mut self, track_id: i64) -> bool {
         if let Some(idx) = self.track_ids.iter().position(|&id| id == track_id) {
+            // leaving the current track marks it visited for this round
+            if let Some(&current) = self.track_ids.get(self.position) {
+                self.played.insert(current);
+            }
+            if self.played.len() >= self.track_ids.len() {
+                self.played.clear(); // new round
+            }
+            self.played.insert(track_id);
             self.position = idx;
             true
         } else {

@@ -182,12 +182,20 @@ async fn dispatch(app: &AppHandle, request: Request) -> Result<serde_json::Value
                 return Err(format!("no match for '{query}'"));
             };
             let title = first.title.clone();
-            let ids: Vec<i64> = tracks.iter().map(|t| t.id).collect();
-            if let Ok(mut ctx) = state.play_context.lock() {
-                ctx.track_ids = ids;
-                ctx.position = 0;
-            }
             let id = first.id;
+            // standard behavior: the match's album continues; the raw result
+            // list is the fallback for album-less tracks
+            let context = crate::commands::player::album_context(&state, id).await;
+            if let Ok(mut ctx) = state.play_context.lock() {
+                *ctx = crate::state::PlayContext::default();
+                if let Some((ids, position)) = context {
+                    ctx.track_ids = ids;
+                    ctx.position = position;
+                } else {
+                    ctx.track_ids = tracks.iter().map(|t| t.id).collect();
+                    ctx.position = 0;
+                }
+            }
             crate::commands::player::start_track(&state, id)
                 .await
                 .map_err(|e| err(&e))?;

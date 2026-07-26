@@ -330,6 +330,12 @@ impl Engine {
                 if pos > 0 && self.window.len() > 1 {
                     let finished = self.window.remove(0);
                     tracing::debug!(finished, "gapless advance");
+                    // drop the consumed entry so the current track sits at
+                    // playlist index 0 again — otherwise the next SetNext's
+                    // cleanup would remove the PLAYING entry and stop playback
+                    if let Err(err) = mpv.command("playlist-remove", &["0"]) {
+                        tracing::warn!("consumed entry removal failed: {err}");
+                    }
                     let Some(&current) = self.window.first() else {
                         return;
                     };

@@ -14,15 +14,38 @@ impl<T> PlayerResultExt<T> for Result<T, signal_player::PlayerError> {
     }
 }
 
-/// Loads the track from the library and starts playback. Clears the play
-/// context — a bare play is a single track.
+/// Loads the track and starts playback. Standard player behavior: a bare
+/// play adopts the track's album as the follow-on context.
 #[tauri::command]
 #[tracing::instrument(skip(state))]
 pub async fn player_play(state: State<'_, AppState>, track_id: i64) -> Result<(), SignalError> {
+    let context = album_context(&state, track_id).await;
     if let Ok(mut ctx) = state.play_context.lock() {
-        *ctx = crate::state::PlayContext::default();
+        match context {
+            Some((track_ids, position)) => {
+                *ctx = crate::state::PlayContext::default();
+                ctx.track_ids = track_ids;
+                ctx.position = position;
+            }
+            None => *ctx = crate::state::PlayContext::default(),
+        }
     }
     start_track(&state, track_id).await
+}
+
+/// The track's album as (ordered ids, index of `track_id`), when it has one.
+pub(crate) async fn album_context(
+    state: &State<'_, AppState>,
+    track_id: i64,
+) -> Option<(Vec<i64>, usize)> {
+    let track = state.db.tracks().get(track_id).await.ok()??;
+    if track.album_id <= 0 {
+        return None;
+    }
+    let tracks = state.db.albums().tracks(track.album_id).await.ok()?;
+    let ids: Vec<i64> = tracks.iter().map(|t| t.id).collect();
+    let position = ids.iter().position(|&id| id == track_id)?;
+    Some((ids, position))
 }
 
 /// Plays `track_ids[start_index]` with the whole list as the implicit

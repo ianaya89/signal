@@ -34,6 +34,16 @@ pub async fn session_restore(
         return Ok(None);
     }
 
+    // resume with the album as context so playback continues past the track
+    if let Some((track_ids, position)) =
+        crate::commands::player::album_context(&state, resume.track_id).await
+    {
+        if let Ok(mut ctx) = state.play_context.lock() {
+            ctx.track_ids = track_ids;
+            ctx.position = position;
+        }
+    }
+
     state
         .player
         .load_paused_at(resume.track_id, path, resume.position_ms)
