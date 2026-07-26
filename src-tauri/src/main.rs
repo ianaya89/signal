@@ -10,6 +10,8 @@ mod config_file;
 mod logbus;
 mod media_keys;
 mod recorder;
+#[cfg(unix)]
+mod socket;
 mod state;
 
 use std::sync::atomic::AtomicBool;
@@ -88,6 +90,8 @@ fn main() {
 
             media_keys::spawn(app.handle().clone());
             config_file::init(app.handle().clone());
+            #[cfg(unix)]
+            socket::spawn(app.handle().clone());
 
             tracing::info!("signal started");
             Ok(())

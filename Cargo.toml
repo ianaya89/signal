@@ -7,6 +7,7 @@ members = [
     "crates/signal-player",
     "crates/signal-search",
     "crates/signal-plugins",
+    "crates/signal-cli",
     "src-tauri",
 ]
 
@@ -28,7 +29,7 @@ signal-plugins = { path = "crates/signal-plugins" }
 tauri = { version = "2" }
 tauri-build = "2"
 
-tokio = { version = "1.41", features = ["rt-multi-thread", "macros", "sync", "time", "fs"] }
+tokio = { version = "1.41", features = ["rt-multi-thread", "macros", "sync", "time", "fs", "net", "io-util"] }
 
 sqlx = { version = "0.8", default-features = false, features = [
     "runtime-tokio",

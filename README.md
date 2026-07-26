@@ -43,6 +43,26 @@ pnpm tauri dev
 If `cargo` is not found, either activate mise in your shell
 (`eval "$(mise activate zsh)"` in `~/.zshrc`) or run `mise exec -- pnpm tauri dev`.
 
+## CLI
+
+Signal is scriptable: the app exposes a Unix control socket speaking
+newline-delimited JSON, and ships a `signal` CLI on top of it.
+
+```sh
+cargo build -p signal-cli        # binary at target/debug/signal
+
+signal status                    # ▶ Daft Punk — Get Lucky  1:02/6:09 · bit-perfect
+signal status --json             # machine-readable, for scripts/statuslines
+signal play get lucky            # search & play (results become the context)
+signal add instant crush         # stage onto the queue
+signal seek +30                  # relative seek
+signal vol 80                    # or +5 / -5
+signal toggle | next | prev | stop | queue | search <query>
+```
+
+Socket: `$SIGNAL_SOCKET` or the app data dir (`signal.sock`). Anything that
+can write JSON to a socket — Raycast, tmux, Stream Deck — can drive Signal.
+
 ## Principles
 
 - Everything is local. Everything works offline.
