@@ -2,6 +2,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 
 import { api } from "@/ipc/invoke";
+import { artworkUrl } from "@/lib/artwork";
+import { pickImage } from "@/lib/pickFolder";
 import { useEditStore } from "@/stores/editStore";
 import { toast } from "@/stores/toastStore";
 
@@ -84,6 +86,22 @@ function AlbumForm({ albumId }: { albumId: number }) {
     queryFn: () => api.getAlbum(albumId),
   });
   const [form, setForm] = useState<Record<string, string> | null>(null);
+  const [artVersion, setArtVersion] = useState(0);
+  const [artError, setArtError] = useState(false);
+
+  const changeArt = async () => {
+    const image = await pickImage();
+    if (!image) return;
+    try {
+      await api.setAlbumArtwork(albumId, image);
+      setArtVersion((v) => v + 1);
+      setArtError(false);
+      toast.ok("artwork updated");
+      await queryClient.invalidateQueries();
+    } catch (err) {
+      toast.error(errMsg(err));
+    }
+  };
 
   useEffect(() => {
     if (data && !form) {
@@ -115,8 +133,36 @@ function AlbumForm({ albumId }: { albumId: number }) {
 
   return (
     <Frame title="edit album" onSave={save}>
-      <Field label="name" value={form.name ?? ""} autoFocus onChange={(v) => setForm({ ...form, name: v })} />
-      <Field label="artist" value={form.artist ?? ""} onChange={(v) => setForm({ ...form, artist: v })} />
+      <div className="flex items-start gap-3">
+        <button
+          type="button"
+          onClick={() => void changeArt()}
+          title="change artwork (.jpg / .png)"
+          className="group/art relative h-20 w-20 shrink-0 overflow-hidden border border-subtle bg-base/60 hover:border-focus"
+        >
+          {data?.album.artworkPath || artVersion > 0 ? (
+            !artError ? (
+              <img
+                src={`${artworkUrl(albumId)}?v=${artVersion}`}
+                alt=""
+                onError={() => setArtError(true)}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center text-muted">♪</span>
+            )
+          ) : (
+            <span className="flex h-full w-full items-center justify-center text-muted">♪</span>
+          )}
+          <span className="absolute inset-0 hidden items-center justify-center bg-black/50 text-[10px] text-primary group-hover/art:flex">
+            change
+          </span>
+        </button>
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <Field label="name" value={form.name ?? ""} autoFocus onChange={(v) => setForm({ ...form, name: v })} />
+          <Field label="artist" value={form.artist ?? ""} onChange={(v) => setForm({ ...form, artist: v })} />
+        </div>
+      </div>
       <Field label="year" value={form.year ?? ""} numeric className="w-32" onChange={(v) => setForm({ ...form, year: v })} />
     </Frame>
   );

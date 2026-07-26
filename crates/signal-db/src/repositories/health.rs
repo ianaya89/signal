@@ -108,34 +108,7 @@ impl HealthRepo {
         .unwrap_or_default();
 
         // ---- probable duplicates: same title+artist, similar duration ----
-        let dup_rows = sqlx::query(
-            "SELECT lower(t.title) AS key_title, ar.name AS artist_name,
-                    t.title AS title,
-                    COUNT(*) AS cnt, group_concat(t.id) AS ids
-             FROM tracks t JOIN artists ar ON ar.id = t.artist_id
-             GROUP BY t.artist_id, lower(t.title), t.duration_ms / 3000
-             HAVING cnt > 1
-             ORDER BY cnt DESC",
-        )
-        .fetch_all(&self.pool)
-        .await?;
-        let duplicates: Vec<DupGroup> = dup_rows
-            .iter()
-            .map(|row| {
-                let ids: Vec<i64> = row
-                    .try_get::<String, _>("ids")
-                    .unwrap_or_default()
-                    .split(',')
-                    .filter_map(|s| s.parse().ok())
-                    .collect();
-                Ok(DupGroup {
-                    title: row.try_get("title")?,
-                    artist_name: row.try_get("artist_name")?,
-                    count: to_u32(row.try_get::<i64, _>("cnt")?),
-                    track_ids: ids,
-                })
-            })
-            .collect::<sqlx::Result<_>>()?;
+        let duplicates = self.duplicate_groups().await?;
 
         // ---- albums without artwork ----
         let art_rows = sqlx::query(
@@ -226,6 +199,62 @@ impl HealthRepo {
             low_bitrate_total: u32::try_from(low_bitrate.len()).unwrap_or_default(),
             low_bitrate: low_bitrate.into_iter().take(LIST_CAP).collect(),
         })
+    }
+
+    /// Probable duplicates: same artist + title (case-insensitive), similar
+    /// duration. Shared by the report and the resolver.
+    pub async fn duplicate_groups(&self) -> sqlx::Result<Vec<DupGroup>> {
+        let dup_rows = sqlx::query(
+            "SELECT lower(t.title) AS key_title, ar.name AS artist_name,
+                    t.title AS title,
+                    COUNT(*) AS cnt, group_concat(t.id) AS ids
+             FROM tracks t JOIN artists ar ON ar.id = t.artist_id
+             GROUP BY t.artist_id, lower(t.title), t.duration_ms / 3000
+             HAVING cnt > 1
+             ORDER BY cnt DESC",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        dup_rows
+            .iter()
+            .map(|row| {
+                let ids: Vec<i64> = row
+                    .try_get::<String, _>("ids")
+                    .unwrap_or_default()
+                    .split(',')
+                    .filter_map(|s| s.parse().ok())
+                    .collect();
+                Ok(DupGroup {
+                    title: row.try_get("title")?,
+                    artist_name: row.try_get("artist_name")?,
+                    count: to_u32(row.try_get::<i64, _>("cnt")?),
+                    track_ids: ids,
+                })
+            })
+            .collect::<sqlx::Result<_>>()
+    }
+
+    /// Best-quality track of a duplicate group: lossless first, then bit
+    /// depth, sample rate, bitrate; oldest id breaks ties.
+    pub async fn pick_best(&self, track_ids: &[i64]) -> sqlx::Result<Option<i64>> {
+        if track_ids.is_empty() {
+            return Ok(None);
+        }
+        let placeholders = vec!["?"; track_ids.len()].join(",");
+        let sql = format!(
+            "SELECT id FROM tracks WHERE id IN ({placeholders})
+             ORDER BY (codec IN ('FLAC', 'ALAC', 'PCM (WAV)', 'PCM (AIFF)')) DESC,
+                      COALESCE(bit_depth, 0) DESC,
+                      sample_rate_hz DESC,
+                      COALESCE(bitrate_kbps, 0) DESC,
+                      id ASC
+             LIMIT 1"
+        );
+        let mut query = sqlx::query_scalar(&sql);
+        for id in track_ids {
+            query = query.bind(id);
+        }
+        query.fetch_optional(&self.pool).await
     }
 
     /// Removes tracks whose files are gone (cascades clean the rest).

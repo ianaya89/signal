@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 
 use signal_core::{EventBus, SignalEvent};
 use signal_db::{DbPool, NewTrack};
@@ -27,21 +28,40 @@ pub struct ScanReport {
     pub errors: u32,
 }
 
+/// Path substrings to skip during scans and watch imports. Shared so a
+/// config hot-reload applies without restarting scanners or watchers.
+pub type Excludes = Arc<Mutex<Vec<String>>>;
+
 #[derive(Clone)]
 pub struct Scanner {
     db: DbPool,
     events: EventBus,
     cache_dir: PathBuf,
+    excludes: Excludes,
 }
 
 impl Scanner {
     #[must_use]
-    pub fn new(db: DbPool, events: EventBus, cache_dir: PathBuf) -> Self {
+    pub fn new(db: DbPool, events: EventBus, cache_dir: PathBuf, excludes: Excludes) -> Self {
         Self {
             db,
             events,
             cache_dir,
+            excludes,
         }
+    }
+
+    fn is_excluded(&self, path: &Path) -> bool {
+        let Ok(patterns) = self.excludes.lock() else {
+            return false;
+        };
+        if patterns.is_empty() {
+            return false;
+        }
+        let s = path.to_string_lossy();
+        patterns
+            .iter()
+            .any(|p| !p.trim().is_empty() && s.contains(p.trim()))
     }
 
     /// One-shot recursive scan. Emits `scanner:progress` per file and
@@ -52,7 +72,8 @@ impl Scanner {
             return Err(ScannerError::InvalidRoot(root));
         }
 
-        let (files, walk_errors) = collect_audio_files(&root);
+        let (mut files, walk_errors) = collect_audio_files(&root);
+        files.retain(|p| !self.is_excluded(p));
         let total = u64::try_from(files.len()).unwrap_or_default();
         tracing::info!(total, walk_errors, root = %root.display(), "scan started");
 
@@ -118,7 +139,7 @@ impl Scanner {
         let mut art_done: HashSet<i64> = HashSet::new();
 
         for path in changed {
-            if !tags::is_audio_file(&path) || !path.is_file() {
+            if !tags::is_audio_file(&path) || !path.is_file() || self.is_excluded(&path) {
                 continue;
             }
             match self.import_file(&path, &mut art_done).await {

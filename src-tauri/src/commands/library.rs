@@ -2,7 +2,6 @@ use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 
 use signal_core::{AlbumDetail, AlbumSummary, ArtistSummary, SignalError};
-use signal_scanner::Scanner;
 use tauri::State;
 
 use crate::commands::DbResultExt;
@@ -17,60 +16,88 @@ fn expand_home(path: &str) -> PathBuf {
     PathBuf::from(path)
 }
 
-/// Kicks off a background scan and returns immediately; progress arrives via
-/// `scanner:progress` / `scanner:done` events. Failures are also published
-/// as `scanner:error` so they surface regardless of the calling UI.
-#[tauri::command]
-#[tracing::instrument(skip(state))]
-pub async fn library_scan(state: State<'_, AppState>, root: String) -> Result<(), SignalError> {
-    let scan_err = |message: String| {
-        state
-            .events
-            .publish(signal_core::SignalEvent::ScannerError {
-                message: message.clone(),
-            });
-        SignalError::Scanner(message)
-    };
+/// Library roots: `library.roots` JSON array, falling back to the legacy
+/// single `library.root` key.
+pub async fn read_roots(state: &AppState) -> Vec<String> {
+    if let Ok(Some(json)) = state.db.settings().get("library.roots").await {
+        if let Ok(roots) = serde_json::from_str::<Vec<String>>(&json) {
+            return roots;
+        }
+    }
+    match state.db.settings().get("library.root").await {
+        Ok(Some(root)) => vec![root],
+        _ => Vec::new(),
+    }
+}
 
-    let root = expand_home(&root);
+async fn write_roots(state: &AppState, roots: &[String]) {
+    match serde_json::to_string(roots) {
+        Ok(json) => {
+            if let Err(err) = state.db.settings().set("library.roots", &json).await {
+                tracing::warn!("could not persist library.roots: {err}");
+            }
+        }
+        Err(err) => tracing::warn!("roots serialize failed: {err}"),
+    }
+}
+
+fn scan_err(state: &AppState, message: String) -> SignalError {
+    state
+        .events
+        .publish(signal_core::SignalEvent::ScannerError {
+            message: message.clone(),
+        });
+    SignalError::Scanner(message)
+}
+
+fn validate_root(state: &AppState, root: &str) -> Result<PathBuf, SignalError> {
+    let root = expand_home(root);
     let root = match root.canonicalize() {
         Ok(canonical) => canonical,
         Err(err) if err.kind() == std::io::ErrorKind::PermissionDenied => {
-            return Err(scan_err(format!(
+            return Err(scan_err(state, format!(
                 "macOS blocked access to {} — use \"scan folder…\" (picker) or grant access in System Settings → Privacy → Files & Folders",
                 root.display()
             )));
         }
         Err(_) => {
-            return Err(scan_err(format!("folder not found: {}", root.display())));
+            return Err(scan_err(
+                state,
+                format!("folder not found: {}", root.display()),
+            ));
         }
     };
     if !root.is_dir() {
-        return Err(scan_err(format!("not a directory: {}", root.display())));
+        return Err(scan_err(
+            state,
+            format!("not a directory: {}", root.display()),
+        ));
     }
+    Ok(root)
+}
+
+/// Kicks off a background scan and returns immediately; progress arrives via
+/// `scanner:progress` / `scanner:done` events. Failures are also published
+/// as `scanner:error` so they surface regardless of the calling UI. The
+/// folder joins the root list (multi-root) and gains a watcher.
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn library_scan(state: State<'_, AppState>, root: String) -> Result<(), SignalError> {
+    let root = validate_root(&state, &root)?;
 
     if state.scanning.swap(true, Ordering::SeqCst) {
         return Err(SignalError::Scanner("a scan is already running".into()));
     }
 
-    // remember for `rescan`
-    if let Err(err) = state
-        .db
-        .settings()
-        .set("library.root", &root.to_string_lossy())
-        .await
-    {
-        tracing::warn!("could not persist library.root: {err}");
+    let mut roots = read_roots(&state).await;
+    let root_str = root.to_string_lossy().into_owned();
+    if !roots.contains(&root_str) {
+        roots.push(root_str);
+        write_roots(&state, &roots).await;
     }
+    state.start_watchers(&roots.iter().map(PathBuf::from).collect::<Vec<_>>());
 
-    // watcher follows the (possibly new) root
-    state.start_watcher(&root);
-
-    let scanner = Scanner::new(
-        state.db.clone(),
-        state.events.clone(),
-        state.config.cache_dir.clone(),
-    );
+    let scanner = state.scanner();
     let scanning = state.scanning.clone();
     tauri::async_runtime::spawn(async move {
         if let Err(err) = scanner.scan_full(root).await {
@@ -79,6 +106,84 @@ pub async fn library_scan(state: State<'_, AppState>, root: String) -> Result<()
         scanning.store(false, Ordering::SeqCst);
     });
 
+    Ok(())
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn library_list_roots(state: State<'_, AppState>) -> Result<Vec<String>, SignalError> {
+    Ok(read_roots(&state).await)
+}
+
+/// Drops a root from the list (watchers restart without it). With `purge`,
+/// also removes every track under it from the database — files stay.
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn library_remove_root(
+    state: State<'_, AppState>,
+    root: String,
+    purge: bool,
+) -> Result<u32, SignalError> {
+    let mut roots = read_roots(&state).await;
+    roots.retain(|r| r != &root);
+    write_roots(&state, &roots).await;
+    state.start_watchers(&roots.iter().map(PathBuf::from).collect::<Vec<_>>());
+
+    let removed = if purge {
+        let removed = state.db.tracks().delete_under_dir(&root).await.db_err()?;
+        state.events.publish(signal_core::SignalEvent::QueueChanged);
+        removed
+    } else {
+        0
+    };
+    Ok(removed)
+}
+
+/// Removes every track under a folder from the database (files stay).
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn library_remove_folder(
+    state: State<'_, AppState>,
+    path: String,
+) -> Result<u32, SignalError> {
+    let dir = expand_home(&path);
+    let removed = state
+        .db
+        .tracks()
+        .delete_under_dir(&dir.to_string_lossy())
+        .await
+        .db_err()?;
+    state.events.publish(signal_core::SignalEvent::QueueChanged);
+    tracing::info!(dir = %dir.display(), removed, "folder removed from library");
+    Ok(removed)
+}
+
+/// Rescans every stored root sequentially in one background task.
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn library_rescan_all(state: State<'_, AppState>) -> Result<(), SignalError> {
+    let roots = read_roots(&state).await;
+    if roots.is_empty() {
+        return Err(scan_err(
+            &state,
+            "no library roots stored — scan a folder first".into(),
+        ));
+    }
+    if state.scanning.swap(true, Ordering::SeqCst) {
+        return Err(SignalError::Scanner("a scan is already running".into()));
+    }
+
+    state.start_watchers(&roots.iter().map(PathBuf::from).collect::<Vec<_>>());
+    let scanner = state.scanner();
+    let scanning = state.scanning.clone();
+    tauri::async_runtime::spawn(async move {
+        for root in roots {
+            if let Err(err) = scanner.scan_full(PathBuf::from(&root)).await {
+                tracing::error!(root, "rescan failed: {err}");
+            }
+        }
+        scanning.store(false, Ordering::SeqCst);
+    });
     Ok(())
 }
 
@@ -127,17 +232,14 @@ pub async fn library_get_artist(
 #[tauri::command]
 #[tracing::instrument(skip(state))]
 pub async fn library_reset_and_rescan(state: State<'_, AppState>) -> Result<(), SignalError> {
-    let root = state
-        .db
-        .settings()
-        .get("library.root")
-        .await
-        .db_err()?
-        .ok_or_else(|| SignalError::Scanner("no library root stored — scan first".into()))?;
-
+    if read_roots(&state).await.is_empty() {
+        return Err(SignalError::Scanner(
+            "no library roots stored — scan first".into(),
+        ));
+    }
     state.db.reset_library().await.db_err()?;
     state.events.publish(signal_core::SignalEvent::QueueChanged);
-    library_scan(state, root).await
+    library_rescan_all(state).await
 }
 
 #[derive(serde::Serialize)]

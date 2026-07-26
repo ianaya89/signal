@@ -21,6 +21,10 @@ const TEMPLATE: &str = r"# signal — config as code
 [playback]
 # replaygain = 'off'    # off | track | album
 # exclusive = false     # hog the output device
+
+[library]
+# path substrings to skip when scanning / watching, e.g.:
+# exclude = ['superwhisper', '/Recordings/']
 ";
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -29,6 +33,14 @@ pub struct FileConfig {
     pub ui: UiSection,
     #[serde(default)]
     pub playback: PlaybackSection,
+    #[serde(default)]
+    pub library: LibrarySection,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct LibrarySection {
+    #[serde(default)]
+    pub exclude: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -144,6 +156,11 @@ fn load_and_apply(app: &AppHandle, path: &std::path::Path) {
     }
     if let Some(exclusive) = config.playback.exclusive {
         let _ = state.player.set_exclusive(exclusive);
+    }
+
+    // shared with live scanners/watchers — applies without restart
+    if let Ok(mut excludes) = state.excludes.lock() {
+        *excludes = config.library.exclude;
     }
 
     // ui section goes to the frontend as an event

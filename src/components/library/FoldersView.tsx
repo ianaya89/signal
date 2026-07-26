@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 
 import { TrackRow } from "@/components/library/TrackRow";
@@ -7,10 +7,20 @@ import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { registerListHandler } from "@/lib/keyboard";
 import { cn } from "@/lib/utils";
+import { toast } from "@/stores/toastStore";
 
 export function FoldersView() {
   const [path, setPath] = useState<string | null>(null);
   const [cursor, setCursor] = useState(0);
+  const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const removeDir = async (dirPath: string) => {
+    const removed = await api.removeFolder(dirPath);
+    setConfirmRemove(null);
+    toast.ok(`${removed} tracks removed from library (files stay)`);
+    await queryClient.invalidateQueries();
+  };
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["folder", path],
@@ -115,7 +125,7 @@ export function FoldersView() {
             onClick={() => setCursor(i)}
             onDoubleClick={() => enterAt(i)}
             className={cn(
-              "flex h-7 cursor-default items-center gap-2 border-l-2 px-2",
+              "group flex h-7 cursor-default items-center gap-2 border-l-2 px-2",
               cursor === i
                 ? "border-focus bg-raised"
                 : "border-transparent hover:bg-raised/50",
@@ -125,6 +135,29 @@ export function FoldersView() {
             <span className="min-w-0 flex-1 truncate text-[12px] text-primary">
               {dir.name}
             </span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (confirmRemove === dir.path) {
+                  void removeDir(dir.path);
+                } else {
+                  setConfirmRemove(dir.path);
+                }
+              }}
+              onMouseLeave={() =>
+                setConfirmRemove((c) => (c === dir.path ? null : c))
+              }
+              title="remove this folder's tracks from the library (files stay on disk)"
+              className={cn(
+                "shrink-0 border px-1.5 text-[10px]",
+                confirmRemove === dir.path
+                  ? "border-error text-error"
+                  : "border-subtle text-muted opacity-0 hover:text-error group-hover:opacity-100",
+              )}
+            >
+              {confirmRemove === dir.path ? "sure? click again" : "remove"}
+            </button>
             <span className="shrink-0 text-[11px] text-muted">
               {dir.trackCount} tracks
             </span>

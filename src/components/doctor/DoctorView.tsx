@@ -27,6 +27,22 @@ export function DoctorView() {
     await queryClient.invalidateQueries();
   };
 
+  const relink = async () => {
+    const relinked = await api.libraryRelinkMissing();
+    toast.ok(
+      relinked > 0
+        ? `${relinked} moved files re-linked`
+        : "no moved files matched — rescan first so new locations are imported",
+    );
+    await queryClient.invalidateQueries();
+  };
+
+  const resolveDupes = async () => {
+    const merged = await api.libraryResolveDuplicates();
+    toast.ok(merged > 0 ? `${merged} duplicates merged into best copy` : "nothing to merge");
+    await queryClient.invalidateQueries();
+  };
+
   return (
     <div className="flex flex-col gap-4 p-4">
       <header className="flex items-center gap-6">
@@ -54,13 +70,23 @@ export function DoctorView() {
         ok="every file on disk"
         action={
           data.missingFilesTotal > 0 ? (
-            <button
-              type="button"
-              onClick={() => void prune()}
-              className="border border-subtle px-2 py-0.5 text-[11px] text-error hover:border-error"
-            >
-              remove {data.missingFiles.length} from library
-            </button>
+            <span className="flex gap-1.5">
+              <button
+                type="button"
+                onClick={() => void relink()}
+                title="match dead entries to moved files by content hash — stats and playlists survive"
+                className="border border-subtle px-2 py-0.5 text-[11px] text-accent hover:border-focus"
+              >
+                relink moved files
+              </button>
+              <button
+                type="button"
+                onClick={() => void prune()}
+                className="border border-subtle px-2 py-0.5 text-[11px] text-error hover:border-error"
+              >
+                remove {data.missingFiles.length} from library
+              </button>
+            </span>
           ) : undefined
         }
       >
@@ -77,6 +103,18 @@ export function DoctorView() {
         count={data.duplicatesTotal}
         ok="no duplicates detected"
         hint="same artist + title + similar duration"
+        action={
+          data.duplicatesTotal > 0 ? (
+            <button
+              type="button"
+              onClick={() => void resolveDupes()}
+              title="keep the best-quality copy of each group, merge stats and playlists into it (db only — files stay)"
+              className="border border-subtle px-2 py-0.5 text-[11px] text-accent hover:border-focus"
+            >
+              resolve all · keep best
+            </button>
+          ) : undefined
+        }
       >
         {data.duplicates.map((d) => (
           <li key={`${d.artistName}-${d.title}`} className="flex gap-2">

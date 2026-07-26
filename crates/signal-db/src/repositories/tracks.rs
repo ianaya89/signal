@@ -352,4 +352,134 @@ impl TrackRepo {
             .await?;
         Ok(result.rows_affected() > 0)
     }
+
+    /// Removes every track under `dir` (database only — files stay), then
+    /// sweeps newly-orphaned albums and artists. Returns rows removed.
+    pub async fn delete_under_dir(&self, dir: &str) -> sqlx::Result<u32> {
+        let mut tx = self.pool.begin().await?;
+        let result = sqlx::query("DELETE FROM tracks WHERE file_path LIKE ?1")
+            .bind(format!("{}/%", dir.trim_end_matches('/')))
+            .execute(&mut *tx)
+            .await?;
+        sweep_orphans(&mut tx).await?;
+        tx.commit().await?;
+        Ok(u32::try_from(result.rows_affected()).unwrap_or(u32::MAX))
+    }
+
+    /// (id, `file_path`, md5) for every track — relink candidate matching.
+    pub async fn list_paths_md5(&self) -> sqlx::Result<Vec<(i64, String, Option<String>)>> {
+        sqlx::query_as("SELECT id, file_path, md5 FROM tracks")
+            .fetch_all(&self.pool)
+            .await
+    }
+
+    /// Re-links a moved file: the old row (dead path, carries stats and
+    /// playlist/queue membership) adopts the new row's path; the freshly
+    /// imported duplicate row is dropped. Play counts from the new row are
+    /// folded in.
+    pub async fn relink(&self, old_id: i64, new_id: i64) -> sqlx::Result<()> {
+        let mut tx = self.pool.begin().await?;
+
+        let moved: Option<(String, i64, i64)> = sqlx::query_as(
+            "SELECT file_path, file_size_bytes, play_count FROM tracks WHERE id = ?1",
+        )
+        .bind(new_id)
+        .fetch_optional(&mut *tx)
+        .await?;
+        let Some((new_path, new_size, new_plays)) = moved else {
+            return Ok(());
+        };
+
+        // free the UNIQUE(file_path) before repointing the survivor
+        sqlx::query("DELETE FROM tracks WHERE id = ?1")
+            .bind(new_id)
+            .execute(&mut *tx)
+            .await?;
+        sqlx::query(
+            "UPDATE tracks SET file_path = ?2, file_size_bytes = ?3,
+                    play_count = play_count + ?4,
+                    modified_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+             WHERE id = ?1",
+        )
+        .bind(old_id)
+        .bind(new_path)
+        .bind(new_size)
+        .bind(new_plays)
+        .execute(&mut *tx)
+        .await?;
+
+        sweep_orphans(&mut tx).await?;
+        tx.commit().await?;
+        Ok(())
+    }
+
+    /// Merges a duplicate into `keep`: stats fold in, playlist membership
+    /// and play history repoint, the duplicate row is deleted.
+    pub async fn merge_into(&self, keep_id: i64, drop_id: i64) -> sqlx::Result<()> {
+        let mut tx = self.pool.begin().await?;
+
+        sqlx::query(
+            "UPDATE tracks SET
+                play_count = play_count + (SELECT play_count FROM tracks WHERE id = ?2),
+                skip_count = skip_count + (SELECT skip_count FROM tracks WHERE id = ?2),
+                rating = MAX(rating, (SELECT rating FROM tracks WHERE id = ?2)),
+                favorite = MAX(favorite, (SELECT favorite FROM tracks WHERE id = ?2)),
+                last_played_at = MAX(COALESCE(last_played_at, ''),
+                                     COALESCE((SELECT last_played_at FROM tracks WHERE id = ?2), '')),
+                added_at = MIN(added_at, (SELECT added_at FROM tracks WHERE id = ?2))
+             WHERE id = ?1",
+        )
+        .bind(keep_id)
+        .bind(drop_id)
+        .execute(&mut *tx)
+        .await?;
+        // '' can leak in when both sides were NULL
+        sqlx::query(
+            "UPDATE tracks SET last_played_at = NULL WHERE id = ?1 AND last_played_at = ''",
+        )
+        .bind(keep_id)
+        .execute(&mut *tx)
+        .await?;
+
+        sqlx::query("UPDATE OR IGNORE playlist_tracks SET track_id = ?1 WHERE track_id = ?2")
+            .bind(keep_id)
+            .bind(drop_id)
+            .execute(&mut *tx)
+            .await?;
+        sqlx::query("UPDATE play_events SET track_id = ?1 WHERE track_id = ?2")
+            .bind(keep_id)
+            .bind(drop_id)
+            .execute(&mut *tx)
+            .await?;
+
+        // cascades clean queue entries and leftover playlist rows
+        sqlx::query("DELETE FROM tracks WHERE id = ?1")
+            .bind(drop_id)
+            .execute(&mut *tx)
+            .await?;
+
+        sweep_orphans(&mut tx).await?;
+        tx.commit().await?;
+        Ok(())
+    }
+}
+
+/// Deletes albums with no tracks left, then artists with neither tracks
+/// nor albums. Call after any bulk track removal.
+pub async fn sweep_orphans(tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>) -> sqlx::Result<()> {
+    sqlx::query(
+        "DELETE FROM albums WHERE NOT EXISTS
+            (SELECT 1 FROM tracks WHERE tracks.album_id = albums.id)",
+    )
+    .execute(&mut **tx)
+    .await?;
+    sqlx::query(
+        "DELETE FROM artists WHERE NOT EXISTS
+            (SELECT 1 FROM tracks WHERE tracks.artist_id = artists.id)
+         AND NOT EXISTS
+            (SELECT 1 FROM albums WHERE albums.artist_id = artists.id)",
+    )
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
 }

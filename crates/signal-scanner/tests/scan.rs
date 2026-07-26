@@ -39,7 +39,12 @@ async fn flac_fixture_extracts_technical_data() {
     std::fs::copy(&fixture, music.join("tone.flac")).unwrap();
 
     let db = DbPool::connect(&dir.path().join("test.db")).await.unwrap();
-    let scanner = Scanner::new(db.clone(), EventBus::default(), dir.path().join("cache"));
+    let scanner = Scanner::new(
+        db.clone(),
+        EventBus::default(),
+        dir.path().join("cache"),
+        std::sync::Arc::default(),
+    );
 
     let report = scanner.scan_full(music.clone()).await.unwrap();
     assert_eq!(report.added, 1);
@@ -72,7 +77,12 @@ async fn full_scan_imports_wav_and_skips_rescan() {
     let db = DbPool::connect(&dir.path().join("test.db")).await.unwrap();
     let events = EventBus::default();
     let mut rx = events.subscribe();
-    let scanner = Scanner::new(db.clone(), events, dir.path().join("cache"));
+    let scanner = Scanner::new(
+        db.clone(),
+        events,
+        dir.path().join("cache"),
+        std::sync::Arc::default(),
+    );
 
     let report = scanner.scan_full(music.clone()).await.unwrap();
     assert_eq!(report.added, 1);

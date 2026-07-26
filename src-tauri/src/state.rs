@@ -5,7 +5,7 @@ use signal_core::{AppConfig, EventBus};
 use signal_db::DbPool;
 use signal_player::Player;
 use signal_plugins::PluginHost;
-use signal_scanner::{Scanner, WatcherHandle};
+use signal_scanner::{Excludes, Scanner, WatcherHandle};
 
 /// Arc-free by design: Tauri's `State` wraps this in an Arc already.
 pub struct AppState {
@@ -15,8 +15,10 @@ pub struct AppState {
     pub player: Player,
     /// Guards against concurrent library scans.
     pub scanning: Arc<AtomicBool>,
-    /// Live fs watcher on the library root; replaced when the root changes.
-    pub watcher: Mutex<Option<WatcherHandle>>,
+    /// Live fs watchers, one per library root; replaced together.
+    pub watcher: Mutex<Vec<WatcherHandle>>,
+    /// Path substrings excluded from scans (config.toml `[library] exclude`).
+    pub excludes: Excludes,
     /// Implicit play order (album/list the current track came from). The
     /// queue always takes priority over it when advancing.
     pub play_context: Mutex<PlayContext>,
@@ -114,20 +116,30 @@ impl PlayContext {
 }
 
 impl AppState {
-    /// (Re)starts the filesystem watcher on `root`.
-    pub fn start_watcher(&self, root: &std::path::Path) {
-        let scanner = Scanner::new(
+    pub fn scanner(&self) -> Scanner {
+        Scanner::new(
             self.db.clone(),
             self.events.clone(),
             self.config.cache_dir.clone(),
-        );
-        match signal_scanner::spawn_watcher(scanner, root, tokio::runtime::Handle::current()) {
-            Ok(handle) => {
-                if let Ok(mut guard) = self.watcher.lock() {
-                    *guard = Some(handle);
-                }
+            self.excludes.clone(),
+        )
+    }
+
+    /// Replaces all filesystem watchers with one per root.
+    pub fn start_watchers(&self, roots: &[std::path::PathBuf]) {
+        let mut handles = Vec::with_capacity(roots.len());
+        for root in roots {
+            match signal_scanner::spawn_watcher(
+                self.scanner(),
+                root,
+                tokio::runtime::Handle::current(),
+            ) {
+                Ok(handle) => handles.push(handle),
+                Err(err) => tracing::warn!(root = %root.display(), "watcher start failed: {err}"),
             }
-            Err(err) => tracing::warn!("watcher start failed: {err}"),
+        }
+        if let Ok(mut guard) = self.watcher.lock() {
+            *guard = handles;
         }
     }
 }

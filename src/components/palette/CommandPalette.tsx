@@ -189,15 +189,19 @@ export function CommandPalette() {
       },
       {
         id: "rescan",
-        label: "rescan library",
+        label: "rescan library (all roots)",
         run: async () => {
-          const root = await api.settingsGet("library.root");
-          if (!root) {
-            useScanStore.getState().fail("no previous scan — use scan folder…");
-            return;
-          }
           useScanStore.getState().start();
-          await api.scanLibrary(root);
+          await api.rescanAll();
+        },
+      },
+      {
+        id: "remove-folder",
+        label: "remove-folder <path>",
+        takesArg: true,
+        run: async (arg) => {
+          if (!arg?.trim()) throw new Error("usage: remove-folder <path>");
+          await api.removeFolder(arg.trim());
         },
       },
     ],

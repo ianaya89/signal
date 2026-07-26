@@ -87,6 +87,12 @@ export type IpcCommand =
   | "plugin_status"
   | "library_health"
   | "library_prune_missing"
+  | "library_relink_missing"
+  | "library_resolve_duplicates"
+  | "library_rescan_all"
+  | "library_list_roots"
+  | "library_remove_root"
+  | "library_remove_folder"
   | "playlist_export_m3u"
   | "library_backup"
   | "open_config_file";
@@ -195,6 +201,13 @@ export const api = {
   libraryHealth: () => ipc<HealthReport>("library_health"),
   libraryPruneMissing: (trackIds: number[]) =>
     ipc<number>("library_prune_missing", { trackIds }),
+  libraryRelinkMissing: () => ipc<number>("library_relink_missing"),
+  libraryResolveDuplicates: () => ipc<number>("library_resolve_duplicates"),
+  rescanAll: () => ipc<void>("library_rescan_all"),
+  listRoots: () => ipc<string[]>("library_list_roots"),
+  removeRoot: (root: string, purge: boolean) =>
+    ipc<number>("library_remove_root", { root, purge }),
+  removeFolder: (path: string) => ipc<number>("library_remove_folder", { path }),
   exportM3u: (playlistId: number, smart: boolean, destPath: string) =>
     ipc<number>("playlist_export_m3u", { playlistId, smart, destPath }),
   libraryBackup: (destPath: string) =>

@@ -60,7 +60,8 @@ fn main() {
                 db,
                 player,
                 scanning: Arc::new(AtomicBool::new(false)),
-                watcher: Mutex::new(None),
+                watcher: Mutex::new(Vec::new()),
+                excludes: Arc::new(Mutex::new(Vec::new())),
                 play_context: Mutex::new(state::PlayContext::default()),
                 play_mode: Mutex::new(state::PlayMode::default()),
                 plugins: Arc::new(signal_plugins::PluginHost::default()),
@@ -71,10 +72,14 @@ fn main() {
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 let state = handle.state::<AppState>();
-                match state.db.settings().get("library.root").await {
-                    Ok(Some(root)) => state.start_watcher(std::path::Path::new(&root)),
-                    Ok(None) => {}
-                    Err(err) => tracing::warn!("library.root read failed: {err}"),
+                let roots = commands::library::read_roots(&state).await;
+                if !roots.is_empty() {
+                    state.start_watchers(
+                        &roots
+                            .iter()
+                            .map(std::path::PathBuf::from)
+                            .collect::<Vec<_>>(),
+                    );
                 }
                 if let Ok(Some(raw)) = state.db.settings().get("player.mode").await {
                     if let Ok(mode) = serde_json::from_str::<state::PlayMode>(&raw) {
@@ -101,6 +106,10 @@ fn main() {
             commands::settings::settings_get,
             commands::settings::settings_set,
             commands::library::library_scan,
+            commands::library::library_rescan_all,
+            commands::library::library_list_roots,
+            commands::library::library_remove_root,
+            commands::library::library_remove_folder,
             commands::library::library_list_albums,
             commands::library::library_list_artists,
             commands::library::library_get_album,
@@ -118,6 +127,8 @@ fn main() {
             commands::plugins::plugin_status,
             commands::health::library_health,
             commands::health::library_prune_missing,
+            commands::health::library_relink_missing,
+            commands::health::library_resolve_duplicates,
             commands::export::playlist_export_m3u,
             commands::export::library_backup,
             commands::playlist::smart_playlist_create,

@@ -21,6 +21,7 @@ export function SettingsView() {
   const { replaygain, exclusive, deviceId } = usePlayerStore();
 
   const { data: info } = useQuery({ queryKey: ["app-info"], queryFn: api.appInfo });
+  const { data: roots } = useQuery({ queryKey: ["roots"], queryFn: api.listRoots });
   const { data: devices } = useQuery({
     queryKey: ["devices"],
     queryFn: api.deviceList,
@@ -38,12 +39,34 @@ export function SettingsView() {
   return (
     <div className="flex max-w-xl flex-col gap-5 p-4">
       <Section title="library">
-        <Row label="root folder">
-          <span className="min-w-0 flex-1 truncate text-[11px] text-secondary">
-            {info?.libraryRoot ?? "not set"}
-          </span>
+        <Row label="folders">
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            {(roots ?? []).map((root) => (
+              <span key={root} className="flex items-center gap-2">
+                <span className="min-w-0 flex-1 truncate text-[11px] text-secondary">
+                  {root}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void api.removeRoot(root, true).then((removed) => {
+                      toast.ok(`root removed · ${removed} tracks dropped (files stay)`);
+                      return queryClient.invalidateQueries();
+                    });
+                  }}
+                  title="remove this folder and its tracks from the library (files stay on disk)"
+                  className={cn(BTN, "hover:border-error hover:text-error")}
+                >
+                  remove
+                </button>
+              </span>
+            ))}
+            {(roots ?? []).length === 0 && (
+              <span className="text-[11px] text-muted">no folders yet</span>
+            )}
+          </div>
           <button type="button" onClick={() => void changeFolder()} className={BTN}>
-            change…
+            add…
           </button>
         </Row>
         <Row label="tracks">
@@ -52,13 +75,11 @@ export function SettingsView() {
             type="button"
             onClick={() => {
               useScanStore.getState().start();
-              void api
-                .settingsGet("library.root")
-                .then((root) => (root ? api.scanLibrary(root) : undefined));
+              void api.rescanAll().catch((e) => toast.error(String(e)));
             }}
             className={BTN}
           >
-            rescan
+            rescan all
           </button>
           <button
             type="button"
