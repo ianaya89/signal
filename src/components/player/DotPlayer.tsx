@@ -42,7 +42,7 @@ export function DotPlayer() {
             type="button"
             onClick={() => void api.prev()}
             title="previous"
-            className="text-[9px] leading-none text-secondary hover:text-accent"
+            className="text-[10px] leading-none text-secondary hover:text-accent"
           >
             ⏮
           </button>
@@ -50,7 +50,7 @@ export function DotPlayer() {
             type="button"
             onClick={() => void api.toggle()}
             title="play / pause"
-            className="text-[10px] leading-none text-accent hover:text-primary"
+            className="text-[11px] leading-none text-accent hover:text-primary"
           >
             {playing ? "⏸" : "▶"}
           </button>
@@ -58,7 +58,7 @@ export function DotPlayer() {
             type="button"
             onClick={() => void api.next()}
             title="next"
-            className="text-[9px] leading-none text-secondary hover:text-accent"
+            className="text-[10px] leading-none text-secondary hover:text-accent"
           >
             ⏭
           </button>

@@ -188,6 +188,10 @@ body {
   }
 }
 
+button:not(:disabled) {
+  cursor: pointer;
+}
+
 /* square volume slider: block thumb, hairline track */
 input[type="range"].vol-slider {
   -webkit-appearance: none;
@@ -198,7 +202,11 @@ input[type="range"].vol-slider {
 }
 input[type="range"].vol-slider::-webkit-slider-runnable-track {
   height: 2px;
-  background: var(--border-subtle);
+  background: linear-gradient(
+    to right,
+    var(--accent) var(--vol-fill, 0%),
+    var(--border-subtle) var(--vol-fill, 0%)
+  );
 }
 input[type="range"].vol-slider::-webkit-slider-thumb {
   -webkit-appearance: none;

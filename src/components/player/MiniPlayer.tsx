@@ -68,7 +68,7 @@ export function MiniPlayer() {
                 }}
                 title="favorite"
                 className={cn(
-                  "shrink-0 text-[12px]",
+                  "shrink-0 text-[13px]",
                   data.track.favorite
                     ? "text-accent"
                     : "text-muted hover:text-accent",
@@ -84,7 +84,7 @@ export function MiniPlayer() {
                 void setWindowMode("dot");
               }}
               title="collapse to floating dot"
-              className="shrink-0 px-0.5 text-[12px] text-secondary hover:text-accent"
+              className="shrink-0 px-0.5 text-[13px] text-secondary hover:text-accent"
             >
               ▪
             </button>
@@ -92,7 +92,7 @@ export function MiniPlayer() {
               type="button"
               onClick={restore}
               title="restore full window (esc)"
-              className="shrink-0 px-0.5 text-[12px] text-secondary hover:text-accent"
+              className="shrink-0 px-0.5 text-[13px] text-secondary hover:text-accent"
             >
               ⤢
             </button>
@@ -123,7 +123,7 @@ export function MiniPlayer() {
 
           {/* controls row */}
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 text-[13px]">
+            <div className="flex items-center gap-1.5 text-[14px]">
               <button
                 type="button"
                 onClick={() => void api.prev()}
@@ -149,7 +149,7 @@ export function MiniPlayer() {
                 ⏭
               </button>
             </div>
-            <span className="flex items-center gap-1 text-[12px]">
+            <span className="flex items-center gap-1 text-[13px]">
               <button
                 type="button"
                 onClick={toggleShuffle}
@@ -176,6 +176,7 @@ export function MiniPlayer() {
               onDoubleClick={(e) => e.stopPropagation()}
               title={`volume ${Math.round(volume * 100)}%`}
               className="vol-slider w-14"
+              style={{ "--vol-fill": `${Math.round(volume * 100)}%` } as React.CSSProperties}
             />
             <span
              

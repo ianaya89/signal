@@ -34,7 +34,7 @@ export function StatusBar() {
           type="button"
           onClick={() => void setWindowMode("mini")}
           title="mini player"
-          className="text-[12px] text-muted hover:text-accent"
+          className="text-[13px] text-muted hover:text-accent"
         >
           ▣
         </button>
@@ -42,7 +42,7 @@ export function StatusBar() {
           type="button"
           onClick={() => void setWindowMode("dot")}
           title="pulse mode (cmd+p)"
-          className="text-[12px] text-muted hover:text-accent"
+          className="text-[13px] text-muted hover:text-accent"
         >
           ●
         </button>
@@ -65,7 +65,7 @@ function PaneToggles() {
         onClick={() => togglePane("library")}
         title="toggle library pane (b)"
         className={cn(
-          "text-[12px]",
+          "text-[13px]",
           libraryVisible ? "text-accent" : "text-muted hover:text-secondary",
         )}
       >
@@ -76,7 +76,7 @@ function PaneToggles() {
         onClick={() => togglePane("inspector")}
         title="toggle inspector pane (i)"
         className={cn(
-          "text-[12px]",
+          "text-[13px]",
           inspectorVisible ? "text-accent" : "text-muted hover:text-secondary",
         )}
       >

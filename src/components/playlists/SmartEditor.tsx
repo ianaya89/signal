@@ -176,7 +176,8 @@ export function SmartEditor({
             type="button"
             onClick={() => setConditions((cs) => cs.filter((_, j) => j !== i))}
             disabled={conditions.length === 1}
-            className="px-1 text-[12px] text-muted hover:text-error disabled:opacity-30"
+            title="remove condition"
+            className="px-1 text-[13px] text-muted hover:text-error disabled:opacity-30"
           >
             ✕
           </button>

@@ -126,6 +126,7 @@ export function TrackRow({
           }}
           title="favorite (f)"
           className={cn(
+            "text-[12px]",
             track.favorite
               ? "text-accent"
               : "text-muted opacity-0 hover:text-accent group-hover:opacity-100",
@@ -170,7 +171,7 @@ export function TrackRow({
             );
           }}
           title="add to playlist"
-          className="mr-1 text-[12px] text-muted hover:text-accent"
+          className="mr-1 text-[13px] text-muted hover:text-accent"
         >
           ≡+
         </button>
@@ -181,7 +182,7 @@ export function TrackRow({
             void api.queueAdd(track.id).then(() => toast.ok("staged to queue"));
           }}
           title="add to queue (a)"
-          className="text-[12px] text-muted hover:text-accent"
+          className="text-[13px] text-muted hover:text-accent"
         >
           +
         </button>

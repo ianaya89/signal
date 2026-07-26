@@ -41,6 +41,7 @@ export function QueuePanel() {
             <button
               type="button"
               onClick={() => void api.queuePlayNext()}
+              title="play staged queue"
               className="hover:text-accent"
             >
               play
@@ -60,6 +61,7 @@ export function QueuePanel() {
           <button
             type="button"
             onClick={() => void api.queueClear()}
+            title="clear queue"
             className="hover:text-error"
           >
             clear
@@ -109,10 +111,11 @@ export function QueuePanel() {
             <span className="shrink-0 text-[10px] text-muted">
               {fmtDuration(entry.track.durationMs)}
             </span>
-            <span className="hidden shrink-0 gap-1 text-[10px] group-hover:flex">
+            <span className="hidden shrink-0 gap-1 text-[11px] group-hover:flex">
               <button
                 type="button"
                 onClick={() => move(i, -1)}
+                title="move up"
                 className="text-muted hover:text-accent"
               >
                 ↑
@@ -120,6 +123,7 @@ export function QueuePanel() {
               <button
                 type="button"
                 onClick={() => move(i, 1)}
+                title="move down"
                 className="text-muted hover:text-accent"
               >
                 ↓
@@ -127,6 +131,7 @@ export function QueuePanel() {
               <button
                 type="button"
                 onClick={() => void api.queueRemove(entry.item.id)}
+                title="remove from queue (x)"
                 className="text-muted hover:text-error"
               >
                 ✕

@@ -12,7 +12,7 @@ export function TransportControls() {
   const status = usePlayerStore((s) => s.status);
   const idle = status === "stopped";
   return (
-    <span className="flex shrink-0 items-center gap-2.5">
+    <span className="flex shrink-0 items-center gap-2.5 text-[14px]">
       <button
         type="button"
         onClick={() => void api.prev()}
@@ -69,7 +69,7 @@ export function ModeButtons() {
         type="button"
         onClick={toggleShuffle}
         title="shuffle"
-        className={cn("text-[12px]", shuffle ? "text-accent" : "text-muted hover:text-secondary")}
+        className={cn("text-[13px]", shuffle ? "text-accent" : "text-muted hover:text-secondary")}
       >
         ⇄
       </button>
@@ -78,7 +78,7 @@ export function ModeButtons() {
         onClick={cycleRepeat}
         title={`repeat: ${repeat}`}
         className={cn(
-          "text-[12px]",
+          "text-[13px]",
           repeat === "off" ? "text-muted hover:text-secondary" : "text-accent",
         )}
       >
@@ -92,7 +92,7 @@ export function VolumeSlider() {
   const volume = usePlayerStore((s) => s.volume);
   return (
     <span className="flex shrink-0 items-center gap-1">
-      <span className="text-[10px] text-muted">{volume === 0 ? "🔇" : "vol"}</span>
+      <span className="text-[11px] text-muted">{volume === 0 ? "🔇" : "vol"}</span>
       <input
         type="range"
         min={0}
@@ -100,6 +100,7 @@ export function VolumeSlider() {
         value={Math.round(volume * 100)}
         onChange={(e) => void api.setVolume(Number(e.target.value))}
         className="vol-slider w-16"
+        style={{ "--vol-fill": `${Math.round(volume * 100)}%` } as React.CSSProperties}
         title={`${Math.round(volume * 100)}% (m mute, +/- adjust)`}
       />
     </span>

@@ -170,7 +170,7 @@ function Section({
                   ).then(onChanged);
                 }}
                 title={p.smart ? "delete smart playlist" : "delete playlist"}
-                className="hidden px-2 text-[12px] text-muted hover:text-error group-hover:block"
+                className="hidden px-2 text-[13px] text-muted hover:text-error group-hover:block"
               >
                 ✕
               </button>
