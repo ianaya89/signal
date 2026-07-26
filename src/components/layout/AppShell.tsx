@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 
@@ -10,7 +9,12 @@ import { StatusBar } from "@/components/layout/StatusBar";
 import { CommandPalette } from "@/components/palette/CommandPalette";
 import { DotPlayer } from "@/components/player/DotPlayer";
 import { MiniPlayer } from "@/components/player/MiniPlayer";
-import { ModeButtons, VolumeSlider } from "@/components/player/TransportBar";
+import {
+  ModeButtons,
+  Timeline,
+  TransportControls,
+  VolumeSlider,
+} from "@/components/player/TransportBar";
 import { QueuePanel } from "@/components/queue/QueuePanel";
 import { HeartEqualizer } from "@/components/ui/HeartEqualizer";
 import { Toasts } from "@/components/ui/Toasts";
@@ -24,6 +28,7 @@ import {
 } from "@/lib/keyboard";
 import { dragWindow } from "@/lib/drag";
 import { exitDotMode, setWindowMode } from "@/lib/miniMode";
+import { cn } from "@/lib/utils";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useUiStore } from "@/stores/uiStore";
 
@@ -301,58 +306,41 @@ function Resizer({ pane }: { pane: "library" | "inspector" }) {
   );
 }
 
-/** Integrated titlebar: app mark (the heart, alive while playing) +
- *  wordmark on the left, now-playing plus the secondary transport
- *  controls on the right — decompressing the bottom bar. Drags anywhere
- *  inert. */
+/** Integrated titlebar mirroring the pane columns: brand block sits over
+ *  the library pane, core transport + timeline over the main pane.
+ *  Drags anywhere inert. */
 function TitleBar() {
   const status = usePlayerStore((s) => s.status);
-  const trackId = usePlayerStore((s) => s.trackId);
-  const { data } = useQuery({
-    queryKey: ["track", trackId],
-    queryFn: () => api.getTrack(trackId ?? -1),
-    enabled: trackId !== null,
-    staleTime: Infinity,
-  });
+  const libraryVisible = useUiStore((s) => s.libraryVisible);
+  const libraryWidth = useUiStore((s) => s.libraryWidth);
 
   return (
     <header
       onMouseDown={dragWindow}
-      className="flex h-9 shrink-0 select-none items-center justify-between border-b border-subtle bg-surface pl-[84px] pr-3"
+      className="flex h-9 shrink-0 select-none items-center border-b border-subtle bg-surface pl-2 pr-3"
     >
-      <span className="pointer-events-none flex items-center gap-1.5 text-[11px]">
+      <span
+        className="pointer-events-none flex shrink-0 items-center gap-1.5 pl-[76px] text-[11px]"
+        style={{
+          width: libraryVisible ? Math.max(libraryWidth + 4, 176) : undefined,
+        }}
+      >
         <HeartEqualizer size={16} playing={status === "playing"} />
         <span className="text-accent">❯</span>{" "}
         <span className="text-secondary">signal</span>
       </span>
-      <span className="flex min-w-0 items-center gap-3 text-[11px]">
-        {trackId !== null && data ? (
-          <span className="pointer-events-none min-w-0 truncate text-secondary">
-            {data.artistName} — {data.track.title}
-          </span>
-        ) : (
-          <span className="pointer-events-none text-muted">
-            local-first hi-fi player
-          </span>
+      <span
+        className={cn(
+          "flex min-w-0 flex-1 items-center gap-3 text-[13px]",
+          !libraryVisible && "pl-4",
         )}
-        <ModeButtons />
-        <VolumeSlider />
-        <button
-          type="button"
-          onClick={() => void setWindowMode("mini")}
-          title="mini player"
-          className="shrink-0 text-[12px] text-muted hover:text-accent"
-        >
-          ▣
-        </button>
-        <button
-          type="button"
-          onClick={() => void setWindowMode("dot")}
-          title="pulse mode"
-          className="shrink-0 text-[12px] text-muted hover:text-accent"
-        >
-          ●
-        </button>
+      >
+        <TransportControls />
+        <Timeline className="flex-1" />
+        <span className="flex shrink-0 items-center gap-3 text-[11px]">
+          <ModeButtons />
+          <VolumeSlider />
+        </span>
       </span>
     </header>
   );

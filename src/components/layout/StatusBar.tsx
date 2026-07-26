@@ -1,4 +1,5 @@
-import { TransportBar } from "@/components/player/TransportBar";
+import { NowPlayingLabel } from "@/components/player/TransportBar";
+import { setWindowMode } from "@/lib/miniMode";
 import { cn } from "@/lib/utils";
 import { useScanStore } from "@/stores/scanStore";
 import { useUiStore } from "@/stores/uiStore";
@@ -9,7 +10,7 @@ export function StatusBar() {
 
   return (
     <footer className="mx-2 mb-2 mt-1.5 flex h-7 shrink-0 items-center justify-between gap-4 border border-subtle bg-surface px-2 text-[11px]">
-      <TransportBar />
+      <NowPlayingLabel />
       {scanning ? (
         <span className="min-w-0 shrink-0 truncate text-accent">
           scanning {processed}/{total} · {basename(currentPath)}
@@ -29,6 +30,22 @@ export function StatusBar() {
         </span>
       )}
       <span className="flex shrink-0 items-center gap-2">
+        <button
+          type="button"
+          onClick={() => void setWindowMode("mini")}
+          title="mini player"
+          className="text-[12px] text-muted hover:text-accent"
+        >
+          ▣
+        </button>
+        <button
+          type="button"
+          onClick={() => void setWindowMode("dot")}
+          title="pulse mode (cmd+p)"
+          className="text-[12px] text-muted hover:text-accent"
+        >
+          ●
+        </button>
         <PaneToggles />
         <span className="text-muted">signal v0.1.0</span>
       </span>
