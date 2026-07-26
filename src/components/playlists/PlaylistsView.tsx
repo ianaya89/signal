@@ -7,6 +7,7 @@ import { EditableText } from "@/components/ui/EditableText";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { SmartRules } from "@/ipc/types";
+import { pickM3u } from "@/lib/pickFolder";
 import { toast } from "@/stores/toastStore";
 
 export function PlaylistsView() {
@@ -73,6 +74,28 @@ export function PlaylistsView() {
           className="rounded-[var(--radius-sm)] border border-subtle bg-raised px-3 py-1 text-[12px] text-secondary hover:border-focus hover:text-hires"
         >
           + smart
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            void (async () => {
+              const file = await pickM3u();
+              if (!file) return;
+              try {
+                const result = await api.importM3u(file);
+                toast.ok(
+                  `"${result.name}" imported · ${result.matched}/${result.total} matched`,
+                );
+                void queryClient.invalidateQueries({ queryKey: ["playlists"] });
+              } catch (err) {
+                toast.error(String(err));
+              }
+            })();
+          }}
+          title="import an .m3u/.m3u8 — lines match against library file paths"
+          className="rounded-[var(--radius-sm)] border border-subtle bg-raised px-3 py-1 text-[12px] text-secondary hover:border-focus hover:text-accent"
+        >
+          import m3u…
         </button>
       </form>
 

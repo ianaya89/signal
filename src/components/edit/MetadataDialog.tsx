@@ -68,7 +68,7 @@ function TrackForm({ trackId }: { trackId: number }) {
       <Field label="title" value={form.title ?? ""} autoFocus onChange={(v) => setForm({ ...form, title: v })} />
       <Field label="artist" value={form.artist ?? ""} onChange={(v) => setForm({ ...form, artist: v })} />
       <Field label="album" value={form.album ?? ""} hint="empty detaches" onChange={(v) => setForm({ ...form, album: v })} />
-      <Field label="genre" value={form.genre ?? ""} onChange={(v) => setForm({ ...form, genre: v })} />
+      <Field label="genres" value={form.genre ?? ""} hint="comma-separated" onChange={(v) => setForm({ ...form, genre: v })} />
       <div className="flex gap-2">
         <Field label="year" value={form.year ?? ""} numeric className="flex-1" onChange={(v) => setForm({ ...form, year: v })} />
         <Field label="track #" value={form.trackNo ?? ""} numeric className="flex-1" onChange={(v) => setForm({ ...form, trackNo: v })} />

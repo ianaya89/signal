@@ -1,6 +1,7 @@
-//! Library metadata edits. Database-only: audio file tags are never
-//! rewritten — a rescan of untouched files will skip them (path match),
-//! so edits survive; a full reset re-imports tag values.
+//! Library metadata edits. Database-first: a rescan of untouched files
+//! skips them (path match) so edits survive; a full reset re-imports tag
+//! values. With `[library] write_tags` enabled, full-form track edits are
+//! also written back into the file's own tags.
 
 use signal_core::SignalError;
 use tauri::State;
@@ -122,8 +123,8 @@ pub struct TrackMetaArgs {
     pub genre: Option<String>,
 }
 
-/// Full metadata edit from the UI form. Database-only, like every edit
-/// here: audio file tags stay untouched.
+/// Full metadata edit from the UI form. Database-first; with
+/// `[library] write_tags` enabled the file's own tags follow.
 #[tauri::command]
 #[tracing::instrument(skip(state))]
 pub async fn track_update_metadata(
@@ -145,7 +146,37 @@ pub async fn track_update_metadata(
         .tracks()
         .update_metadata(track_id, &update)
         .await
-        .db_err()
+        .db_err()?;
+
+    if state.write_tags.load(std::sync::atomic::Ordering::Relaxed) {
+        if let Ok(Some(track)) = state.db.tracks().get(track_id).await {
+            let path = track.technical.file_path.clone();
+            let meta = signal_scanner::WriteBack {
+                title: update.title,
+                artist: update.artist_name,
+                album: {
+                    let album = update.album_name.trim();
+                    if album.is_empty() {
+                        None
+                    } else {
+                        Some(album.to_string())
+                    }
+                },
+                year: update.year.and_then(|y| u32::try_from(y).ok()),
+                track_no: update.track_no.and_then(|n| u32::try_from(n).ok()),
+                disc_no: update.disc_no.and_then(|n| u32::try_from(n).ok()),
+                genre: update.genre,
+            };
+            let result =
+                tokio::task::spawn_blocking(move || signal_scanner::write_back(&path, &meta)).await;
+            match result {
+                Ok(Ok(())) => tracing::info!(track_id, "tags written back to file"),
+                Ok(Err(err)) => tracing::warn!(track_id, "tag write-back failed: {err}"),
+                Err(err) => tracing::warn!(track_id, "tag write-back join failed: {err}"),
+            }
+        }
+    }
+    Ok(())
 }
 
 /// Returns true when the edit merged into an existing album.

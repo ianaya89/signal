@@ -45,6 +45,8 @@ export interface AlbumSummary {
   year: number | null;
   artworkPath: string | null;
   trackCount: number;
+  addedAt: string;
+  artistCount: number;
 }
 
 export interface ArtistSummary {

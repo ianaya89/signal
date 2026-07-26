@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { useState } from "react";
 
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
@@ -9,6 +10,7 @@ import { toast } from "@/stores/toastStore";
 export function DoctorView() {
   useMainTitle("doctor");
   const queryClient = useQueryClient();
+  const [fetchingArt, setFetchingArt] = useState(false);
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["health"],
     queryFn: api.libraryHealth,
@@ -41,6 +43,23 @@ export function DoctorView() {
     const merged = await api.libraryResolveDuplicates();
     toast.ok(merged > 0 ? `${merged} duplicates merged into best copy` : "nothing to merge");
     await queryClient.invalidateQueries();
+  };
+
+  const fetchArt = async () => {
+    setFetchingArt(true);
+    try {
+      const fetched = await api.fetchArtwork();
+      toast.ok(
+        fetched > 0
+          ? `${fetched} covers fetched`
+          : "no covers found for this batch",
+      );
+      await queryClient.invalidateQueries();
+    } catch (err) {
+      toast.error(String(err));
+    } finally {
+      setFetchingArt(false);
+    }
   };
 
   return (
@@ -130,6 +149,19 @@ export function DoctorView() {
         title="albums without artwork"
         count={data.albumsWithoutArtTotal}
         ok="every album has artwork"
+        action={
+          data.albumsWithoutArtTotal > 0 ? (
+            <button
+              type="button"
+              onClick={() => void fetchArt()}
+              disabled={fetchingArt}
+              title="look up covers on MusicBrainz + Cover Art Archive (online, batches of 15, ~1s each)"
+              className="border border-subtle px-2 py-0.5 text-[11px] text-accent hover:border-focus disabled:opacity-40"
+            >
+              {fetchingArt ? "fetching…" : "fetch online…"}
+            </button>
+          ) : undefined
+        }
       >
         {data.albumsWithoutArt.map((a) => (
           <li key={a.id}>

@@ -408,7 +408,12 @@ pub async fn library_get_track(
         .await
         .db_err()?
         .map_or_else(String::new, |a| a.name);
-    let genre = state.db.tracks().genre_of(track.id).await.db_err()?;
+    let genres = state.db.tracks().genres_of(track.id).await.db_err()?;
+    let genre = if genres.is_empty() {
+        None
+    } else {
+        Some(genres.join(", "))
+    };
 
     Ok(TrackWithContext {
         track,

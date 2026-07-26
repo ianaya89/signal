@@ -14,6 +14,9 @@ pub struct AlbumSummary {
     pub year: Option<i32>,
     pub artwork_path: Option<String>,
     pub track_count: u32,
+    pub added_at: String,
+    /// Distinct track artists — more than one marks a compilation.
+    pub artist_count: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

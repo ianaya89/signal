@@ -199,16 +199,16 @@ impl TrackRepo {
         Ok(())
     }
 
-    /// First linked genre name, if any (edit-form prefill).
-    pub async fn genre_of(&self, id: i64) -> sqlx::Result<Option<String>> {
+    /// All linked genre names (edit-form prefill).
+    pub async fn genres_of(&self, id: i64) -> sqlx::Result<Vec<String>> {
         sqlx::query_scalar(
             "SELECT g.name FROM track_genres tg
              JOIN genres g ON g.id = tg.genre_id
              WHERE tg.track_id = ?1
-             ORDER BY g.name LIMIT 1",
+             ORDER BY g.name",
         )
         .bind(id)
-        .fetch_optional(&self.pool)
+        .fetch_all(&self.pool)
         .await
     }
 
@@ -292,8 +292,8 @@ impl TrackRepo {
                 .bind(id)
                 .execute(&mut *tx)
                 .await?;
-            let genre = genre.trim();
-            if !genre.is_empty() {
+            // comma-separated list → one link per genre
+            for genre in genre.split(',').map(str::trim).filter(|g| !g.is_empty()) {
                 let genre_id: i64 = match sqlx::query_scalar(
                     "SELECT id FROM genres WHERE name = ?1 COLLATE NOCASE",
                 )
@@ -309,11 +309,13 @@ impl TrackRepo {
                             .await?
                     }
                 };
-                sqlx::query("INSERT INTO track_genres (track_id, genre_id) VALUES (?1, ?2)")
-                    .bind(id)
-                    .bind(genre_id)
-                    .execute(&mut *tx)
-                    .await?;
+                sqlx::query(
+                    "INSERT OR IGNORE INTO track_genres (track_id, genre_id) VALUES (?1, ?2)",
+                )
+                .bind(id)
+                .bind(genre_id)
+                .execute(&mut *tx)
+                .await?;
             }
         }
 

@@ -42,6 +42,62 @@ pub enum ExtractError {
     Lofty(#[from] lofty::error::LoftyError),
 }
 
+/// Fields written back to the audio file when tag write-back is enabled.
+#[derive(Debug, Clone)]
+pub struct WriteBack {
+    pub title: String,
+    pub artist: String,
+    pub album: Option<String>,
+    pub year: Option<u32>,
+    pub track_no: Option<u32>,
+    pub disc_no: Option<u32>,
+    /// comma-separated list, empty clears
+    pub genre: Option<String>,
+}
+
+/// Blocking (file IO + rewrite) — callers run it via `spawn_blocking`.
+/// Updates the file's primary tag in place.
+pub fn write_back(path: &Path, meta: &WriteBack) -> Result<(), ExtractError> {
+    use lofty::config::WriteOptions;
+    use lofty::file::AudioFile as _;
+    use lofty::tag::Tag;
+
+    let mut tagged = Probe::open(path)?.read()?;
+    if tagged.primary_tag_mut().is_none() {
+        let tag_type = tagged.primary_tag_type();
+        tagged.insert_tag(Tag::new(tag_type));
+    }
+    let Some(tag) = tagged.primary_tag_mut() else {
+        return Ok(());
+    };
+
+    tag.set_title(meta.title.clone());
+    tag.set_artist(meta.artist.clone());
+    match &meta.album {
+        Some(album) => tag.set_album(album.clone()),
+        None => tag.remove_album(),
+    }
+    match meta.year {
+        Some(year) => tag.set_year(year),
+        None => tag.remove_year(),
+    }
+    match meta.track_no {
+        Some(n) => tag.set_track(n),
+        None => tag.remove_track(),
+    }
+    match meta.disc_no {
+        Some(n) => tag.set_disk(n),
+        None => tag.remove_disk(),
+    }
+    match &meta.genre {
+        Some(genre) if !genre.trim().is_empty() => tag.set_genre(genre.clone()),
+        _ => tag.remove_genre(),
+    }
+
+    tagged.save_to_path(path, WriteOptions::default())?;
+    Ok(())
+}
+
 /// Blocking (file IO + parse) — callers run it via `spawn_blocking`.
 pub fn extract(path: &Path) -> Result<Extracted, ExtractError> {
     let file_size_bytes = std::fs::metadata(path)?.len();

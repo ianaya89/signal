@@ -22,6 +22,15 @@ export async function pickSavePath(
   return selected ?? null;
 }
 
+export async function pickM3u(): Promise<string | null> {
+  const selected = await open({
+    multiple: false,
+    title: "choose playlist file",
+    filters: [{ name: "playlists", extensions: ["m3u", "m3u8"] }],
+  });
+  return typeof selected === "string" ? selected : null;
+}
+
 export async function pickImage(): Promise<string | null> {
   const selected = await open({
     multiple: false,

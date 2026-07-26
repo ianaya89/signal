@@ -5,7 +5,8 @@ use sqlx::Row;
 use crate::row::{to_u32, track_from_row};
 
 const SUMMARY_SELECT: &str = "SELECT al.id, al.name, al.artist_id, ar.name AS artist_name,
-        al.year, al.artwork_path, COUNT(t.id) AS track_count
+        al.year, al.artwork_path, al.added_at, COUNT(t.id) AS track_count,
+        COUNT(DISTINCT t.artist_id) AS artist_count
  FROM albums al
  JOIN artists ar ON ar.id = al.artist_id
  LEFT JOIN tracks t ON t.album_id = al.id";
@@ -289,6 +290,20 @@ impl AlbumRepo {
         Ok(merged)
     }
 
+    /// (id, name, artist name) for albums lacking artwork.
+    pub async fn without_artwork(&self, limit: i64) -> sqlx::Result<Vec<(i64, String, String)>> {
+        sqlx::query_as(
+            "SELECT al.id, al.name, ar.name FROM albums al
+             JOIN artists ar ON ar.id = al.artist_id
+             WHERE al.artwork_path IS NULL
+             ORDER BY al.added_at DESC
+             LIMIT ?1",
+        )
+        .bind(limit)
+        .fetch_all(&self.pool)
+        .await
+    }
+
     pub async fn set_artwork(&self, id: i64, path: &str) -> sqlx::Result<()> {
         sqlx::query("UPDATE albums SET artwork_path = ?2 WHERE id = ?1")
             .bind(id)
@@ -319,5 +334,7 @@ fn summary_from_row(row: &sqlx::sqlite::SqliteRow) -> sqlx::Result<AlbumSummary>
             .map(|y| i32::try_from(y).unwrap_or_default()),
         artwork_path: row.try_get("artwork_path")?,
         track_count: to_u32(row.try_get::<i64, _>("track_count")?),
+        added_at: row.try_get("added_at")?,
+        artist_count: to_u32(row.try_get::<i64, _>("artist_count")?),
     })
 }

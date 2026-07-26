@@ -25,6 +25,8 @@ const TEMPLATE: &str = r"# signal — config as code
 [library]
 # path substrings to skip when scanning / watching, e.g.:
 # exclude = ['superwhisper', '/Recordings/']
+# write metadata edits back into the audio files' tags (default: db only)
+# write_tags = false
 ";
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -41,6 +43,8 @@ pub struct FileConfig {
 pub struct LibrarySection {
     #[serde(default)]
     pub exclude: Vec<String>,
+    #[serde(default)]
+    pub write_tags: bool,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -162,6 +166,10 @@ fn load_and_apply(app: &AppHandle, path: &std::path::Path) {
     if let Ok(mut excludes) = state.excludes.lock() {
         *excludes = config.library.exclude;
     }
+    state.write_tags.store(
+        config.library.write_tags,
+        std::sync::atomic::Ordering::Relaxed,
+    );
 
     // ui section goes to the frontend as an event
     if let Ok(json) = serde_json::to_string(&config.ui) {

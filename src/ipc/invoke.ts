@@ -94,6 +94,8 @@ export type IpcCommand =
   | "library_remove_root"
   | "library_remove_folder"
   | "playlist_export_m3u"
+  | "playlist_import_m3u"
+  | "library_fetch_artwork"
   | "library_backup"
   | "open_config_file";
 
@@ -210,6 +212,12 @@ export const api = {
   removeFolder: (path: string) => ipc<number>("library_remove_folder", { path }),
   exportM3u: (playlistId: number, smart: boolean, destPath: string) =>
     ipc<number>("playlist_export_m3u", { playlistId, smart, destPath }),
+  importM3u: (sourcePath: string) =>
+    ipc<{ playlistId: number; name: string; matched: number; total: number }>(
+      "playlist_import_m3u",
+      { sourcePath },
+    ),
+  fetchArtwork: () => ipc<number>("library_fetch_artwork"),
   libraryBackup: (destPath: string) =>
     ipc<void>("library_backup", { destPath }),
   openConfigFile: () => ipc<string>("open_config_file"),

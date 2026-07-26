@@ -14,11 +14,42 @@ import { useMainTitle } from "@/hooks/useMainTitle";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useScanStore } from "@/stores/scanStore";
 
+type AlbumSort = "artist" | "year" | "added" | "name";
+
+const SORT_KEY = "albums.sort";
+const SORTS: { key: AlbumSort; label: string }[] = [
+  { key: "artist", label: "artist" },
+  { key: "year", label: "year" },
+  { key: "added", label: "recent" },
+  { key: "name", label: "name" },
+];
+
+function sortAlbums(albums: AlbumSummary[], sort: AlbumSort): AlbumSummary[] {
+  const sorted = [...albums];
+  switch (sort) {
+    case "year":
+      sorted.sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
+      break;
+    case "added":
+      sorted.sort((a, b) => b.addedAt.localeCompare(a.addedAt));
+      break;
+    case "name":
+      sorted.sort((a, b) => a.name.localeCompare(b.name));
+      break;
+    default:
+      break; // backend order: artist, year, name
+  }
+  return sorted;
+}
+
 export function AlbumsView() {
   useMainTitle("albums");
   const scanning = useScanStore((s) => s.scanning);
   const status = usePlayerStore((s) => s.status);
   const trackId = usePlayerStore((s) => s.trackId);
+  const [sort, setSort] = useState<AlbumSort>(
+    () => (localStorage.getItem(SORT_KEY) as AlbumSort) || "artist",
+  );
   const { data: albums, isLoading } = useQuery({
     queryKey: ["albums"],
     queryFn: api.listAlbums,
@@ -44,15 +75,38 @@ export function AlbumsView() {
   }
 
   return (
-    <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3 p-3">
-      {albums.map((album) => (
-        <AlbumCard
-          key={album.id}
-          album={album}
-          playing={album.id === playingAlbumId}
-          animate={status === "playing"}
-        />
-      ))}
+    <div className="flex h-full flex-col">
+      <div className="flex h-7 shrink-0 items-center gap-1 border-b border-subtle px-3 text-[10px]">
+        <span className="text-muted">sort:</span>
+        {SORTS.map(({ key, label }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => {
+              setSort(key);
+              localStorage.setItem(SORT_KEY, key);
+            }}
+            className={cn(
+              "px-1.5 py-0.5",
+              sort === key
+                ? "bg-raised text-accent"
+                : "text-muted hover:text-secondary",
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <div className="grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3 overflow-auto p-3">
+        {sortAlbums(albums, sort).map((album) => (
+          <AlbumCard
+            key={album.id}
+            album={album}
+            playing={album.id === playingAlbumId}
+            animate={status === "playing"}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -101,6 +155,14 @@ function AlbumCard({
             className="absolute bottom-1 left-1 flex items-center border border-subtle bg-base/90 px-1 py-0.5"
           >
             <EqBars playing={animate} />
+          </span>
+        )}
+        {album.artistCount > 1 && (
+          <span
+            title={`compilation · ${album.artistCount} artists`}
+            className="absolute right-1 top-1 border border-subtle bg-base/90 px-1 text-[9px] text-hires"
+          >
+            VA
           </span>
         )}
       </div>

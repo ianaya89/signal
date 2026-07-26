@@ -133,6 +133,14 @@ export function AlbumDetailView() {
             <span className="shrink-0 text-muted">
               {album.year ? ` · ${album.year}` : ""} · {album.trackCount} tracks
             </span>
+            {album.artistCount > 1 && (
+              <span
+                title={`${album.artistCount} different artists`}
+                className="shrink-0 bg-raised px-1 text-[10px] text-hires"
+              >
+                compilation
+              </span>
+            )}
           </p>
         </div>
         <button

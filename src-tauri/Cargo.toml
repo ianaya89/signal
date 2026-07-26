@@ -20,6 +20,7 @@ signal-plugins = { workspace = true }
 chrono = { workspace = true }
 notify = { workspace = true }
 souvlaki = "0.8"
+reqwest = { workspace = true }
 toml = "0.8"
 tauri = { workspace = true }
 tauri-plugin-dialog = "2"

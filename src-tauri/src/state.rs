@@ -19,6 +19,9 @@ pub struct AppState {
     pub watcher: Mutex<Vec<WatcherHandle>>,
     /// Path substrings excluded from scans (config.toml `[library] exclude`).
     pub excludes: Excludes,
+    /// Write metadata edits back into audio file tags
+    /// (config.toml `[library] write_tags`).
+    pub write_tags: Arc<std::sync::atomic::AtomicBool>,
     /// Implicit play order (album/list the current track came from). The
     /// queue always takes priority over it when advancing.
     pub play_context: Mutex<PlayContext>,

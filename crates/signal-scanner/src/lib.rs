@@ -11,4 +11,5 @@ mod tags;
 mod watcher;
 
 pub use scanner::{Excludes, ScanReport, Scanner, ScannerError};
+pub use tags::{write_back, WriteBack};
 pub use watcher::{spawn_watcher, WatcherHandle};
