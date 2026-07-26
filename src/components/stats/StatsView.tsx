@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
+import { CoverPlaceholder } from "@/components/ui/CoverPlaceholder";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { AlbumPlayCount, DayCount } from "@/ipc/types";
@@ -83,9 +84,7 @@ function TopAlbumCard({ album }: { album: AlbumPlayCount }) {
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-muted">
-            ♪
-          </div>
+          <CoverPlaceholder name={album.name} className="text-xl" />
         )}
       </div>
       <div className="truncate text-[10px] text-secondary group-hover:text-accent">

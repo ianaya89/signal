@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 
 import { SeekBar } from "@/components/player/SeekBar";
 import { EqBars } from "@/components/ui/HeartEqualizer";
@@ -107,7 +108,8 @@ export function VolumeSlider() {
   );
 }
 
-/** Footer now-playing: live eq bars + artist — title. */
+/** Footer now-playing: live eq bars + track / artist / album, each
+ *  linking to its section. */
 export function NowPlayingLabel() {
   const status = usePlayerStore((s) => s.status);
   const trackId = usePlayerStore((s) => s.trackId);
@@ -121,11 +123,44 @@ export function NowPlayingLabel() {
   if (status === "stopped" || trackId === null) {
     return <span className="shrink-0 text-muted">■ stopped</span>;
   }
+  if (!data) {
+    return <span className="shrink-0 text-muted">…</span>;
+  }
+  const albumId = String(data.track.albumId);
   return (
     <span className="flex min-w-0 items-center gap-2">
       <EqBars playing={status === "playing"} className="shrink-0" />
-      <span className="min-w-0 truncate text-primary">
-        {data ? `${data.artistName} — ${data.track.title}` : "…"}
+      <span className="min-w-0 truncate">
+        <Link
+          to="/albums/$albumId"
+          params={{ albumId }}
+          title="go to album"
+          className="text-primary hover:text-accent hover:underline"
+        >
+          {data.track.title}
+        </Link>
+        <span className="text-muted"> — </span>
+        <Link
+          to="/artists/$artistId"
+          params={{ artistId: String(data.track.artistId) }}
+          title="go to artist"
+          className="text-secondary hover:text-accent hover:underline"
+        >
+          {data.artistName}
+        </Link>
+        {data.albumName ? (
+          <>
+            <span className="text-muted"> · </span>
+            <Link
+              to="/albums/$albumId"
+              params={{ albumId }}
+              title="go to album"
+              className="text-secondary hover:text-accent hover:underline"
+            >
+              {data.albumName}
+            </Link>
+          </>
+        ) : null}
       </span>
     </span>
   );

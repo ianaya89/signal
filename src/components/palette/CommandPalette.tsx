@@ -6,6 +6,7 @@ import { useKeyboardStore } from "@/lib/keyboard";
 import { setWindowMode } from "@/lib/miniMode";
 import { pickFolder } from "@/lib/pickFolder";
 import { cn } from "@/lib/utils";
+import { usePlayerStore } from "@/stores/playerStore";
 import { useScanStore } from "@/stores/scanStore";
 import { useUiStore } from "@/stores/uiStore";
 
@@ -50,6 +51,19 @@ export function CommandPalette() {
         id: "queue-clear",
         label: "queue: clear",
         run: () => api.queueClear(),
+      },
+      {
+        id: "current",
+        label: "go to current (now playing album)",
+        run: async () => {
+          const trackId = usePlayerStore.getState().trackId;
+          if (trackId === null) throw new Error("nothing playing");
+          const data = await api.getTrack(trackId);
+          await navigate({
+            to: "/albums/$albumId",
+            params: { albumId: String(data.track.albumId) },
+          });
+        },
       },
       {
         id: "albums",

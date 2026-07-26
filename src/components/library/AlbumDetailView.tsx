@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { SelectionBar } from "@/components/library/SelectionBar";
 import { TrackRow } from "@/components/library/TrackRow";
 import { TrackTableHeader } from "@/components/library/TrackTableHeader";
+import { CoverPlaceholder } from "@/components/ui/CoverPlaceholder";
 import { EditableText } from "@/components/ui/EditableText";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
@@ -97,6 +98,7 @@ export function AlbumDetailView() {
       <header className="flex shrink-0 items-end gap-3 border-b border-subtle p-3">
         <AlbumArt
           albumId={album.id}
+          name={album.name}
           hasArt={album.artworkPath !== null}
           version={artVersion}
           onPick={async () => {
@@ -159,11 +161,13 @@ export function AlbumDetailView() {
 
 function AlbumArt({
   albumId,
+  name,
   hasArt,
   version,
   onPick,
 }: {
   albumId: number;
+  name: string;
   hasArt: boolean;
   version: number;
   onPick: () => Promise<void>;
@@ -184,9 +188,7 @@ function AlbumArt({
           className="h-full w-full object-cover"
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center text-xl text-muted">
-          ♪
-        </div>
+        <CoverPlaceholder name={name} showName={false} className="text-xl" />
       )}
       <span className="absolute inset-0 hidden items-center justify-center bg-black/50 text-[10px] text-primary group-hover/art:flex">
         change

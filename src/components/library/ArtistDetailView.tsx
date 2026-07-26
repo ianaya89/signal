@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
 import { TrackRow } from "@/components/library/TrackRow";
+import { CoverPlaceholder } from "@/components/ui/CoverPlaceholder";
 import { EditableText } from "@/components/ui/EditableText";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
@@ -10,7 +11,15 @@ import { artworkUrl } from "@/lib/artwork";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { registerListHandler } from "@/lib/keyboard";
 
-function AlbumThumb({ albumId, hasArt }: { albumId: number; hasArt: boolean }) {
+function AlbumThumb({
+  albumId,
+  name,
+  hasArt,
+}: {
+  albumId: number;
+  name: string;
+  hasArt: boolean;
+}) {
   const [artError, setArtError] = useState(false);
   return (
     <div className="h-10 w-10 shrink-0 overflow-hidden border border-subtle bg-raised group-hover:border-focus">
@@ -23,9 +32,7 @@ function AlbumThumb({ albumId, hasArt }: { albumId: number; hasArt: boolean }) {
           className="h-full w-full object-cover"
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center text-muted">
-          ♪
-        </div>
+        <CoverPlaceholder name={name} showName={false} />
       )}
     </div>
   );
@@ -134,6 +141,7 @@ export function ArtistDetailView() {
             >
               <AlbumThumb
                 albumId={section.album.id}
+                name={section.album.name}
                 hasArt={section.album.artworkPath !== null}
               />
               <div className="min-w-0">
