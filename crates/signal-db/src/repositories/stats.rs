@@ -201,6 +201,92 @@ impl StatsRepo {
             hourly,
         })
     }
+
+    /// Recommendation shelves from listening signal — plain SQL, no ML.
+    pub async fn discover(&self, per_shelf: i64) -> sqlx::Result<Discover> {
+        let track_rows = |rows: Vec<sqlx::sqlite::SqliteRow>| -> sqlx::Result<Vec<signal_core::Track>> {
+            rows.iter().map(crate::row::track_from_row).collect()
+        };
+
+        let on_repeat = track_rows(
+            sqlx::query(
+                "SELECT t.* FROM tracks t
+                 JOIN (SELECT track_id, COUNT(*) AS cnt FROM play_events
+                       WHERE started_at >= datetime('now', '-30 days')
+                         AND skipped = 0
+                       GROUP BY track_id) p ON p.track_id = t.id
+                 ORDER BY p.cnt DESC
+                 LIMIT ?1",
+            )
+            .bind(per_shelf)
+            .fetch_all(&self.pool)
+            .await?,
+        )?;
+
+        let rediscover = track_rows(
+            sqlx::query(
+                "SELECT * FROM tracks
+                 WHERE (favorite = 1 OR rating >= 4)
+                   AND (last_played_at IS NULL
+                        OR last_played_at < datetime('now', '-30 days'))
+                 ORDER BY rating DESC, play_count DESC
+                 LIMIT ?1",
+            )
+            .bind(per_shelf)
+            .fetch_all(&self.pool)
+            .await?,
+        )?;
+
+        let from_your_artists = track_rows(
+            sqlx::query(
+                "SELECT * FROM tracks
+                 WHERE play_count = 0
+                   AND artist_id IN (
+                       SELECT artist_id FROM tracks
+                       GROUP BY artist_id
+                       HAVING SUM(play_count) > 0
+                       ORDER BY SUM(play_count) DESC
+                       LIMIT 8)
+                 ORDER BY RANDOM()
+                 LIMIT ?1",
+            )
+            .bind(per_shelf)
+            .fetch_all(&self.pool)
+            .await?,
+        )?;
+
+        let never_played = track_rows(
+            sqlx::query(
+                "SELECT * FROM tracks
+                 WHERE play_count = 0
+                 ORDER BY RANDOM()
+                 LIMIT ?1",
+            )
+            .bind(per_shelf)
+            .fetch_all(&self.pool)
+            .await?,
+        )?;
+
+        Ok(Discover {
+            on_repeat,
+            rediscover,
+            from_your_artists,
+            never_played,
+        })
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Discover {
+    /// most played in the last 30 days
+    pub on_repeat: Vec<signal_core::Track>,
+    /// loved / rated but not heard lately
+    pub rediscover: Vec<signal_core::Track>,
+    /// unheard tracks by the artists you actually play
+    pub from_your_artists: Vec<signal_core::Track>,
+    /// random unplayed corners of the library
+    pub never_played: Vec<signal_core::Track>,
 }
 
 fn name_counts(rows: &[sqlx::sqlite::SqliteRow]) -> sqlx::Result<Vec<NameCount>> {

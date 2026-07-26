@@ -1,4 +1,5 @@
 import { NowPlayingLabel } from "@/components/player/TransportBar";
+import { useKeyboardStore } from "@/lib/keyboard";
 import { setWindowMode } from "@/lib/miniMode";
 import { cn } from "@/lib/utils";
 import { useScanStore } from "@/stores/scanStore";
@@ -33,7 +34,7 @@ export function StatusBar() {
         <button
           type="button"
           onClick={() => void setWindowMode("mini")}
-          title="mini player"
+          title="mini player (M)"
           className="flex items-center text-[13px] leading-none text-muted hover:text-accent"
         >
           ▣
@@ -41,12 +42,20 @@ export function StatusBar() {
         <button
           type="button"
           onClick={() => void setWindowMode("dot")}
-          title="pulse mode (cmd+p)"
+          title="pulse mode (P)"
           className="flex items-center text-[11px] leading-none text-muted hover:text-accent"
         >
           ●
         </button>
         <PaneToggles />
+        <button
+          type="button"
+          onClick={() => useKeyboardStore.getState().setMode("help")}
+          title="keyboard shortcuts (?)"
+          className="flex items-center text-[12px] leading-none text-muted hover:text-accent"
+        >
+          ?
+        </button>
         <span className="text-muted">signal v0.1.0</span>
       </span>
     </footer>

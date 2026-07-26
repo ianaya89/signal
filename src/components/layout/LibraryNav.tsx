@@ -8,6 +8,7 @@ const SECTIONS = [
   { label: "genres", to: "/genres", exact: false },
   { label: "folders", to: "/folders", exact: false },
   { label: "playlists", to: "/playlists", exact: false },
+  { label: "discover", to: "/discover", exact: false },
   { label: "stats", to: "/stats", exact: false },
   { label: "doctor", to: "/doctor", exact: false },
   { label: "logs", to: "/logs", exact: false },

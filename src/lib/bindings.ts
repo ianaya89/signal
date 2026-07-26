@@ -28,7 +28,7 @@ export const BINDING_GROUPS: { title: string; bindings: Binding[] }[] = [
       { keys: "1 / 2 / 3", action: "focus library / main / inspector" },
       { keys: "/", action: "search" },
       { keys: "ctrl+p / cmd+k", action: "command palette" },
-      { keys: "S / L", action: "stats / logs view" },
+      { keys: "S / L / D", action: "stats / logs / discover" },
     ],
   },
   {
@@ -45,6 +45,9 @@ export const BINDING_GROUPS: { title: string; bindings: Binding[] }[] = [
     bindings: [
       { keys: "b", action: "toggle library pane" },
       { keys: "i", action: "toggle inspector pane" },
+      { keys: "M", action: "mini player" },
+      { keys: "P", action: "pulse mode" },
+      { keys: "esc (compact)", action: "back to full window" },
       { keys: "?", action: "this help" },
     ],
   },

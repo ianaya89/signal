@@ -158,6 +158,7 @@ fn main() {
             commands::player::player_next,
             commands::player::player_prev,
             commands::stats::stats_overview,
+            commands::stats::library_discover,
             commands::device::device_list,
             commands::device::device_select,
             commands::device::player_set_replaygain,

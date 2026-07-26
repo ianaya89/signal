@@ -20,7 +20,7 @@ pub use repositories::playlists::{PlaylistRepo, PlaylistSummary};
 pub use repositories::queue::QueueRepo;
 pub use repositories::settings::SettingsRepo;
 pub use repositories::stats::{
-    AlbumPlayCount, DayCount, NameCount, NewPlayEvent, StatsOverview, StatsRepo,
+    AlbumPlayCount, DayCount, Discover, NameCount, NewPlayEvent, StatsOverview, StatsRepo,
 };
 pub use repositories::tracks::{NewTrack, TrackMetadataUpdate, TrackRepo};
 pub use row::track_from_row;

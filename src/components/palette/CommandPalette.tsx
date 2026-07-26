@@ -109,6 +109,12 @@ export function CommandPalette() {
         run: () => navigate({ to: "/doctor" }),
       },
       {
+        id: "discover",
+        label: "go to discover",
+        hint: "D",
+        run: () => navigate({ to: "/discover" }),
+      },
+      {
         id: "edit-config",
         label: "edit config.toml",
         run: async () => {
@@ -140,11 +146,13 @@ export function CommandPalette() {
       {
         id: "mini",
         label: "mini player",
+        hint: "M",
         run: () => setWindowMode("mini"),
       },
       {
         id: "pulse",
         label: "pulse mode (floating dot)",
+        hint: "P",
         run: () => setWindowMode("dot"),
       },
       {

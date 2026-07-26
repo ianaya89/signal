@@ -7,6 +7,7 @@ import type {
   ArtistDetail,
   ArtistSummary,
   AudioDevice,
+  Discover,
   FolderListing,
   GenreSummary,
   HealthReport,
@@ -96,6 +97,7 @@ export type IpcCommand =
   | "playlist_export_m3u"
   | "playlist_import_m3u"
   | "library_fetch_artwork"
+  | "library_discover"
   | "library_backup"
   | "open_config_file";
 
@@ -218,6 +220,7 @@ export const api = {
       { sourcePath },
     ),
   fetchArtwork: () => ipc<number>("library_fetch_artwork"),
+  discover: () => ipc<Discover>("library_discover"),
   libraryBackup: (destPath: string) =>
     ipc<void>("library_backup", { destPath }),
   openConfigFile: () => ipc<string>("open_config_file"),

@@ -9,6 +9,7 @@ import { AlbumDetailView } from "@/components/library/AlbumDetailView";
 import { AlbumsView } from "@/components/library/AlbumsView";
 import { ArtistDetailView } from "@/components/library/ArtistDetailView";
 import { ArtistsView } from "@/components/library/ArtistsView";
+import { DiscoverView } from "@/components/discover/DiscoverView";
 import { DoctorView } from "@/components/doctor/DoctorView";
 import { FoldersView } from "@/components/library/FoldersView";
 import { GenreDetailView, GenresView } from "@/components/library/GenresView";
@@ -69,6 +70,12 @@ const doctorRoute = createRoute({
   component: DoctorView,
 });
 
+const discoverRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/discover",
+  component: DiscoverView,
+});
+
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/settings",
@@ -120,6 +127,7 @@ const routeTree = rootRoute.addChildren([
   foldersRoute,
   settingsRoute,
   doctorRoute,
+  discoverRoute,
 ]);
 
 export const router = createRouter({ routeTree });

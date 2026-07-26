@@ -73,6 +73,13 @@ export interface TrackWithContext {
   genre: string | null;
 }
 
+export interface Discover {
+  onRepeat: Track[];
+  rediscover: Track[];
+  fromYourArtists: Track[];
+  neverPlayed: Track[];
+}
+
 export interface TrackMetaEdit {
   title: string;
   artist: string;

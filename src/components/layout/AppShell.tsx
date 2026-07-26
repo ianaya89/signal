@@ -144,6 +144,15 @@ export function AppShell() {
         case "L":
           void navigate({ to: "/logs" });
           break;
+        case "D":
+          void navigate({ to: "/discover" });
+          break;
+        case "M":
+          void setWindowMode("mini");
+          break;
+        case "P":
+          void setWindowMode("dot");
+          break;
         case "b":
           useUiStore.getState().togglePane("library");
           break;
