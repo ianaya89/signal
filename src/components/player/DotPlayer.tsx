@@ -18,7 +18,15 @@ export function DotPlayer() {
       onDoubleClick={() => void setWindowMode("full")}
       className="group/dot relative flex h-full w-full cursor-grab items-center justify-center border border-transparent transition-colors duration-100 hover:border-subtle hover:bg-base/75 hover:backdrop-blur-sm active:cursor-grabbing"
     >
-      <HeartEqualizer size={52} playing={playing} />
+      <span
+        className="pointer-events-none"
+        style={{
+          filter:
+            "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55)) drop-shadow(0 3px 10px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 14px color-mix(in srgb, var(--accent) 40%, transparent))",
+        }}
+      >
+        <HeartEqualizer size={52} playing={playing} />
+      </span>
       <div
         className="absolute inset-x-1 bottom-1 flex items-center justify-center gap-2 bg-base/90 py-0.5 opacity-0 transition-opacity duration-100 group-hover/dot:opacity-100"
         onDoubleClick={(e) => e.stopPropagation()}
