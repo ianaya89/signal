@@ -4,6 +4,8 @@ An open-source desktop Hi-Fi music player for developers, audiophiles and power 
 
 Not another Apple Music clone. Not another Plexamp clone. **The LazyGit of music players**: fast, keyboard-first, transparent, hackable, local-first. No cloud, no account, no telemetry, no Electron.
 
+Website: <https://ianaya89.github.io/rocola/> (source: [`docs/index.html`](docs/index.html))
+
 ## Stack
 
 - **Backend**: Rust stable, Tauri v2

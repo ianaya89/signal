@@ -1,0 +1,1923 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>signal — the lazygit of music players</title>
+    <meta
+      name="description"
+      content="Open-source desktop Hi-Fi music player for developers, audiophiles and power users. Keyboard-first, bit-perfect, local-first, scriptable. Rust + Tauri, no Electron, no cloud, no telemetry."
+    />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#12121c" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="signal — the lazygit of music players" />
+    <meta
+      property="og:description"
+      content="Keyboard-first, bit-perfect, local-first Hi-Fi music player. Rust + Tauri. No Electron, no cloud, no account, no telemetry."
+    />
+    <meta property="og:url" content="https://ianaya89.github.io/rocola/" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      /* ============================================================
+         tokens — mirrored 1:1 from src/styles.css (design system §color)
+         ============================================================ */
+      :root {
+        --bg-base: #12121c;
+        --bg-surface: #181826;
+        --bg-raised: #232338;
+        --border-subtle: #2e2e4a;
+        --border-focus: #8286f5;
+        --text-primary: #d8daf0;
+        --text-secondary: #a5a8cc;
+        --text-muted: #63678f;
+        --accent: #8286f5;
+        --accent-dim: #4c4f96;
+        --ok: #73daca;
+        --warn: #e0af68;
+        --error: #f7768e;
+        --info: #7aa2f7;
+        --bitperfect: #73daca;
+        --lossy: #e0af68;
+        --hires: #bb9af7;
+
+        --font-mono: "JetBrains Mono", ui-monospace, "SF Mono",
+          "Cascadia Code", Menlo, Consolas, monospace;
+
+        /* landing-only atmosphere */
+        --glow: color-mix(in srgb, var(--accent) 22%, transparent);
+        --grid-line: color-mix(in srgb, var(--border-subtle) 55%, transparent);
+        --hover-tint: color-mix(in srgb, var(--bg-raised) 60%, transparent);
+        --scrim: rgba(9, 9, 16, 0.72);
+      }
+
+      :root[data-theme="light"] {
+        --bg-base: #e8dec7;
+        --bg-surface: #f2ead8;
+        --bg-raised: #e0d3b4;
+        --border-subtle: #c9b995;
+        --border-focus: #bf5b3f;
+        --text-primary: #3d3427;
+        --text-secondary: #5f5340;
+        --text-muted: #8f8163;
+        --accent: #bf5b3f;
+        --accent-dim: #d9a08c;
+        --ok: #4a7c59;
+        --warn: #a97b23;
+        --error: #b3402e;
+        --info: #5a6fae;
+        --bitperfect: #4a7c59;
+        --lossy: #a97b23;
+        --hires: #7c5eb0;
+        --glow: color-mix(in srgb, var(--accent) 16%, transparent);
+        --scrim: rgba(232, 222, 199, 0.78);
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+        -webkit-text-size-adjust: 100%;
+        overflow-x: hidden;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg-base);
+        color: var(--text-primary);
+        font-family: var(--font-mono);
+        font-size: 13px;
+        line-height: 1.5;
+        font-variant-numeric: tabular-nums;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+      }
+
+      /* page texture: 24px grid + one violet bloom behind the hero */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -2;
+        background-image: linear-gradient(
+            to right,
+            var(--grid-line) 1px,
+            transparent 1px
+          ),
+          linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+        background-size: 24px 24px;
+        opacity: 0.35;
+        mask-image: radial-gradient(
+          ellipse 90% 55% at 50% 0%,
+          #000 0%,
+          transparent 78%
+        );
+      }
+      body::after {
+        content: "";
+        position: fixed;
+        top: -30vh;
+        left: 50%;
+        width: 120vmax;
+        height: 90vh;
+        translate: -50% 0;
+        z-index: -1;
+        background: radial-gradient(
+          ellipse at center,
+          var(--glow) 0%,
+          transparent 62%
+        );
+        pointer-events: none;
+      }
+
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      :focus-visible {
+        outline: 1px solid var(--border-focus);
+        outline-offset: 2px;
+      }
+      ::selection {
+        background: color-mix(in srgb, var(--accent) 35%, transparent);
+      }
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--text-muted) 35%, transparent);
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: color-mix(in srgb, var(--accent) 55%, transparent);
+      }
+
+      .wrap {
+        width: 100%;
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 0 16px;
+      }
+      .dim {
+        color: var(--text-muted);
+      }
+      .sec {
+        color: var(--text-secondary);
+      }
+      .acc {
+        color: var(--accent);
+      }
+      .skip {
+        position: absolute;
+        left: -9999px;
+        top: 0;
+        background: var(--bg-raised);
+        border: 1px solid var(--border-focus);
+        padding: 8px 12px;
+        z-index: 60;
+      }
+      .skip:focus {
+        left: 8px;
+        top: 8px;
+      }
+
+      /* ============================================================
+         chrome: pane primitives — the app's own visual language
+         ============================================================ */
+      .pane {
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-surface);
+        position: relative;
+        min-width: 0;
+      }
+      .pane-bar {
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 0 8px;
+        font-size: 11px;
+        color: var(--text-secondary);
+        border-bottom: 1px solid var(--border-subtle);
+        white-space: nowrap;
+        overflow: hidden;
+      }
+      .pane-body {
+        padding: 12px;
+      }
+      .pane.focus {
+        border-color: var(--border-focus);
+      }
+
+      kbd {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 4px;
+        font: inherit;
+        font-size: 11px;
+        line-height: 1;
+        color: var(--text-secondary);
+        background: var(--bg-raised);
+        border: 1px solid var(--border-subtle);
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        height: 16px;
+        padding: 0 4px;
+        font-size: 11px;
+        line-height: 1;
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-surface);
+        color: var(--text-secondary);
+        white-space: nowrap;
+      }
+      .badge.hires {
+        color: var(--hires);
+      }
+      .badge.lossy {
+        color: var(--lossy);
+      }
+      .badge.bp {
+        color: var(--bitperfect);
+        border-color: color-mix(in srgb, var(--bitperfect) 45%, transparent);
+      }
+
+      /* ============================================================
+         top bar
+         ============================================================ */
+      header.top {
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 0 16px;
+        background: var(--scrim);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--border-subtle);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--text-primary);
+        letter-spacing: 0.04em;
+      }
+      .brand:hover {
+        text-decoration: none;
+      }
+      .brand b {
+        font-weight: 500;
+      }
+      nav.top-nav {
+        display: none;
+        gap: 14px;
+        margin-left: auto;
+        font-size: 12px;
+      }
+      nav.top-nav a {
+        color: var(--text-secondary);
+      }
+      nav.top-nav a:hover {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .top-right {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      nav.top-nav + .top-right {
+        margin-left: 0;
+      }
+      .icon-btn {
+        height: 22px;
+        min-width: 22px;
+        padding: 0 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font: inherit;
+        font-size: 11px;
+        color: var(--text-secondary);
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        cursor: pointer;
+      }
+      .icon-btn:hover {
+        color: var(--accent);
+        border-color: var(--accent-dim);
+      }
+
+      /* ============================================================
+         hero
+         ============================================================ */
+      .hero {
+        padding: 72px 0 8px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 28px;
+        align-items: start;
+      }
+      .hero > * {
+        min-width: 0;
+      }
+      .heart {
+        position: relative;
+        flex: none;
+      }
+      .hero-mark {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      h1 {
+        margin: 0;
+        font-size: clamp(38px, 9vw, 76px);
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        line-height: 0.95;
+      }
+      h1 .caret {
+        color: var(--accent);
+        animation: blink 1.1s steps(1) infinite;
+      }
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+      .tagline {
+        margin: 18px 0 0;
+        font-size: clamp(16px, 2.6vw, 22px);
+        line-height: 1.35;
+        color: var(--text-primary);
+        max-width: 30ch;
+        font-weight: 500;
+      }
+      .tagline em {
+        font-style: normal;
+        color: var(--accent);
+      }
+      .lede {
+        margin: 14px 0 0;
+        max-width: 62ch;
+        color: var(--text-secondary);
+        font-size: 13.5px;
+      }
+      .nots {
+        margin: 18px 0 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        list-style: none;
+        padding: 0;
+      }
+      .nots li {
+        font-size: 11px;
+        color: var(--text-muted);
+        border: 1px solid var(--border-subtle);
+        padding: 2px 6px;
+      }
+      .nots li s {
+        text-decoration-color: var(--error);
+        text-decoration-thickness: 1px;
+      }
+
+      .cta {
+        margin: 26px 0 0;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 34px;
+        padding: 0 14px;
+        font: inherit;
+        font-size: 13px;
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-surface);
+        color: var(--text-primary);
+        cursor: pointer;
+      }
+      .btn:hover {
+        text-decoration: none;
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .btn-primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--bg-base);
+        font-weight: 500;
+      }
+      .btn-primary:hover {
+        background: var(--text-primary);
+        border-color: var(--text-primary);
+        color: var(--bg-base);
+      }
+      .btn[aria-disabled="true"] {
+        cursor: not-allowed;
+        color: var(--text-muted);
+        background: transparent;
+        border-style: dashed;
+      }
+      .btn[aria-disabled="true"]:hover {
+        border-color: var(--border-subtle);
+        color: var(--text-muted);
+      }
+      .btn .soon {
+        font-size: 10px;
+        color: var(--warn);
+        border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);
+        padding: 0 3px;
+        line-height: 14px;
+      }
+      .cta-note {
+        margin: 10px 0 0;
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      /* boot log block */
+      .boot {
+        font-size: 12px;
+        overflow-x: auto;
+      }
+      .boot .row {
+        display: flex;
+        gap: 8px;
+        padding: 1px 0;
+        white-space: nowrap;
+      }
+      .boot .lvl {
+        width: 5ch;
+        flex: none;
+      }
+      .boot .t {
+        color: var(--text-muted);
+        flex: none;
+      }
+      .boot .src {
+        color: var(--text-secondary);
+      }
+      .boot .msg {
+        color: var(--text-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* ============================================================
+         the app mockup
+         ============================================================ */
+      .shot-scroll {
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding-bottom: 4px;
+      }
+      .shot {
+        min-width: 900px;
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-base);
+        padding: 6px;
+        box-shadow: 0 24px 70px -30px color-mix(in srgb, var(--accent) 40%, transparent);
+      }
+      .shot-title {
+        height: 22px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 4px;
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .dots {
+        display: flex;
+        gap: 5px;
+      }
+      .dots i {
+        width: 7px;
+        height: 7px;
+        background: var(--border-subtle);
+        display: block;
+      }
+      .grid3 {
+        display: grid;
+        grid-template-columns: 200px minmax(0, 1fr) 232px;
+        gap: 6px;
+      }
+      .rail {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-height: 0;
+      }
+      .navlist {
+        list-style: none;
+        margin: 0;
+        padding: 4px 0;
+        font-size: 12px;
+      }
+      .navlist li {
+        height: 22px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 8px;
+        color: var(--text-secondary);
+      }
+      .navlist li.on {
+        background: var(--bg-raised);
+        color: var(--text-primary);
+      }
+      .navlist li.tree {
+        color: var(--text-secondary);
+      }
+      .navlist li.child {
+        padding-left: 22px;
+        color: var(--text-muted);
+      }
+      .navlist li.child.on {
+        color: var(--accent);
+        background: var(--bg-raised);
+      }
+      .navlist .g {
+        color: var(--text-muted);
+        width: 1ch;
+      }
+
+      table.tt {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      table.tt th {
+        height: 22px;
+        font-weight: 400;
+        text-align: left;
+        color: var(--text-muted);
+        font-size: 11px;
+        border-bottom: 1px solid var(--border-subtle);
+        padding: 0 6px;
+      }
+      table.tt td {
+        height: 28px;
+        padding: 0 6px;
+        border-bottom: 1px solid
+          color-mix(in srgb, var(--border-subtle) 55%, transparent);
+        color: var(--text-secondary);
+        white-space: nowrap;
+      }
+      table.tt td.title {
+        color: var(--text-primary);
+      }
+      table.tt tr.sel td {
+        background: var(--bg-raised);
+      }
+      table.tt tr.playing td {
+        color: var(--accent);
+      }
+      table.tt tr.playing td.title {
+        color: var(--accent);
+      }
+      table.tt tr.playing td:first-child {
+        box-shadow: inset 2px 0 0 var(--accent);
+      }
+      .num {
+        text-align: right;
+        width: 3ch;
+        color: var(--text-muted);
+      }
+      .fav {
+        color: var(--accent);
+      }
+
+      .kv {
+        font-size: 11.5px;
+      }
+      .kv > div:not(.chain) {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 2px 0;
+      }
+      .kv > div > span:first-child {
+        color: var(--text-muted);
+      }
+      .chain {
+        font-size: 10.5px;
+        padding-top: 6px;
+        margin-top: 6px;
+        border-top: 1px solid var(--border-subtle);
+        white-space: nowrap;
+      }
+      .chain .stage {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .chain .stage b {
+        font-weight: 400;
+        color: var(--text-muted);
+      }
+      .chain .hop {
+        color: var(--accent-dim);
+        line-height: 1.1;
+      }
+
+      .statusbar {
+        margin-top: 6px;
+        height: 26px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 0 8px;
+        font-size: 11px;
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-surface);
+        color: var(--text-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+      }
+      .seek {
+        position: relative;
+        height: 2px;
+        flex: 1;
+        min-width: 60px;
+        background: var(--border-subtle);
+      }
+      .seek i {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 32%;
+        background: var(--accent);
+        display: block;
+        animation: creep 18s linear infinite;
+      }
+      @keyframes creep {
+        from {
+          width: 28%;
+        }
+        to {
+          width: 74%;
+        }
+      }
+
+      /* ============================================================
+         sections
+         ============================================================ */
+      section {
+        margin: 88px 0 0;
+      }
+      .sec-head {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin-bottom: 18px;
+        border-bottom: 1px solid var(--border-subtle);
+        padding-bottom: 8px;
+      }
+      .sec-head h2 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+      }
+      .sec-head h2::before {
+        content: "── ";
+        color: var(--accent-dim);
+      }
+      .sec-head p {
+        margin: 0 0 0 auto;
+        font-size: 11.5px;
+        color: var(--text-muted);
+        text-align: right;
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(268px, 1fr));
+        gap: 12px;
+      }
+      .card .pane-body {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .card h3 {
+        margin: 0;
+        font-size: 13.5px;
+        font-weight: 500;
+        color: var(--text-primary);
+      }
+      .card p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 12.5px;
+      }
+      .card ul {
+        margin: 2px 0 0;
+        padding: 0;
+        list-style: none;
+        font-size: 11.5px;
+        color: var(--text-muted);
+      }
+      .card ul li::before {
+        content: "· ";
+        color: var(--accent-dim);
+      }
+      .card:hover {
+        border-color: var(--accent-dim);
+      }
+
+      .keys {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 0 24px;
+      }
+      .keyrow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 26px;
+        border-bottom: 1px solid
+          color-mix(in srgb, var(--border-subtle) 55%, transparent);
+        font-size: 12px;
+      }
+      .keyrow .k {
+        display: flex;
+        gap: 2px;
+        width: 78px;
+        flex: none;
+      }
+      .keyrow .d {
+        color: var(--text-secondary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      pre {
+        margin: 0;
+        overflow-x: auto;
+        font-size: 12px;
+        line-height: 1.65;
+        color: var(--text-primary);
+        tab-size: 2;
+      }
+      pre .c {
+        color: var(--text-muted);
+      }
+      pre .p {
+        color: var(--accent);
+      }
+      pre .o {
+        color: var(--ok);
+      }
+      .copy {
+        height: 16px;
+        padding: 0 6px;
+        font: inherit;
+        font-size: 10px;
+        line-height: 1;
+        color: var(--text-muted);
+        background: var(--bg-raised);
+        border: 1px solid var(--border-subtle);
+        cursor: pointer;
+      }
+      .copy:hover {
+        color: var(--accent);
+        border-color: var(--accent-dim);
+      }
+
+      .modes {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 12px;
+      }
+      .mode-vis {
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-base);
+        aspect-ratio: 4/3;
+        display: grid;
+        place-items: center;
+        padding: 18px;
+      }
+      .mode-vis .win {
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-surface);
+        padding: 3px;
+        display: grid;
+        gap: 3px;
+      }
+      /* fake text rows so each sketch reads as a dense UI, not an empty box */
+      .mode-vis i {
+        display: block;
+        border: 1px solid var(--border-subtle);
+        background: repeating-linear-gradient(
+          to bottom,
+          color-mix(in srgb, var(--text-muted) 34%, transparent) 0 1px,
+          transparent 1px 5px
+        );
+        background-position: 0 3px;
+      }
+      .mode-vis i.on {
+        border-color: var(--accent-dim);
+        background-image: repeating-linear-gradient(
+          to bottom,
+          color-mix(in srgb, var(--accent) 46%, transparent) 0 1px,
+          transparent 1px 5px
+        );
+      }
+      .win-full {
+        width: 100%;
+        aspect-ratio: 16/10;
+        grid-template-columns: 24% 1fr 26%;
+      }
+      .win-mini {
+        width: 100%;
+        aspect-ratio: 16/4;
+        grid-template-columns: 22% 1fr;
+      }
+      .win-mini i.cover {
+        background: linear-gradient(
+          135deg,
+          var(--accent-dim),
+          color-mix(in srgb, var(--hires) 70%, transparent)
+        );
+        border-color: var(--accent-dim);
+      }
+      .win-dot {
+        width: 62px;
+        height: 62px;
+        border: 1px dashed var(--border-subtle);
+        display: grid;
+        place-items: center;
+      }
+      .mode-cap {
+        margin: 8px 0 0;
+        font-size: 12px;
+      }
+      .mode-cap b {
+        font-weight: 500;
+      }
+
+      .docs-tbl {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12.5px;
+      }
+      .docs-tbl td {
+        padding: 5px 8px;
+        border-bottom: 1px solid
+          color-mix(in srgb, var(--border-subtle) 55%, transparent);
+        vertical-align: top;
+      }
+      .docs-tbl td:first-child {
+        white-space: nowrap;
+        width: 1%;
+      }
+      .docs-tbl td:last-child {
+        color: var(--text-muted);
+      }
+      .docs-tbl tr:hover td {
+        background: var(--hover-tint);
+      }
+
+      .facts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1px;
+        background: var(--border-subtle);
+        border: 1px solid var(--border-subtle);
+      }
+      .facts div {
+        background: var(--bg-surface);
+        padding: 12px;
+      }
+      .facts b {
+        display: block;
+        font-size: 19px;
+        font-weight: 500;
+        color: var(--accent);
+        letter-spacing: -0.01em;
+      }
+      .facts span {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      footer {
+        margin: 96px 0 0;
+        border-top: 1px solid var(--border-subtle);
+        padding: 20px 0 40px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 20px;
+        align-items: center;
+        font-size: 11.5px;
+        color: var(--text-muted);
+      }
+      footer .links {
+        display: flex;
+        gap: 16px;
+        margin-left: auto;
+      }
+
+      /* ============================================================
+         motion — staggered reveal, heart eq (matches app keyframes)
+         ============================================================ */
+      @keyframes eq-pulse-soft {
+        0% {
+          transform: scaleY(1);
+        }
+        50% {
+          transform: scaleY(0.8);
+        }
+        100% {
+          transform: scaleY(1);
+        }
+      }
+      .eq-bar-soft {
+        transform-origin: center;
+        animation-name: eq-pulse-soft;
+        animation-iteration-count: infinite;
+        animation-timing-function: ease-in-out;
+      }
+      .rise {
+        opacity: 0;
+        transform: translateY(10px);
+        transition: opacity 420ms ease-out, transform 420ms ease-out;
+      }
+      .rise.in {
+        opacity: 1;
+        transform: none;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+        .eq-bar-soft,
+        h1 .caret,
+        .seek i {
+          animation: none !important;
+        }
+        .rise {
+          opacity: 1;
+          transform: none;
+          transition: none;
+        }
+      }
+
+      @media (max-width: 540px) {
+        .hero-mark > .heart {
+          transform: scale(0.62);
+          transform-origin: left center;
+          margin-right: -34px;
+        }
+        .hero {
+          padding-top: 52px;
+        }
+        .sec-head {
+          flex-wrap: wrap;
+        }
+        .sec-head p {
+          margin-left: 0;
+          text-align: left;
+          flex-basis: 100%;
+        }
+      }
+
+      @media (min-width: 720px) {
+        nav.top-nav {
+          display: flex;
+        }
+        .hero {
+          padding-top: 96px;
+          grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+          gap: 40px;
+          align-items: center;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <a class="skip" href="#main">skip to content</a>
+
+    <header class="top">
+      <a class="brand" href="#top">
+        <span class="heart" data-heart="20" aria-hidden="true"></span>
+        <b>signal</b>
+      </a>
+      <nav class="top-nav" aria-label="sections">
+        <a href="#screen">interface</a>
+        <a href="#why">why</a>
+        <a href="#keys">keyboard</a>
+        <a href="#cli">cli</a>
+        <a href="#build">build</a>
+      </nav>
+      <div class="top-right">
+        <button class="icon-btn" id="theme" type="button" aria-pressed="false">
+          <span id="theme-glyph">◐</span>
+          <span id="theme-label">manila</span>
+        </button>
+        <a class="icon-btn" href="https://github.com/ianaya89/rocola">github ↗</a>
+      </div>
+    </header>
+
+    <main id="main">
+      <div class="wrap" id="top">
+        <!-- ==================== hero ==================== -->
+        <div class="hero">
+          <div>
+            <div class="hero-mark">
+              <span class="heart" data-heart="84" aria-hidden="true"></span>
+              <h1>signal<span class="caret">_</span></h1>
+            </div>
+
+            <p class="tagline">
+              The <em>lazygit</em> of music players.
+            </p>
+            <p class="lede">
+              An open-source desktop Hi-Fi player for developers, audiophiles
+              and power users. Dense terminal-adjacent UI, vim keys, bit-perfect
+              output, a scriptable control socket — and your files staying
+              exactly where you put them.
+            </p>
+
+            <ul class="nots">
+              <li><s>Electron</s></li>
+              <li><s>cloud</s></li>
+              <li><s>account</s></li>
+              <li><s>telemetry</s></li>
+              <li><s>subscription</s></li>
+            </ul>
+
+            <div class="cta">
+              <a class="btn btn-primary" href="#build">build from source →</a>
+              <span class="btn" aria-disabled="true" role="link" title="no release cut yet — build from source for now">
+                download · macos <span class="soon">soon</span>
+              </span>
+              <a class="btn" href="https://github.com/ianaya89/rocola">★ star on github</a>
+            </div>
+            <p class="cta-note">
+              Rust + Tauri v2 · libmpv · SQLite/FTS5 · macOS &amp; Linux ·
+              v0.1.0, pre-release
+            </p>
+          </div>
+
+          <!-- boot log: the app announcing itself in its own log format -->
+          <div class="pane focus rise" id="boot-pane">
+            <div class="pane-bar">
+              <span>logs</span>
+              <span class="dim">signal v0.1.0</span>
+            </div>
+            <div class="pane-body boot">
+              <div class="row">
+                <span class="t">00:00:00</span
+                ><span class="lvl" style="color: var(--info)">INFO</span
+                ><span class="src">signal_db</span
+                ><span class="msg">migrations up to date · 11 tables, fts5 ok</span>
+              </div>
+              <div class="row">
+                <span class="t">00:00:00</span
+                ><span class="lvl" style="color: var(--info)">INFO</span
+                ><span class="src">signal_scanner</span
+                ><span class="msg">3 roots watched · 18,402 tracks indexed</span>
+              </div>
+              <div class="row">
+                <span class="t">00:00:00</span
+                ><span class="lvl" style="color: var(--info)">INFO</span
+                ><span class="src">signal_player</span
+                ><span class="msg">libmpv 0.38 · exclusive mode acquired</span>
+              </div>
+              <div class="row">
+                <span class="t">00:00:01</span
+                ><span class="lvl" style="color: var(--ok)">OK</span
+                ><span class="src">signal_player</span
+                ><span class="msg">24/96 → device 24/96 · bit-perfect</span>
+              </div>
+              <div class="row">
+                <span class="t">00:00:01</span
+                ><span class="lvl" style="color: var(--warn)">WARN</span
+                ><span class="src">signal_core</span
+                ><span class="msg">telemetry disabled — nothing phones home, ever</span>
+              </div>
+              <div class="row">
+                <span class="t">00:00:01</span
+                ><span class="lvl" style="color: var(--info)">INFO</span
+                ><span class="src">signal_cli</span
+                ><span class="msg">socket listening · signal.sock</span>
+              </div>
+              <div class="row">
+                <span class="t">00:00:01</span
+                ><span class="lvl" style="color: var(--text-muted)">TRACE</span
+                ><span class="src">signal_ui</span
+                ><span class="msg">ready in 240ms · press ? for keys</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== the interface ==================== -->
+        <section id="screen">
+          <div class="sec-head">
+            <h2>the interface</h2>
+            <p>three panes · 28px rows · one accent</p>
+          </div>
+
+          <div class="shot-scroll rise">
+            <div class="shot">
+              <div class="shot-title">
+                <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                <span class="dim">signal — gustavo cerati · bocanada (1999)</span>
+              </div>
+
+              <div class="grid3">
+                <!-- library -->
+                <div class="pane">
+                  <div class="pane-bar"><span>library</span><span class="dim">3</span></div>
+                  <ul class="navlist">
+                    <li><span class="g">▸</span>albums</li>
+                    <li class="on"><span class="g">▾</span>artists</li>
+                    <li class="child">Charly García</li>
+                    <li class="child on">Gustavo Cerati</li>
+                    <li class="child">Soda Stereo</li>
+                    <li><span class="g">▸</span>genres</li>
+                    <li><span class="g">▸</span>playlists</li>
+                    <li><span class="g">✦</span>discover</li>
+                    <li><span class="g">▸</span>folders</li>
+                    <li><span class="g">▸</span>stats</li>
+                  </ul>
+                </div>
+
+                <!-- tracks -->
+                <div class="pane focus">
+                  <div class="pane-bar">
+                    <span>bocanada (1999)</span>
+                    <span class="dim">11 tracks · 48:12 · focused</span>
+                  </div>
+                  <table class="tt">
+                    <thead>
+                      <tr>
+                        <th class="num">#</th>
+                        <th>title</th>
+                        <th>time</th>
+                        <th>codec</th>
+                        <th>✦</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="num">1</td>
+                        <td class="title">tabú</td>
+                        <td>4:12</td>
+                        <td><span class="badge hires">24/96</span></td>
+                        <td class="dim">✧</td>
+                      </tr>
+                      <tr class="playing sel">
+                        <td class="num">▶</td>
+                        <td class="title">bocanada</td>
+                        <td>5:33</td>
+                        <td><span class="badge hires">24/96</span></td>
+                        <td class="fav">✦✦</td>
+                      </tr>
+                      <tr>
+                        <td class="num">3</td>
+                        <td class="title">verbo carne</td>
+                        <td>4:47</td>
+                        <td><span class="badge hires">24/96</span></td>
+                        <td class="fav">✦</td>
+                      </tr>
+                      <tr>
+                        <td class="num">4</td>
+                        <td class="title">puente</td>
+                        <td>4:05</td>
+                        <td><span class="badge hires">24/96</span></td>
+                        <td class="dim">✧</td>
+                      </tr>
+                      <tr>
+                        <td class="num">5</td>
+                        <td class="title">engaña</td>
+                        <td>3:58</td>
+                        <td><span class="badge">FLAC</span></td>
+                        <td class="dim">✧</td>
+                      </tr>
+                      <tr>
+                        <td class="num">6</td>
+                        <td class="title">río babel</td>
+                        <td>6:21</td>
+                        <td><span class="badge lossy">MP3</span></td>
+                        <td class="fav">✦</td>
+                      </tr>
+                      <tr>
+                        <td class="num">7</td>
+                        <td class="title">beautiful</td>
+                        <td>4:29</td>
+                        <td><span class="badge hires">24/96</span></td>
+                        <td class="dim">✧</td>
+                      </tr>
+                      <tr>
+                        <td class="num">8</td>
+                        <td class="title">paseo inmoral</td>
+                        <td>3:41</td>
+                        <td><span class="badge hires">24/96</span></td>
+                        <td class="dim">✧</td>
+                      </tr>
+                      <tr>
+                        <td class="num">9</td>
+                        <td class="title">alma</td>
+                        <td>5:07</td>
+                        <td><span class="badge">FLAC</span></td>
+                        <td class="fav">✦</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- right rail -->
+                <div class="rail">
+                  <div class="pane">
+                    <div class="pane-bar"><span>inspector</span><span class="dim">i</span></div>
+                    <div class="pane-body kv" style="padding: 8px">
+                      <div><span>codec</span><span>FLAC</span></div>
+                      <div><span>quality</span><span class="acc">24-bit / 96.0kHz</span></div>
+                      <div><span>replaygain</span><span>-6.2 dB (track)</span></div>
+                      <div><span>peak</span><span>-0.4 dBFS</span></div>
+                      <div><span>plays</span><span>37</span></div>
+                      <div style="margin-top: 4px">
+                        <span class="badge bp">⚡ BIT-PERFECT</span>
+                      </div>
+
+                      <div class="chain">
+                        <div class="stage"><b>file</b><span>FLAC · 24/96 · 2ch</span></div>
+                        <div class="hop">│</div>
+                        <div class="stage"><b>decode</b><span>s32 @ 96kHz</span></div>
+                        <div class="hop">│</div>
+                        <div class="stage"><b>dsp</b><span class="dim">bypass</span></div>
+                        <div class="hop">│</div>
+                        <div class="stage"><b>output</b><span>s32 @ 96kHz</span></div>
+                        <div class="hop">│</div>
+                        <div class="stage"><b>device</b><span>Scarlett 2i2</span></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="pane">
+                    <div class="pane-bar"><span>queue</span><span class="dim">4</span></div>
+                    <table class="tt">
+                      <tbody>
+                        <tr class="playing">
+                          <td class="num">▶</td>
+                          <td class="title">bocanada</td>
+                          <td>4:33</td>
+                        </tr>
+                        <tr>
+                          <td class="num">2</td>
+                          <td class="title">verbo carne</td>
+                          <td>4:47</td>
+                        </tr>
+                        <tr>
+                          <td class="num">3</td>
+                          <td class="title">puente</td>
+                          <td>4:05</td>
+                        </tr>
+                        <tr>
+                          <td class="num">4</td>
+                          <td class="title">de música ligera</td>
+                          <td>3:32</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div class="statusbar">
+                <span class="acc" style="flex: none">▶ bocanada — Gustavo Cerati</span>
+                <span class="seek" aria-hidden="true"><i></i></span>
+                <span class="dim" style="flex: none">1:47 / 5:33</span>
+                <span class="dim" style="flex: none">♪ 72%</span>
+                <span class="dim" style="flex: none">
+                  tab: panes · space: play · /: search · ctrl+p: palette
+                </span>
+                <span style="flex: none">▣ ● ?</span>
+              </div>
+            </div>
+          </div>
+          <p class="cta-note">
+            Not a screenshot — this is the real design system rendered in your
+            browser. Flip the theme in the top bar to see the app's second skin.
+          </p>
+        </section>
+
+        <!-- ==================== why ==================== -->
+        <section id="why">
+          <div class="sec-head">
+            <h2>why signal</h2>
+            <p>eight reasons, no illustrations</p>
+          </div>
+
+          <div class="cards">
+            <div class="pane card rise">
+              <div class="pane-bar"><span>playback</span><span class="dim">01</span></div>
+              <div class="pane-body">
+                <h3>Bit-perfect, and it proves it</h3>
+                <p>
+                  libmpv with exclusive device mode and automatic sample-rate
+                  switching. The inspector shows the whole audio path stage by
+                  stage — file, decode, dsp, output, device — so
+                  "bit-perfect" is a verifiable claim, not a marketing badge.
+                </p>
+                <ul>
+                  <li>gapless playback</li>
+                  <li>ReplayGain track/album</li>
+                  <li>FLAC · ALAC · WAV · AIFF · AAC · MP3 · OGG · Opus</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="pane card rise">
+              <div class="pane-bar"><span>keyboard</span><span class="dim">02</span></div>
+              <div class="pane-body">
+                <h3>Keyboard-first, mouse optional</h3>
+                <p>
+                  Vim-influenced normal mode, five-mode key stack, fuzzy command
+                  palette on <kbd>ctrl</kbd><kbd>p</kbd>, and a live
+                  <kbd>?</kbd> overlay generated from the binding registry.
+                  Every binding is rebindable from a JSON file.
+                </p>
+                <ul>
+                  <li>j/k · gg/G · ctrl+d/u everywhere</li>
+                  <li>every visible action shows its key</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="pane card rise">
+              <div class="pane-bar"><span>local-first</span><span class="dim">03</span></div>
+              <div class="pane-body">
+                <h3>Your files, your disk, your database</h3>
+                <p>
+                  Multi-root scanning with an fs-watcher, SQLite + FTS5 search,
+                  metadata read and written straight to the tags. One database
+                  file you can back up, inspect, or delete. Works fully offline;
+                  nothing is uploaded.
+                </p>
+                <ul>
+                  <li>m3u import · multi-genre · VA detection</li>
+                  <li>tag write-back from the metadata editor</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="pane card rise">
+              <div class="pane-bar"><span>scriptable</span><span class="dim">04</span></div>
+              <div class="pane-body">
+                <h3>A control socket and a real CLI</h3>
+                <p>
+                  Signal speaks newline-delimited JSON over a Unix socket and
+                  ships a <code class="acc">signal</code> binary on top of it.
+                  Anything that can write to a socket can drive the player —
+                  Raycast, tmux statuslines, Stream Deck, shell scripts.
+                </p>
+                <ul>
+                  <li><code>signal status --json</code></li>
+                  <li>play · add · seek · vol · next · queue · search</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="pane card rise">
+              <div class="pane-bar"><span>library health</span><span class="dim">05</span></div>
+              <div class="pane-body">
+                <h3>A doctor for the mess in /music</h3>
+                <p>
+                  Real libraries rot: renamed folders, duplicate rips, dead
+                  paths. The doctor view finds missing files and relinks them,
+                  resolves duplicates, prunes what's gone, and fetches missing
+                  cover art.
+                </p>
+                <ul>
+                  <li>relink moved files by content</li>
+                  <li>per-folder removal without touching disk</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="pane card rise">
+              <div class="pane-bar"><span>discover</span><span class="dim">06</span></div>
+              <div class="pane-body">
+                <h3>Recommendations from your own signal</h3>
+                <p>
+                  On repeat, rediscover, from your artists, never played — all
+                  computed with plain SQL over your ratings, favorites, play
+                  counts and history. No model, no cloud, no one profiling you.
+                </p>
+                <ul>
+                  <li>✦ like / ✦✦ love · ♥ favorites</li>
+                  <li>smart playlists from rule sets</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="pane card rise">
+              <div class="pane-bar"><span>window modes</span><span class="dim">07</span></div>
+              <div class="pane-body">
+                <h3>Full pane grid, mini bar, or a pulse</h3>
+                <p>
+                  One keypress collapses the whole app into a mini player, and
+                  another into a chrome-less 76px dot that floats over the
+                  desktop pulsing to the music. Position is remembered per mode.
+                </p>
+                <ul>
+                  <li>full ⇄ mini ⇄ pulse, always-on-top</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="pane card rise">
+              <div class="pane-bar"><span>craft</span><span class="dim">08</span></div>
+              <div class="pane-body">
+                <h3>Two themes, both deliberate</h3>
+                <p>
+                  Periwinkle-on-indigo for the night, warm manila paper with
+                  sealing-wax accents for the day. Square corners, hairline
+                  borders, monospace everywhere, a 0ms default animation
+                  budget — density over decoration.
+                </p>
+                <ul>
+                  <li>ListenBrainz scrobbling built in</li>
+                  <li>values shown raw: 44.1kHz, not "CD Quality"</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== keyboard ==================== -->
+        <section id="keys">
+          <div class="sec-head">
+            <h2>keyboard</h2>
+            <p>a slice of the registry — press <kbd>?</kbd> in-app for all</p>
+          </div>
+
+          <div class="pane rise">
+            <div class="pane-bar">
+              <span>help · NORMAL mode</span><span class="dim">esc to close</span>
+            </div>
+            <div class="pane-body">
+              <div class="keys">
+                <div class="keyrow"><span class="k"><kbd>space</kbd></span><span class="d">play / pause</span></div>
+                <div class="keyrow"><span class="k"><kbd>ctrl</kbd><kbd>p</kbd></span><span class="d">command palette</span></div>
+                <div class="keyrow"><span class="k"><kbd>/</kbd></span><span class="d">search library</span></div>
+                <div class="keyrow"><span class="k"><kbd>:</kbd></span><span class="d">command line</span></div>
+                <div class="keyrow"><span class="k"><kbd>j</kbd><kbd>k</kbd></span><span class="d">move down / up</span></div>
+                <div class="keyrow"><span class="k"><kbd>g</kbd><kbd>g</kbd></span><span class="d">jump to top</span></div>
+                <div class="keyrow"><span class="k"><kbd>tab</kbd></span><span class="d">cycle pane focus</span></div>
+                <div class="keyrow"><span class="k"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd></span><span class="d">library / center / rail</span></div>
+                <div class="keyrow"><span class="k"><kbd>a</kbd></span><span class="d">stage onto the queue</span></div>
+                <div class="keyrow"><span class="k"><kbd>A</kbd></span><span class="d">play album next</span></div>
+                <div class="keyrow"><span class="k"><kbd>f</kbd></span><span class="d">toggle favorite ♥</span></div>
+                <div class="keyrow"><span class="k"><kbd>r</kbd><kbd>1</kbd>–<kbd>5</kbd></span><span class="d">set rating</span></div>
+                <div class="keyrow"><span class="k"><kbd>e</kbd></span><span class="d">edit metadata</span></div>
+                <div class="keyrow"><span class="k"><kbd>y</kbd></span><span class="d">yank file path</span></div>
+                <div class="keyrow"><span class="k"><kbd>o</kbd></span><span class="d">reveal in file manager</span></div>
+                <div class="keyrow"><span class="k"><kbd>v</kbd></span><span class="d">visual multi-select</span></div>
+                <div class="keyrow"><span class="k"><kbd>[</kbd><kbd>]</kbd></span><span class="d">seek −5s / +5s</span></div>
+                <div class="keyrow"><span class="k"><kbd>{</kbd><kbd>}</kbd></span><span class="d">prev / next track</span></div>
+                <div class="keyrow"><span class="k"><kbd>J</kbd><kbd>K</kbd></span><span class="d">reorder in queue</span></div>
+                <div class="keyrow"><span class="k"><kbd>w</kbd></span><span class="d">write queue as playlist</span></div>
+                <div class="keyrow"><span class="k"><kbd>L</kbd></span><span class="d">logs view</span></div>
+                <div class="keyrow"><span class="k"><kbd>S</kbd></span><span class="d">stats view</span></div>
+                <div class="keyrow"><span class="k"><kbd>i</kbd></span><span class="d">toggle inspector</span></div>
+                <div class="keyrow"><span class="k"><kbd>?</kbd></span><span class="d">this overlay</span></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== cli ==================== -->
+        <section id="cli">
+          <div class="sec-head">
+            <h2>scriptable</h2>
+            <p>newline-delimited JSON over a unix socket</p>
+          </div>
+
+          <div class="cards">
+            <div class="pane rise">
+              <div class="pane-bar">
+                <span>zsh <span class="dim">· signal-cli</span></span>
+                <button class="copy" type="button" data-copy="#cli-code">copy</button>
+              </div>
+              <div class="pane-body">
+<pre id="cli-code"><span class="p">$</span> signal status
+<span class="o">▶ Daft Punk — Get Lucky  1:02/6:09 · bit-perfect</span>
+
+<span class="p">$</span> signal status --json <span class="c"># for statuslines</span>
+<span class="p">$</span> signal play get lucky <span class="c"># search &amp; play</span>
+<span class="p">$</span> signal add instant crush <span class="c"># stage on queue</span>
+<span class="p">$</span> signal seek +30 <span class="c"># relative seek</span>
+<span class="p">$</span> signal vol 80 <span class="c"># or +5 / -5</span>
+<span class="p">$</span> signal toggle | next | prev | stop | queue</pre>
+              </div>
+            </div>
+
+            <div class="pane rise">
+              <div class="pane-bar"><span>why it matters</span><span class="dim">ipc</span></div>
+              <div class="pane-body">
+                <h3 style="margin: 0; font-size: 13.5px; font-weight: 500">
+                  The player is a daemon you can talk to
+                </h3>
+                <p style="margin: 0; color: var(--text-secondary); font-size: 12.5px">
+                  The socket lives at <code>$SIGNAL_SOCKET</code> or in the app
+                  data dir. Every command the UI can run is reachable from a
+                  shell, which means Signal composes with the tools you already
+                  have instead of asking you to live inside it.
+                </p>
+                <ul style="margin: 0; padding: 0; list-style: none; font-size: 11.5px; color: var(--text-muted)">
+                  <li>· tmux / starship statusline showing what's playing</li>
+                  <li>· Raycast or Alfred hotkeys for play, skip, volume</li>
+                  <li>· Stream Deck buttons wired to plain shell lines</li>
+                  <li>· cron job that queues an album at 09:00</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== window modes ==================== -->
+        <section id="modes">
+          <div class="sec-head">
+            <h2>three shapes</h2>
+            <p>full · mini · pulse</p>
+          </div>
+          <div class="modes rise">
+            <div>
+              <div class="mode-vis">
+                <span class="win win-full" aria-hidden="true">
+                  <i></i><i class="on"></i><i></i>
+                </span>
+              </div>
+              <p class="mode-cap">
+                <b>full</b>
+                <span class="dim">— three panes, table, inspector, queue</span>
+              </p>
+            </div>
+            <div>
+              <div class="mode-vis">
+                <span class="win win-mini" aria-hidden="true">
+                  <i class="cover"></i><i class="on"></i>
+                </span>
+              </div>
+              <p class="mode-cap">
+                <b>mini</b>
+                <span class="dim">— one bar: cover, marquee title, transport</span>
+              </p>
+            </div>
+            <div>
+              <div class="mode-vis">
+                <span class="win-dot">
+                  <span class="heart" data-heart="38" aria-hidden="true"></span>
+                </span>
+              </div>
+              <p class="mode-cap">
+                <b>pulse</b>
+                <span class="dim">— 76px, transparent, beating on your desktop</span>
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== build ==================== -->
+        <section id="build">
+          <div class="sec-head">
+            <h2>build it</h2>
+            <p>macOS &amp; Linux · ~5 min from clone to running</p>
+          </div>
+
+          <div class="cards">
+            <div class="pane rise">
+              <div class="pane-bar">
+                <span>first time <span class="dim">· zsh</span></span>
+                <button class="copy" type="button" data-copy="#build-code">copy</button>
+              </div>
+              <div class="pane-body">
+<pre id="build-code"><span class="p">$</span> git clone https://github.com/ianaya89/rocola
+<span class="p">$</span> cd rocola
+
+<span class="c"># rust toolchain via mise, + libmpv</span>
+<span class="p">$</span> mise trust &amp;&amp; mise install
+<span class="p">$</span> pnpm install
+<span class="p">$</span> brew install pkgconf mpv
+
+<span class="c"># run it</span>
+<span class="p">$</span> pnpm tauri dev
+
+<span class="c"># the cli</span>
+<span class="p">$</span> cargo build -p signal-cli</pre>
+              </div>
+            </div>
+
+            <div class="pane rise">
+              <div class="pane-bar"><span>stack</span><span class="dim">7 crates</span></div>
+              <div class="pane-body">
+                <div class="kv" style="font-size: 12px">
+                  <div><span>backend</span><span>Rust stable · Tauri v2</span></div>
+                  <div><span>playback</span><span>libmpv</span></div>
+                  <div><span>data</span><span>SQLite · sqlx · FTS5</span></div>
+                  <div><span>tags</span><span>lofty · notify watcher</span></div>
+                  <div><span>frontend</span><span>React 19 · TS · Tailwind 4</span></div>
+                  <div><span>state</span><span>TanStack Query · Zustand</span></div>
+                  <div><span>charts</span><span>uPlot</span></div>
+                  <div><span>license</span><span>open source</span></div>
+                </div>
+                <p style="margin: 10px 0 0; font-size: 11.5px; color: var(--text-muted)">
+                  Crates: signal-core, -db, -player, -scanner, -search,
+                  -plugins, -cli. Plugin trait ships with ListenBrainz; MPRIS
+                  and Discord are sketched in the design docs.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="facts rise" style="margin-top: 12px">
+            <div><b>0</b><span>Electron processes</span></div>
+            <div><b>0</b><span>telemetry endpoints</span></div>
+            <div><b>100%</b><span>keyboard reachable</span></div>
+            <div><b>8</b><span>codecs decoded</span></div>
+            <div><b>28px</b><span>track row height</span></div>
+          </div>
+        </section>
+
+        <!-- ==================== docs ==================== -->
+        <section id="docs">
+          <div class="sec-head">
+            <h2>design docs</h2>
+            <p>written before the code, kept in the repo</p>
+          </div>
+          <div class="pane rise">
+            <div class="pane-bar"><span>docs/</span><span class="dim">10 files</span></div>
+            <div class="pane-body" style="padding: 4px 8px">
+              <table class="docs-tbl">
+                <tbody>
+                  <tr><td><a href="https://github.com/ianaya89/rocola/blob/main/docs/01-architecture.md">01 — architecture</a></td><td>components, threads, event bus, error strategy</td></tr>
+                  <tr><td><a href="https://github.com/ianaya89/rocola/blob/main/docs/02-workspace.md">02 — workspace</a></td><td>cargo layout, crates, dependency rules</td></tr>
+                  <tr><td><a href="https://github.com/ianaya89/rocola/blob/main/docs/03-database-schema.md">03 — database</a></td><td>full DDL, fts5, smart playlist rules</td></tr>
+                  <tr><td><a href="https://github.com/ianaya89/rocola/blob/main/docs/04-player-libmpv.md">04 — player</a></td><td>mpv wrapper, gapless, bit-perfect detection</td></tr>
+                  <tr><td><a href="https://github.com/ianaya89/rocola/blob/main/docs/05-ipc-api.md">05 — ipc api</a></td><td>command catalog, events, DTOs, artwork</td></tr>
+                  <tr><td><a href="https://github.com/ianaya89/rocola/blob/main/docs/06-frontend.md">06 — frontend</a></td><td>routing, Query vs Zustand, event bridge</td></tr>
+                  <tr><td><a href="https://github.com/ianaya89/rocola/blob/main/docs/07-roadmap.md">07 — roadmap</a></td><td>milestones M0–M5, exit criteria, risks</td></tr>
+                  <tr><td><a href="https://github.com/ianaya89/rocola/blob/main/docs/08-plugins.md">08 — plugins</a></td><td>plugin trait, tiers, MPRIS / Last.fm sketches</td></tr>
+                  <tr><td><a href="https://github.com/ianaya89/rocola/blob/main/docs/09-keyboard.md">09 — keyboard</a></td><td>mode stack, binding tables, rebinding</td></tr>
+                  <tr><td><a href="https://github.com/ianaya89/rocola/blob/main/docs/10-design-system.md">10 — design system</a></td><td>palette, type, density, motion rules</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== closing ==================== -->
+        <section id="end">
+          <div class="pane focus rise">
+            <div class="pane-bar"><span>now playing</span><span class="dim">♥</span></div>
+            <div
+              class="pane-body"
+              style="display: flex; flex-wrap: wrap; align-items: center; gap: 20px; padding: 24px"
+            >
+              <span class="heart" data-heart="64" aria-hidden="true"></span>
+              <div style="min-width: 240px; flex: 1">
+                <h3 style="margin: 0 0 6px; font-size: 17px; font-weight: 500">
+                  Music you own, in a player you can read.
+                </h3>
+                <p style="margin: 0; color: var(--text-secondary); font-size: 12.5px">
+                  No release binaries yet — clone it, build it, and open an
+                  issue when something's wrong.
+                </p>
+              </div>
+              <div class="cta" style="margin: 0">
+                <a class="btn btn-primary" href="https://github.com/ianaya89/rocola">github ↗</a>
+                <a class="btn" href="#build">build steps</a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <footer>
+          <span>signal · v0.1.0 · local-first by construction</span>
+          <span class="links">
+            <a href="https://github.com/ianaya89/rocola">source</a>
+            <a href="https://github.com/ianaya89/rocola/issues">issues</a>
+            <a href="https://github.com/ianaya89/rocola/blob/main/docs/07-roadmap.md">roadmap</a>
+          </span>
+        </footer>
+      </div>
+    </main>
+
+    <script>
+      // ===== bar-heart mark: same geometry as src/lib/heart.ts =====
+      function heartExtents(x) {
+        let lo = null,
+          hi = null;
+        for (let i = 0; i <= 700; i++) {
+          const y = -1.3 + (2.8 * i) / 700;
+          if ((x * x + y * y - 1) ** 3 - x * x * y ** 3 <= 0) {
+            if (lo === null) lo = y;
+            hi = y;
+          }
+        }
+        return lo === null ? null : [lo, hi];
+      }
+
+      function heartColor(t) {
+        const a = [0x82, 0x86, 0xf5];
+        const b = [0xbb, 0x9a, 0xf7];
+        const c = a.map((v, i) => Math.round(v + (b[i] - v) * t));
+        return `rgb(${c[0]},${c[1]},${c[2]})`;
+      }
+
+      function buildHeartBars(nBars = 11) {
+        const barW = 0.052,
+          gap = 0.026,
+          scale = 0.3,
+          cy = 0.54;
+        const total = nBars * barW + (nBars - 1) * gap;
+        const x0 = (1 - total) / 2;
+        const bars = [];
+        for (let i = 0; i < nBars; i++) {
+          const cx = x0 + i * (barW + gap) + barW / 2;
+          const ext = heartExtents((cx - 0.5) / scale);
+          if (!ext) continue;
+          const top = cy - ext[1] * scale;
+          const bottom = cy - ext[0] * scale;
+          bars.push({
+            x: cx - barW / 2,
+            top,
+            height: Math.max(bottom - top, barW),
+            width: barW,
+            color: heartColor(i / (nBars - 1)),
+          });
+        }
+        return bars;
+      }
+
+      const BARS = buildHeartBars();
+
+      document.querySelectorAll("[data-heart]").forEach((host) => {
+        const size = Number(host.dataset.heart);
+        host.style.width = size + "px";
+        host.style.height = size + "px";
+        host.style.display = "block";
+        BARS.forEach((bar, i) => {
+          const el = document.createElement("span");
+          el.className = "eq-bar-soft";
+          el.style.cssText = `position:absolute;border-radius:9999px;left:${
+            bar.x * size
+          }px;top:${bar.top * size}px;width:${bar.width * size}px;height:${
+            bar.height * size
+          }px;background:${bar.color};animation-duration:${
+            0.7 + (i % 4) * 0.16
+          }s;animation-delay:${(i % 5) * 110}ms`;
+          host.appendChild(el);
+        });
+      });
+
+      // favicon drawn from the same bars
+      (function favicon() {
+        const s = 64;
+        const rects = BARS.map(
+          (b) =>
+            `<rect x="${(b.x * s).toFixed(1)}" y="${(b.top * s).toFixed(
+              1,
+            )}" width="${(b.width * s).toFixed(1)}" height="${(
+              b.height * s
+            ).toFixed(1)}" rx="${((b.width * s) / 2).toFixed(1)}" fill="${
+              b.color
+            }"/>`,
+        ).join("");
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${s} ${s}"><rect width="${s}" height="${s}" fill="#12121c"/>${rects}</svg>`;
+        const link = document.createElement("link");
+        link.rel = "icon";
+        link.type = "image/svg+xml";
+        link.href = "data:image/svg+xml," + encodeURIComponent(svg);
+        document.head.appendChild(link);
+      })();
+
+      // ===== theme: dark violet ⇄ manila light, same tokens as the app =====
+      const root = document.documentElement;
+      const btn = document.getElementById("theme");
+      const glyph = document.getElementById("theme-glyph");
+      const label = document.getElementById("theme-label");
+
+      function applyTheme(theme) {
+        root.dataset.theme = theme;
+        const light = theme === "light";
+        btn.setAttribute("aria-pressed", String(light));
+        btn.setAttribute(
+          "aria-label",
+          light ? "switch to dark theme" : "switch to manila light theme",
+        );
+        glyph.textContent = light ? "◑" : "◐";
+        label.textContent = light ? "indigo" : "manila";
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.content = light ? "#e8dec7" : "#12121c";
+      }
+
+      const stored = localStorage.getItem("signal.theme");
+      applyTheme(
+        stored ||
+          (window.matchMedia("(prefers-color-scheme: light)").matches
+            ? "light"
+            : "dark"),
+      );
+
+      btn.addEventListener("click", () => {
+        const next = root.dataset.theme === "light" ? "dark" : "light";
+        applyTheme(next);
+        localStorage.setItem("signal.theme", next);
+      });
+
+      // ===== staggered reveal =====
+      const io = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (!e.isIntersecting) return;
+            const siblings = Array.from(
+              e.target.parentElement?.children || [],
+            ).filter((n) => n.classList.contains("rise"));
+            e.target.style.transitionDelay =
+              Math.min(siblings.indexOf(e.target), 6) * 55 + "ms";
+            e.target.classList.add("in");
+            io.unobserve(e.target);
+          });
+        },
+        { rootMargin: "0px 0px -8% 0px" },
+      );
+      document.querySelectorAll(".rise").forEach((el) => io.observe(el));
+
+      // ===== copy buttons =====
+      document.querySelectorAll(".copy").forEach((b) => {
+        b.addEventListener("click", async () => {
+          const src = document.querySelector(b.dataset.copy);
+          const text = src.innerText
+            .split("\n")
+            .map((l) => l.replace(/^\$\s?/, ""))
+            .join("\n");
+          try {
+            await navigator.clipboard.writeText(text);
+            b.textContent = "copied";
+            setTimeout(() => (b.textContent = "copy"), 1400);
+          } catch {
+            b.textContent = "⌘c it";
+          }
+        });
+      });
+
+      // ===== keyboard easter egg: the landing answers to app keys =====
+      addEventListener("keydown", (e) => {
+        if (e.target.matches("input, textarea")) return;
+        const go = { "?": "#keys", "/": "#screen", ":": "#cli" }[e.key];
+        if (go) {
+          e.preventDefault();
+          document.querySelector(go).scrollIntoView({ block: "start" });
+        }
+      });
+    </script>
+  </body>
+</html>
