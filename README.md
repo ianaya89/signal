@@ -1,32 +1,100 @@
-# Signal
+<div align="center">
 
-An open-source desktop Hi-Fi music player for developers, audiophiles and power users.
+<img src="docs/assets/logo.svg" width="88" alt="" />
 
-Not another Apple Music clone. Not another Plexamp clone. **The LazyGit of music players**: fast, keyboard-first, transparent, hackable, local-first. No cloud, no account, no telemetry, no Electron.
+# signal
 
-Website: <https://ianaya89.github.io/rocola/> (source: [`docs/index.html`](docs/index.html))
+**The LazyGit of music players.**
+
+An open-source desktop Hi-Fi music player for developers, audiophiles and power users.<br />
+Keyboard-first, bit-perfect, local-first, scriptable.
+
+[![rust](https://img.shields.io/badge/rust-1.82+-8286f5?style=flat-square&logo=rust&logoColor=white)](https://www.rust-lang.org)
+[![tauri](https://img.shields.io/badge/tauri-v2-8286f5?style=flat-square&logo=tauri&logoColor=white)](https://v2.tauri.app)
+[![react](https://img.shields.io/badge/react-19-8286f5?style=flat-square&logo=react&logoColor=white)](https://react.dev)
+[![license](https://img.shields.io/badge/license-GPL--3.0--or--later-73daca?style=flat-square)](Cargo.toml)
+[![platform](https://img.shields.io/badge/platform-macOS%20%C2%B7%20Linux-63678f?style=flat-square)](#development)
+[![status](https://img.shields.io/badge/status-pre--release%20v0.1.0-e0af68?style=flat-square)](docs/07-roadmap.md)
+
+[**Website**](https://ianaya89.github.io/rocola/) · [Design docs](#design-docs) · [Keyboard](#keyboard) · [CLI](#cli) · [Roadmap](docs/07-roadmap.md)
+
+</div>
+
+---
+
+Not another Apple Music clone. Not another Plexamp clone. No cloud, no account,
+no telemetry, no Electron — just your files, one SQLite database, and a UI dense
+enough to actually show what's going on.
+
+```
+┌─ library ──────────────┬─ bocanada (1999) ───────────────── focused ─┬─ inspector ───────────────┐
+│ + albums               │  #  title            time   codec       *   │ codec         FLAC        │
+│ - artists            3 │  1  tabú             4:12   [24/96]     ·   │ quality       24/96       │
+│     Charly García      │ >2  bocanada         5:33   [24/96]    **   │ replaygain    -6.2 dB     │
+│   > Gustavo Cerati     │  3  verbo carne      4:47   [24/96]     *   │ peak          -0.4 dBFS   │
+│     Soda Stereo        │  4  puente           4:05   [24/96]     ·   │ [BIT-PERFECT]             │
+│ + genres               │  5  engaña           3:58   [FLAC]      ·   │                           │
+│ + playlists            │  6  río babel        6:21   [MP3]       *   │ file    FLAC · 24/96 · 2ch│
+│ * discover             │  7  beautiful        4:29   [24/96]     ·   │ decode  s32 @ 96kHz       │
+│ + folders              │  8  paseo inmoral    3:41   [24/96]     ·   │ dsp     bypass            │
+│ + stats                │  9  alma             5:07   [FLAC]      *   │ output  s32 @ 96kHz       │
+│                        │                                             │ device  Scarlett 2i2      │
+│                        │                                             ├─ queue ───────────────── 4┤
+│                        │                                             │ > bocanada          4:33  │
+│                        │                                             │ 2 verbo carne       4:47  │
+└────────────────────────┴─────────────────────────────────────────────┴───────────────────────────┘
+ > bocanada — Gustavo Cerati  [──────●───────────]  1:47/5:33  vol 72%  tab: panes · /: search · ?: help
+```
+
+## Why
+
+- **Bit-perfect, and it proves it.** Exclusive device mode, automatic sample-rate
+  switching, gapless, ReplayGain — and an inspector that shows the whole audio
+  path stage by stage (file → decode → dsp → output → device) so the claim is
+  verifiable, not a badge.
+- **Keyboard-first.** Vim-influenced normal mode, command palette, and a `?`
+  overlay generated from the live binding registry. Mouse optional.
+- **Local-first.** One SQLite file you can back up, inspect or delete. Tags read
+  and written in place. Works fully offline.
+- **Scriptable.** A Unix control socket speaking newline-delimited JSON, plus a
+  `signal` CLI on top of it. Composes with tmux, Raycast, Stream Deck, cron.
+- **Transparent.** Technical values shown raw: `44.1kHz`, not "CD Quality".
+
+## Features
+
+**Library**
+Multi-root scanning with an fs-watcher · per-folder removal and exclusions ·
+FTS5 search · multi-genre · various-artists detection · m3u import · cover-art
+fetch · metadata editor with tag write-back · album/track rename.
+
+**Playback**
+libmpv — FLAC, ALAC, WAV, AIFF, AAC, MP3, OGG, Opus · gapless · ReplayGain
+(track/album) · exclusive mode · auto sample-rate switching · bit-perfect
+detection · output device picker · queue staging, reorder and save-as-playlist.
+
+**Organise**
+Playlists and smart playlists (rule sets) · `✦` like / `✦✦` love ratings · `♥`
+favorites · discover shelves (on repeat, rediscover, from your artists, never
+played) computed with plain SQL over your own listening history · stats view.
+
+**Maintenance**
+Doctor view: find missing files, relink moved ones, resolve duplicates, prune
+dead paths · library backup · rescan · config file access.
+
+**Interface**
+Three-pane dense layout · command palette · logs view · two themes (indigo dark,
+manila light) · three window modes (full, mini bar, 76px pulse dot) · ListenBrainz
+scrobbling.
 
 ## Stack
 
-- **Backend**: Rust stable, Tauri v2
-- **Playback**: libmpv (FLAC, ALAC, WAV, AIFF, AAC, MP3, OGG, Opus — gapless, ReplayGain, exclusive mode, auto sample-rate switching)
-- **Data**: SQLite + sqlx, FTS5 search, lofty metadata, notify fs-watcher
-- **Frontend**: React, TypeScript, TailwindCSS, shadcn/ui, TanStack Router/Query, Zustand, uPlot
-
-## Design docs
-
-| Doc | Covers |
-|-----|--------|
-| [01 — Architecture](docs/01-architecture.md) | Components, threads, event bus, data flows, error strategy |
-| [02 — Workspace](docs/02-workspace.md) | Cargo workspace layout, crates, dependency rules, feature flags |
-| [03 — Database schema](docs/03-database-schema.md) | Full DDL, FTS5 setup, smart playlist rules, repositories |
-| [04 — Player (libmpv)](docs/04-player-libmpv.md) | mpv wrapper, gapless, ReplayGain, exclusive mode, bit-perfect detection |
-| [05 — IPC API](docs/05-ipc-api.md) | Tauri command catalog, events, DTOs, artwork protocol |
-| [06 — Frontend](docs/06-frontend.md) | Routing, state split (Query vs Zustand), components, event bridge |
-| [07 — Roadmap](docs/07-roadmap.md) | Milestones M0–M5, exit criteria, risk register |
-| [08 — Plugins](docs/08-plugins.md) | Plugin trait, tiers, lifecycle, MPRIS / Last.fm / Discord sketches |
-| [09 — Keyboard](docs/09-keyboard.md) | Mode stack, full binding tables, rebinding, discoverability |
-| [10 — Design system](docs/10-design-system.md) | Palette, typography, density, component specs, motion rules |
+| Layer | Choice |
+|---|---|
+| Backend | Rust stable (1.82+), Tauri v2 |
+| Playback | libmpv |
+| Data | SQLite + sqlx, FTS5, lofty tags, notify fs-watcher |
+| Frontend | React 19, TypeScript, TailwindCSS 4, TanStack Router/Query, Zustand, uPlot |
+| Crates | `signal-core` · `-db` · `-player` · `-scanner` · `-search` · `-plugins` · `-cli` |
 
 ## Development
 
@@ -44,6 +112,15 @@ pnpm tauri dev
 
 If `cargo` is not found, either activate mise in your shell
 (`eval "$(mise activate zsh)"` in `~/.zshrc`) or run `mise exec -- pnpm tauri dev`.
+
+```sh
+pnpm typecheck                       # tsc --noEmit
+cargo clippy --workspace -- -D warnings
+cargo test --workspace
+```
+
+No release binaries yet — build from source, and open an issue when something
+breaks.
 
 ## CLI
 
@@ -65,9 +142,54 @@ signal toggle | next | prev | stop | queue | search <query>
 Socket: `$SIGNAL_SOCKET` or the app data dir (`signal.sock`). Anything that
 can write JSON to a socket — Raycast, tmux, Stream Deck — can drive Signal.
 
+## Keyboard
+
+Press `?` in-app for the live registry ([`src/lib/bindings.ts`](src/lib/bindings.ts)).
+
+| Playback | | Navigate | |
+|---|---|---|---|
+| `space` | play / pause | `j` `k` | move down / up |
+| `{` `}` | previous / next track | `gg` `G` | jump to top / bottom |
+| `[` `]` | seek −5s / +5s | `enter` | play from here |
+| `=` `-` | volume up / down | `esc` | back |
+| `m` | mute / unmute | `tab` | cycle panes |
+
+| Library | | Layout | |
+|---|---|---|---|
+| `a` | stage track to queue | `b` | toggle library pane |
+| `x` | remove (queue / playlist) | `i` | toggle inspector pane |
+| `f` | toggle favorite | `M` | mini player |
+| `r` then `0`–`5` | rate track (`0` clears) | `P` | pulse mode |
+| `/` | search | `1` `2` `3` | focus library / main / inspector |
+| `ctrl+p` · `cmd+k` | command palette | `S` `L` `D` | stats / logs / discover |
+
+## Design docs
+
+Written before the code, kept in the repo.
+
+| Doc | Covers |
+|-----|--------|
+| [01 — Architecture](docs/01-architecture.md) | Components, threads, event bus, data flows, error strategy |
+| [02 — Workspace](docs/02-workspace.md) | Cargo workspace layout, crates, dependency rules, feature flags |
+| [03 — Database schema](docs/03-database-schema.md) | Full DDL, FTS5 setup, smart playlist rules, repositories |
+| [04 — Player (libmpv)](docs/04-player-libmpv.md) | mpv wrapper, gapless, ReplayGain, exclusive mode, bit-perfect detection |
+| [05 — IPC API](docs/05-ipc-api.md) | Tauri command catalog, events, DTOs, artwork protocol |
+| [06 — Frontend](docs/06-frontend.md) | Routing, state split (Query vs Zustand), components, event bridge |
+| [07 — Roadmap](docs/07-roadmap.md) | Milestones M0–M5, exit criteria, risk register |
+| [08 — Plugins](docs/08-plugins.md) | Plugin trait, tiers, lifecycle, MPRIS / Last.fm / Discord sketches |
+| [09 — Keyboard](docs/09-keyboard.md) | Mode stack, full binding tables, rebinding, discoverability |
+| [10 — Design system](docs/10-design-system.md) | Palette, typography, density, component specs, motion rules |
+
+The landing page in [`docs/index.html`](docs/index.html) is published from this
+folder via GitHub Pages.
+
 ## Principles
 
 - Everything is local. Everything works offline.
 - Every interaction feels instant. Performance is a feature.
 - Every action has a keyboard shortcut. Mouse optional.
 - Expose technical details instead of hiding them.
+
+## License
+
+GPL-3.0-or-later.

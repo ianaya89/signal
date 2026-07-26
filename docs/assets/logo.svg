@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="signal">
+  <title>signal</title>
+  <rect x="20.74" y="33.18" width="6.66" height="32.56" rx="3.33" fill="#8888f5"/>
+  <rect x="30.72" y="23.96" width="6.66" height="57.91" rx="3.33" fill="#8d8af5"/>
+  <rect x="40.70" y="21.66" width="6.66" height="70.04" rx="3.33" fill="#938cf6"/>
+  <rect x="50.69" y="23.50" width="6.66" height="75.57" rx="3.33" fill="#998ef6"/>
+  <rect x="60.67" y="30.72" width="6.66" height="76.80" rx="3.33" fill="#9e90f6"/>
+  <rect x="70.66" y="23.50" width="6.66" height="75.57" rx="3.33" fill="#a492f6"/>
+  <rect x="80.64" y="21.66" width="6.66" height="70.04" rx="3.33" fill="#aa94f6"/>
+  <rect x="90.62" y="23.96" width="6.66" height="57.91" rx="3.33" fill="#b096f7"/>
+  <rect x="100.61" y="33.18" width="6.66" height="32.56" rx="3.33" fill="#b598f7"/>
+</svg>

@@ -766,7 +766,7 @@
 
       .keys {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(262px, 1fr));
         gap: 0 24px;
       }
       .keyrow {
@@ -1378,10 +1378,11 @@
               <div class="pane-body">
                 <h3>Keyboard-first, mouse optional</h3>
                 <p>
-                  Vim-influenced normal mode, five-mode key stack, fuzzy command
-                  palette on <kbd>ctrl</kbd><kbd>p</kbd>, and a live
-                  <kbd>?</kbd> overlay generated from the binding registry.
-                  Every binding is rebindable from a JSON file.
+                  Vim-influenced normal mode, a mode stack that hands the
+                  keyboard to overlays cleanly, and a fuzzy command palette on
+                  <kbd>⌘</kbd><kbd>k</kbd>. The <kbd>?</kbd> overlay is
+                  generated from the binding registry itself, so it never drifts
+                  from what the app actually does.
                 </p>
                 <ul>
                   <li>j/k · gg/G · ctrl+d/u everywhere</li>
@@ -1505,28 +1506,28 @@
             <div class="pane-body">
               <div class="keys">
                 <div class="keyrow"><span class="k"><kbd>space</kbd></span><span class="d">play / pause</span></div>
-                <div class="keyrow"><span class="k"><kbd>ctrl</kbd><kbd>p</kbd></span><span class="d">command palette</span></div>
-                <div class="keyrow"><span class="k"><kbd>/</kbd></span><span class="d">search library</span></div>
-                <div class="keyrow"><span class="k"><kbd>:</kbd></span><span class="d">command line</span></div>
-                <div class="keyrow"><span class="k"><kbd>j</kbd><kbd>k</kbd></span><span class="d">move down / up</span></div>
-                <div class="keyrow"><span class="k"><kbd>g</kbd><kbd>g</kbd></span><span class="d">jump to top</span></div>
-                <div class="keyrow"><span class="k"><kbd>tab</kbd></span><span class="d">cycle pane focus</span></div>
-                <div class="keyrow"><span class="k"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd></span><span class="d">library / center / rail</span></div>
-                <div class="keyrow"><span class="k"><kbd>a</kbd></span><span class="d">stage onto the queue</span></div>
-                <div class="keyrow"><span class="k"><kbd>A</kbd></span><span class="d">play album next</span></div>
-                <div class="keyrow"><span class="k"><kbd>f</kbd></span><span class="d">toggle favorite ♥</span></div>
-                <div class="keyrow"><span class="k"><kbd>r</kbd><kbd>1</kbd>–<kbd>5</kbd></span><span class="d">set rating</span></div>
-                <div class="keyrow"><span class="k"><kbd>e</kbd></span><span class="d">edit metadata</span></div>
-                <div class="keyrow"><span class="k"><kbd>y</kbd></span><span class="d">yank file path</span></div>
-                <div class="keyrow"><span class="k"><kbd>o</kbd></span><span class="d">reveal in file manager</span></div>
-                <div class="keyrow"><span class="k"><kbd>v</kbd></span><span class="d">visual multi-select</span></div>
+                <div class="keyrow"><span class="k"><kbd>{</kbd><kbd>}</kbd></span><span class="d">previous / next track</span></div>
                 <div class="keyrow"><span class="k"><kbd>[</kbd><kbd>]</kbd></span><span class="d">seek −5s / +5s</span></div>
-                <div class="keyrow"><span class="k"><kbd>{</kbd><kbd>}</kbd></span><span class="d">prev / next track</span></div>
-                <div class="keyrow"><span class="k"><kbd>J</kbd><kbd>K</kbd></span><span class="d">reorder in queue</span></div>
-                <div class="keyrow"><span class="k"><kbd>w</kbd></span><span class="d">write queue as playlist</span></div>
-                <div class="keyrow"><span class="k"><kbd>L</kbd></span><span class="d">logs view</span></div>
-                <div class="keyrow"><span class="k"><kbd>S</kbd></span><span class="d">stats view</span></div>
-                <div class="keyrow"><span class="k"><kbd>i</kbd></span><span class="d">toggle inspector</span></div>
+                <div class="keyrow"><span class="k"><kbd>=</kbd><kbd>-</kbd></span><span class="d">volume up / down</span></div>
+                <div class="keyrow"><span class="k"><kbd>m</kbd></span><span class="d">mute / unmute</span></div>
+                <div class="keyrow"><span class="k"><kbd>j</kbd><kbd>k</kbd></span><span class="d">move down / up</span></div>
+                <div class="keyrow"><span class="k"><kbd>g</kbd><kbd>g</kbd><kbd>G</kbd></span><span class="d">jump to top / bottom</span></div>
+                <div class="keyrow"><span class="k"><kbd>enter</kbd></span><span class="d">play from here</span></div>
+                <div class="keyrow"><span class="k"><kbd>esc</kbd></span><span class="d">back</span></div>
+                <div class="keyrow"><span class="k"><kbd>tab</kbd></span><span class="d">cycle panes</span></div>
+                <div class="keyrow"><span class="k"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd></span><span class="d">library / main / inspector</span></div>
+                <div class="keyrow"><span class="k"><kbd>/</kbd></span><span class="d">search</span></div>
+                <div class="keyrow"><span class="k"><kbd>⌘</kbd><kbd>k</kbd></span><span class="d">command palette</span></div>
+                <div class="keyrow"><span class="k"><kbd>S</kbd><kbd>L</kbd><kbd>D</kbd></span><span class="d">stats / logs / discover</span></div>
+                <div class="keyrow"><span class="k"><kbd>a</kbd></span><span class="d">stage track to queue</span></div>
+                <div class="keyrow"><span class="k"><kbd>x</kbd></span><span class="d">remove (queue / playlist)</span></div>
+                <div class="keyrow"><span class="k"><kbd>f</kbd></span><span class="d">toggle favorite ♥</span></div>
+                <div class="keyrow"><span class="k"><kbd>r</kbd><kbd>0</kbd>–<kbd>5</kbd></span><span class="d">rate track (0 clears)</span></div>
+                <div class="keyrow"><span class="k"><kbd>b</kbd></span><span class="d">toggle library pane</span></div>
+                <div class="keyrow"><span class="k"><kbd>i</kbd></span><span class="d">toggle inspector pane</span></div>
+                <div class="keyrow"><span class="k"><kbd>M</kbd></span><span class="d">mini player</span></div>
+                <div class="keyrow"><span class="k"><kbd>P</kbd></span><span class="d">pulse mode</span></div>
+                <div class="keyrow"><span class="k"><kbd>esc</kbd></span><span class="d">back to full window</span></div>
                 <div class="keyrow"><span class="k"><kbd>?</kbd></span><span class="d">this overlay</span></div>
               </div>
             </div>
