@@ -20,8 +20,8 @@ export const BINDING_GROUPS: { title: string; bindings: Binding[] }[] = [
   {
     title: "navigate",
     bindings: [
-      { keys: "j / k", action: "move down / up" },
-      { keys: "gg / G", action: "jump to top / bottom" },
+      { keys: "j / k  ·  ↓ / ↑", action: "move down / up" },
+      { keys: "gg / G  ·  home / end", action: "jump to top / bottom" },
       { keys: "enter", action: "play from here" },
       { keys: "esc", action: "back" },
       { keys: "tab / shift+tab", action: "cycle panes" },

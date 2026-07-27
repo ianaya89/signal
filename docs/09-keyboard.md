@@ -83,8 +83,10 @@ Applies to Library nav, the track table, playlist lists, search results, and the
 | Key | Action |
 |---|---|
 | `j` / `k` | Move down / up |
+| `↓` / `↑` | Move down / up — same as `j`/`k`, for hands that never learned vim |
 | `gg` | Jump to top (sequence, see below) |
 | `G` | Jump to bottom |
+| `Home` / `End` | Jump to top / bottom |
 | `Ctrl+d` / `Ctrl+u` | Half-page down / up |
 | `Enter` | Open / play — expands a tree node in Library, plays a track in a track table, jump-plays in the queue |
 | `o` | Open containing folder in the OS file manager |

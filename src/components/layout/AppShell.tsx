@@ -112,6 +112,27 @@ export function AppShell() {
         case "k":
           currentListHandler()?.move?.(-1);
           break;
+        // arrows mirror j/k. preventDefault only when a list actually consumes
+        // them, so views without one (logs, settings) keep native scrolling.
+        case "ArrowDown":
+        case "ArrowUp": {
+          const move = currentListHandler()?.move;
+          if (move) {
+            e.preventDefault();
+            move(e.key === "ArrowDown" ? 1 : -1);
+          }
+          break;
+        }
+        case "Home":
+        case "End": {
+          const handler = currentListHandler();
+          const jump = e.key === "Home" ? handler?.top : handler?.bottom;
+          if (jump) {
+            e.preventDefault();
+            jump();
+          }
+          break;
+        }
         case "g":
           if (handleSequenceG() === "top") {
             currentListHandler()?.top?.();
