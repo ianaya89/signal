@@ -4,7 +4,7 @@
 # .github/workflows/release.yml — both upload to the same draft release.
 #
 # The dmg is self-contained: libmpv and its ffmpeg/libass tree are copied into
-# Signal.app/Contents/Frameworks and the install names rewritten, so it runs on
+# signal.app/Contents/Frameworks and the install names rewritten, so it runs on
 # Macs without Homebrew.
 #
 #   ./scripts/release-local.sh 0.2.0            # build only
@@ -36,7 +36,7 @@ done
 TAG="v${VERSION}"
 ARCH="$(uname -m)"          # arm64 | x86_64 — libmpv comes from Homebrew, which
                             # is single-arch, so no universal build here.
-APP_NAME="Signal"
+APP_NAME="signal"
 BUNDLE_DIR="target/release/bundle/macos"
 APP="${BUNDLE_DIR}/${APP_NAME}.app"
 DIST="dist-release"
@@ -75,6 +75,9 @@ say "installing frontend deps"
 pnpm install --frozen-lockfile
 
 say "building ${APP_NAME}.app (${ARCH})"
+# Wiped first because APFS is case-insensitive but case-preserving: a bundle dir
+# left over from the old "Signal.app" name would keep its capital S forever.
+rm -rf "$BUNDLE_DIR"
 # Only the .app here: the dmg is assembled after libmpv is bundled in, since
 # rewriting install names would invalidate a dmg built in the same pass.
 pnpm tauri build --bundles app
@@ -162,7 +165,7 @@ if [ "$PUBLISH" -eq 1 ]; then
   say "uploading to the ${TAG} draft release"
   if ! gh release view "$TAG" >/dev/null 2>&1; then
     gh release create "$TAG" --draft --title "signal ${VERSION}" \
-      --notes "See the assets below. macOS builds are unsigned unless noted — first launch needs a right-click → Open, or \`xattr -dr com.apple.quarantine /Applications/Signal.app\`."
+      --notes "See the assets below. macOS builds are unsigned unless noted — first launch needs a right-click → Open, or \`xattr -dr com.apple.quarantine /Applications/signal.app\`."
   fi
   gh release upload "$TAG" "$DMG" "${DMG}.sha256" --clobber
   gh release view "$TAG" --json url --jq .url

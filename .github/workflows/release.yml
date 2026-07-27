@@ -91,8 +91,8 @@ jobs:
           mkdir -p dist-release
           V="${{ steps.v.outputs.value }}"
           case "${{ matrix.bundles }}" in
-            deb) cp target/release/bundle/deb/*.deb "dist-release/Signal_${V}_amd64.deb" ;;
-            appimage) cp target/release/bundle/appimage/*.AppImage "dist-release/Signal_${V}_amd64.AppImage" ;;
+            deb) cp target/release/bundle/deb/*.deb "dist-release/signal_${V}_amd64.deb" ;;
+            appimage) cp target/release/bundle/appimage/*.AppImage "dist-release/signal_${V}_amd64.AppImage" ;;
           esac
           cd dist-release
           sha256sum ./* > "SHA256SUMS-${{ matrix.bundles }}-${V}.txt"

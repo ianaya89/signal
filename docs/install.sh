@@ -1,10 +1,10 @@
 #!/bin/sh
-# Signal installer — https://ianaya89.github.io/signal/
+# signal installer — https://ianaya89.github.io/signal/
 #
 #   curl -fsSL https://ianaya89.github.io/signal/install.sh | sh
 #
 # Downloads the latest release asset for this platform and installs it:
-#   macOS  → mounts the .dmg and copies Signal.app to /Applications
+#   macOS  → mounts the .dmg and copies signal.app to /Applications
 #   Linux  → .deb if apt is available, otherwise the AppImage into ~/.local/bin
 #
 # POSIX sh on purpose: this runs on whatever the user has.
@@ -33,7 +33,7 @@ say "looking up the latest release"
 JSON="$(curl -fsSL "$API" 2>/dev/null || true)"
 [ -n "$JSON" ] || die "no published release yet.
 
-Signal is pre-release: build it from source instead —
+signal is pre-release: build it from source instead —
   git clone https://github.com/${REPO} && cd signal
   mise trust && mise install && pnpm install
   brew install pkgconf mpv     # or: apt install libmpv-dev
@@ -72,21 +72,28 @@ Darwin)
   MNT="$(mktemp -d)"
   hdiutil attach -nobrowse -quiet -mountpoint "$MNT" "$TMP/signal.dmg"
 
+  # Releases up to v0.1.0 shipped the bundle as Signal.app, later ones as
+  # signal.app — take whatever the dmg actually contains.
+  SRC="$(find "$MNT" -maxdepth 1 -name '*.app' | head -1)"
+  [ -n "$SRC" ] || die "no .app inside the dmg"
+  APP="/Applications/$(basename "$SRC")"
+
   # Replace any previous install rather than merging two app bundles.
-  if [ -d /Applications/Signal.app ]; then
-    say "removing the previous /Applications/Signal.app"
-    rm -rf /Applications/Signal.app
-  fi
+  for prev in /Applications/Signal.app /Applications/signal.app; do
+    [ -d "$prev" ] || continue
+    say "removing the previous ${prev}"
+    rm -rf "$prev"
+  done
   say "copying to /Applications"
-  cp -R "$MNT/Signal.app" /Applications/
+  cp -R "$SRC" /Applications/
   hdiutil detach -quiet "$MNT" || true
   rmdir "$MNT" 2>/dev/null || true
 
   # The build is ad-hoc signed, so Gatekeeper would otherwise refuse it.
-  xattr -dr com.apple.quarantine /Applications/Signal.app 2>/dev/null || true
+  xattr -dr com.apple.quarantine "$APP" 2>/dev/null || true
 
-  say "installed ${BOLD}Signal ${TAG}${RESET} → /Applications/Signal.app"
-  echo "  open it with: open -a Signal"
+  say "installed ${BOLD}signal ${TAG}${RESET} → ${APP}"
+  echo "  open it with: open -a $(basename "$APP" .app)"
   ;;
 
 # -------------------------------------------------------------------- Linux
@@ -106,7 +113,7 @@ Linux)
     say "installing with apt (pulls in libmpv)"
     if [ "$(id -u)" -eq 0 ]; then SUDO=""; else SUDO="sudo"; fi
     if $SUDO apt-get install -y "$TMP/signal.deb"; then
-      say "installed ${BOLD}Signal ${TAG}${RESET} — launch it from your desktop menu"
+      say "installed ${BOLD}signal ${TAG}${RESET} — launch it from your desktop menu"
       exit 0
     fi
     # The .deb needs libmpv2, i.e. Ubuntu 24.04+ / Debian 13+. Older releases
@@ -124,7 +131,7 @@ Linux)
   curl -fL# -o "$DEST/signal-app" "$URL"
   chmod +x "$DEST/signal-app"
 
-  say "installed ${BOLD}Signal ${TAG}${RESET} → ${DEST}/signal-app"
+  say "installed ${BOLD}signal ${TAG}${RESET} → ${DEST}/signal-app"
   case ":$PATH:" in
     *":$DEST:"*) echo "  run it with: signal-app" ;;
     *) echo "  ${DEST} is not on your PATH — add it, or run ${DEST}/signal-app" ;;

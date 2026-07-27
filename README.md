@@ -83,7 +83,7 @@ scrobbling.
 curl -fsSL https://ianaya89.github.io/signal/install.sh | sh
 ```
 
-- **macOS 11+** (arm64 / x86_64) — mounts the `.dmg`, copies `Signal.app` to
+- **macOS 11+** (arm64 / x86_64) — mounts the `.dmg`, copies `signal.app` to
   `/Applications`, clears the quarantine flag. libmpv and its ffmpeg tree ride
   along inside the bundle, so Homebrew is not required.
 - **Ubuntu 24.04+ / Debian 13+** — installs the `.deb` via apt, which pulls `libmpv2`.
@@ -92,7 +92,7 @@ curl -fsSL https://ianaya89.github.io/signal/install.sh | sh
 
 Artifacts are also attached to every [release](https://github.com/ianaya89/signal/releases).
 macOS builds are ad-hoc signed, not notarized: a manual download needs
-right-click → Open once, or `xattr -dr com.apple.quarantine /Applications/Signal.app`.
+right-click → Open once, or `xattr -dr com.apple.quarantine /Applications/signal.app`.
 
 No release is published yet — until the first tag lands, the installer says so
 and points at the build steps below.
@@ -120,6 +120,13 @@ cargo clippy --workspace -- -D warnings
 cargo test --workspace
 ```
 
+The crate is `signal-app`, but macOS bundles ship the binary as `signal`
+(`src-tauri/tauri.macos.conf.json` sets `mainBinaryName`) — so a macOS
+`pnpm tauri build` overwrites `target/release/signal` with the app, where
+`cargo build --release -p signal-cli` puts the CLI. Rebuild the CLI after a
+bundle build. Linux keeps `signal-app` on purpose: the `.deb` would otherwise
+install `/usr/bin/signal` and collide with the CLI.
+
 ## Releasing
 
 The git tag is the single source of truth: `scripts/set-version.sh` writes it
@@ -141,7 +148,7 @@ dmg needs Homebrew's libmpv folded in anyway:
 ./scripts/release-local.sh 0.2.0 --publish
 ```
 
-That script builds `Signal.app` for the host architecture, runs `dylibbundler`
+That script builds `signal.app` for the host architecture, runs `dylibbundler`
 so libmpv and its ~48-library ffmpeg/libass tree live in
 `Contents/Frameworks`, checks that no `/opt/homebrew` path survived, signs
 (ad-hoc unless `APPLE_SIGNING_IDENTITY` is exported), assembles the `.dmg` with
@@ -157,7 +164,7 @@ publish it.
 
 ## CLI
 
-Signal is scriptable: the app exposes a Unix control socket speaking
+signal is scriptable: the app exposes a Unix control socket speaking
 newline-delimited JSON, and ships a `signal` CLI on top of it.
 
 ```sh
@@ -173,7 +180,7 @@ signal toggle | next | prev | stop | queue | search <query>
 ```
 
 Socket: `$SIGNAL_SOCKET` or the app data dir (`signal.sock`). Anything that
-can write JSON to a socket — Raycast, tmux, Stream Deck — can drive Signal.
+can write JSON to a socket — Raycast, tmux, Stream Deck — can drive signal.
 
 ## Keyboard
 
