@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ScanForm } from "@/components/library/ScanForm";
 import { CoverPlaceholder } from "@/components/ui/CoverPlaceholder";
@@ -9,6 +9,7 @@ import { EqBars } from "@/components/ui/HeartEqualizer";
 import { api } from "@/ipc/invoke";
 import type { AlbumSummary } from "@/ipc/types";
 import { artworkUrl } from "@/lib/artwork";
+import { registerListHandler } from "@/lib/keyboard";
 import { cn } from "@/lib/utils";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { usePlayerStore } from "@/stores/playerStore";
@@ -23,6 +24,13 @@ const SORTS: { key: AlbumSort; label: string }[] = [
   { key: "added", label: "recent" },
   { key: "name", label: "name" },
 ];
+
+/** Live column count of the auto-fill grid, so j/k step a whole row. */
+function gridColumns(el: HTMLElement | null): number {
+  if (!el) return 1;
+  const template = getComputedStyle(el).gridTemplateColumns;
+  return Math.max(template.split(" ").filter(Boolean).length, 1);
+}
 
 function sortAlbums(albums: AlbumSummary[], sort: AlbumSort): AlbumSummary[] {
   const sorted = [...albums];
@@ -47,6 +55,9 @@ export function AlbumsView() {
   const scanning = useScanStore((s) => s.scanning);
   const status = usePlayerStore((s) => s.status);
   const trackId = usePlayerStore((s) => s.trackId);
+  const navigate = useNavigate();
+  const [cursor, setCursor] = useState(0);
+  const gridRef = useRef<HTMLDivElement>(null);
   const [sort, setSort] = useState<AlbumSort>(
     () => (localStorage.getItem(SORT_KEY) as AlbumSort) || "artist",
   );
@@ -62,6 +73,50 @@ export function AlbumsView() {
   });
   const playingAlbumId =
     status !== "stopped" ? nowPlaying?.track.albumId : undefined;
+
+  const sorted = sortAlbums(albums ?? [], sort);
+  const sortedRef = useRef<AlbumSummary[]>(sorted);
+  sortedRef.current = sorted;
+  const cursorRef = useRef(cursor);
+  cursorRef.current = cursor;
+
+  useEffect(() => {
+    const step = (delta: number, byRow: boolean) =>
+      setCursor((c) => {
+        const size = byRow ? gridColumns(gridRef.current) : 1;
+        const next = Math.min(
+          Math.max(c + delta * size, 0),
+          Math.max(sortedRef.current.length - 1, 0),
+        );
+        gridRef.current?.children[next]?.scrollIntoView({ block: "nearest" });
+        return next;
+      });
+
+    return registerListHandler({
+      move: (delta) => step(delta, true),
+      moveCol: (delta) => step(delta, false),
+      top: () => setCursor(0),
+      bottom: () => setCursor(Math.max(sortedRef.current.length - 1, 0)),
+      open: () => {
+        const album = sortedRef.current[cursorRef.current];
+        if (album) {
+          void navigate({
+            to: "/albums/$albumId",
+            params: { albumId: String(album.id) },
+          });
+        }
+      },
+      stage: () => {
+        const album = sortedRef.current[cursorRef.current];
+        if (!album) return;
+        void api.getAlbum(album.id).then(async (detail) => {
+          for (const track of detail.tracks) {
+            await api.queueAdd(track.id);
+          }
+        });
+      },
+    });
+  }, [navigate]);
 
   if (isLoading) {
     return <p className="p-3 text-muted">loading…</p>;
@@ -97,13 +152,17 @@ export function AlbumsView() {
           </button>
         ))}
       </div>
-      <div className="grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3 overflow-auto p-3">
-        {sortAlbums(albums, sort).map((album) => (
+      <div
+        ref={gridRef}
+        className="grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3 overflow-auto p-3"
+      >
+        {sorted.map((album, i) => (
           <AlbumCard
             key={album.id}
             album={album}
             playing={album.id === playingAlbumId}
             animate={status === "playing"}
+            focused={i === cursor}
           />
         ))}
       </div>
@@ -115,10 +174,12 @@ function AlbumCard({
   album,
   playing,
   animate,
+  focused,
 }: {
   album: AlbumSummary;
   playing: boolean;
   animate: boolean;
+  focused: boolean;
 }) {
   const [artError, setArtError] = useState(false);
   const navigate = useNavigate();
@@ -135,7 +196,11 @@ function AlbumCard({
       <div
         className={cn(
           "relative aspect-square overflow-hidden border bg-raised",
-          playing ? "border-accent" : "border-subtle group-hover:border-focus",
+          focused
+            ? "border-focus ring-1 ring-focus"
+            : playing
+              ? "border-accent"
+              : "border-subtle group-hover:border-focus",
         )}
       >
         {album.artworkPath && !artError ? (

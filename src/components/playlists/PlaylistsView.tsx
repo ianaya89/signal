@@ -1,24 +1,72 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { SmartEditor } from "@/components/playlists/SmartEditor";
 import { EditableText } from "@/components/ui/EditableText";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
-import type { SmartRules } from "@/ipc/types";
+import type { PlaylistSummary, SmartRules } from "@/ipc/types";
+import { registerListHandler } from "@/lib/keyboard";
 import { pickM3u } from "@/lib/pickFolder";
+import { cn } from "@/lib/utils";
 import { toast } from "@/stores/toastStore";
 
 export function PlaylistsView() {
   useMainTitle("playlists");
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { data: playlists, isLoading } = useQuery({
     queryKey: ["playlists"],
     queryFn: api.playlistList,
   });
   const [name, setName] = useState("");
   const [smartOpen, setSmartOpen] = useState(false);
+  const [cursor, setCursor] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const smart = playlists?.filter((p) => p.smart) ?? [];
+  const statics = playlists?.filter((p) => !p.smart) ?? [];
+  // one flat cursor across both sections: smart first, then static
+  const ordered = [...smart, ...statics];
+  const orderedRef = useRef<PlaylistSummary[]>(ordered);
+  orderedRef.current = ordered;
+  const cursorRef = useRef(cursor);
+  cursorRef.current = cursor;
+
+  useEffect(() => {
+    const goTo = (index: number) => {
+      containerRef.current
+        ?.querySelector(`[data-idx="${index}"]`)
+        ?.scrollIntoView({ block: "nearest" });
+      return index;
+    };
+    return registerListHandler({
+      move: (delta) =>
+        setCursor((c) =>
+          goTo(
+            Math.min(
+              Math.max(c + delta, 0),
+              Math.max(orderedRef.current.length - 1, 0),
+            ),
+          ),
+        ),
+      top: () => setCursor(goTo(0)),
+      bottom: () => setCursor(goTo(Math.max(orderedRef.current.length - 1, 0))),
+      open: () => {
+        const playlist = orderedRef.current[cursorRef.current];
+        if (playlist) {
+          void navigate({
+            to: "/playlists/$kind/$playlistId",
+            params: {
+              kind: playlist.smart ? "smart" : "static",
+              playlistId: String(playlist.id),
+            },
+          });
+        }
+      },
+    });
+  }, [navigate]);
 
   const create = useMutation({
     mutationFn: (n: string) => api.playlistCreate(n),
@@ -43,11 +91,8 @@ export function PlaylistsView() {
     return <p className="p-3 text-muted">loading…</p>;
   }
 
-  const smart = playlists?.filter((p) => p.smart) ?? [];
-  const statics = playlists?.filter((p) => !p.smart) ?? [];
-
   return (
-    <div className="flex flex-col gap-3 p-3">
+    <div ref={containerRef} className="flex flex-col gap-3 p-3">
       <form
         className="flex gap-2"
         onSubmit={(e) => {
@@ -107,6 +152,9 @@ export function PlaylistsView() {
         title="smart"
         items={smart}
         smartBadge
+        indexOffset={0}
+        cursor={cursor}
+        onFocus={setCursor}
         onChanged={() =>
           void queryClient.invalidateQueries({ queryKey: ["playlists"] })
         }
@@ -114,6 +162,9 @@ export function PlaylistsView() {
       <Section
         title="playlists"
         items={statics}
+        indexOffset={smart.length}
+        cursor={cursor}
+        onFocus={setCursor}
         onChanged={() =>
           void queryClient.invalidateQueries({ queryKey: ["playlists"] })
         }
@@ -126,11 +177,17 @@ function Section({
   title,
   items,
   smartBadge = false,
+  indexOffset,
+  cursor,
+  onFocus,
   onChanged,
 }: {
   title: string;
   items: { id: number; name: string; trackCount: number; smart: boolean }[];
   smartBadge?: boolean;
+  indexOffset: number;
+  cursor: number;
+  onFocus: (index: number) => void;
   onChanged?: () => void;
 }) {
   const navigate = useNavigate();
@@ -141,19 +198,31 @@ function Section({
         {title}
       </h2>
       <ul className="flex flex-col gap-px">
-        {items.map((p) => (
-          <li key={`${p.smart}-${p.id}`} className="group flex items-center">
+        {items.map((p, i) => {
+          const index = indexOffset + i;
+          return (
+          <li
+            key={`${p.smart}-${p.id}`}
+            data-idx={index}
+            className="group flex items-center"
+          >
             <div
-              onClick={() =>
+              onClick={() => {
+                onFocus(index);
                 void navigate({
                   to: "/playlists/$kind/$playlistId",
                   params: {
                     kind: p.smart ? "smart" : "static",
                     playlistId: String(p.id),
                   },
-                })
-              }
-              className="flex h-7 min-w-0 flex-1 cursor-pointer items-center justify-between px-2 hover:bg-raised"
+                });
+              }}
+              className={cn(
+                "flex h-7 min-w-0 flex-1 cursor-pointer items-center justify-between border-l-2 px-2",
+                index === cursor
+                  ? "border-focus bg-raised"
+                  : "border-transparent hover:bg-raised/50",
+              )}
             >
               <span className="flex min-w-0 items-center gap-2">
                 {p.smart ? (
@@ -199,7 +268,8 @@ function Section({
               </button>
             )}
           </li>
-        ))}
+          );
+        })}
       </ul>
     </section>
   );

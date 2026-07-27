@@ -19,6 +19,8 @@ export const useKeyboardStore = create<KeyboardState>((set) => ({
 /// Actions a focused list view can respond to.
 export interface ListHandler {
   move?: (delta: 1 | -1) => void;
+  /** Grids only: h/l · ←/→ step sideways while move steps a whole row. */
+  moveCol?: (delta: 1 | -1) => void;
   top?: () => void;
   bottom?: () => void;
   open?: () => void;

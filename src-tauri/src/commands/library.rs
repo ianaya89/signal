@@ -275,6 +275,14 @@ pub async fn library_get_genre_tracks(
     state.db.tracks().list_by_genre(genre_id).await.db_err()
 }
 
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn library_list_favorites(
+    state: State<'_, AppState>,
+) -> Result<Vec<signal_core::Track>, SignalError> {
+    state.db.tracks().list_favorites().await.db_err()
+}
+
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FolderEntry {

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { NowPlayingLabel } from "@/components/player/TransportBar";
 import { api } from "@/ipc/invoke";
+import { dragWindow } from "@/lib/drag";
 import { useKeyboardStore } from "@/lib/keyboard";
 import { setWindowMode } from "@/lib/miniMode";
 import { installUpdate } from "@/lib/updater";
@@ -10,12 +11,17 @@ import { useScanStore } from "@/stores/scanStore";
 import { useUiStore } from "@/stores/uiStore";
 import { useUpdateStore } from "@/stores/updateStore";
 
+/** Top status strip: doubles as the window titlebar (macOS traffic lights sit
+ *  in the left inset), so it stays draggable on any inert spot. */
 export function StatusBar() {
   const { scanning, processed, total, currentPath, lastError, summary } =
     useScanStore();
 
   return (
-    <footer className="mx-2 mb-2 mt-1.5 flex h-7 shrink-0 items-center justify-between gap-4 border border-subtle bg-surface px-2 text-[11px]">
+    <header
+      onMouseDown={dragWindow}
+      className="flex h-9 shrink-0 select-none items-center justify-between gap-4 border-b border-subtle bg-surface pl-[76px] pr-3 text-[11px]"
+    >
       <NowPlayingLabel />
       {scanning ? (
         <span className="min-w-0 shrink-0 truncate text-accent">
@@ -63,7 +69,7 @@ export function StatusBar() {
         </button>
         <VersionLabel />
       </span>
-    </footer>
+    </header>
   );
 }
 
@@ -100,7 +106,7 @@ function VersionLabel() {
     );
   }
 
-  return <span className="text-muted">signal v{info?.version ?? "—"}</span>;
+  return <span className="text-muted">v{info?.version ?? "—"}</span>;
 }
 
 function PaneToggles() {

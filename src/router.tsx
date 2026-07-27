@@ -11,6 +11,7 @@ import { ArtistDetailView } from "@/components/library/ArtistDetailView";
 import { ArtistsView } from "@/components/library/ArtistsView";
 import { DiscoverView } from "@/components/discover/DiscoverView";
 import { DoctorView } from "@/components/doctor/DoctorView";
+import { FavoritesView } from "@/components/library/FavoritesView";
 import { FoldersView } from "@/components/library/FoldersView";
 import { GenreDetailView, GenresView } from "@/components/library/GenresView";
 import { LogViewer } from "@/components/logs/LogViewer";
@@ -44,6 +45,12 @@ const artistDetailRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/artists/$artistId",
   component: ArtistDetailView,
+});
+
+const favoritesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/favorites",
+  component: FavoritesView,
 });
 
 const searchRoute = createRoute({
@@ -117,6 +124,7 @@ const routeTree = rootRoute.addChildren([
   albumDetailRoute,
   artistsRoute,
   artistDetailRoute,
+  favoritesRoute,
   searchRoute,
   statsRoute,
   logsRoute,

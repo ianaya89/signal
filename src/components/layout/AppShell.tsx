@@ -7,17 +7,11 @@ import { InspectorPane } from "@/components/layout/InspectorPane";
 import { LibraryNav } from "@/components/layout/LibraryNav";
 import { Pane } from "@/components/layout/Pane";
 import { StatusBar } from "@/components/layout/StatusBar";
+import { TransportDock } from "@/components/layout/TransportDock";
 import { CommandPalette } from "@/components/palette/CommandPalette";
 import { DotPlayer } from "@/components/player/DotPlayer";
 import { MiniPlayer } from "@/components/player/MiniPlayer";
-import {
-  ModeButtons,
-  Timeline,
-  TransportControls,
-  VolumeSlider,
-} from "@/components/player/TransportBar";
 import { QueuePanel } from "@/components/queue/QueuePanel";
-import { HeartEqualizer } from "@/components/ui/HeartEqualizer";
 import { Toasts } from "@/components/ui/Toasts";
 import { TooltipLayer } from "@/components/ui/TooltipLayer";
 import { api } from "@/ipc/invoke";
@@ -28,9 +22,7 @@ import {
   ratingArmed,
   useKeyboardStore,
 } from "@/lib/keyboard";
-import { dragWindow } from "@/lib/drag";
 import { exitDotMode, setWindowMode } from "@/lib/miniMode";
-import { cn } from "@/lib/utils";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useUiStore } from "@/stores/uiStore";
 
@@ -123,6 +115,21 @@ export function AppShell() {
           }
           break;
         }
+        case "h":
+          currentListHandler()?.moveCol?.(-1);
+          break;
+        case "l":
+          currentListHandler()?.moveCol?.(1);
+          break;
+        case "ArrowLeft":
+        case "ArrowRight": {
+          const moveCol = currentListHandler()?.moveCol;
+          if (moveCol) {
+            e.preventDefault();
+            moveCol(e.key === "ArrowRight" ? 1 : -1);
+          }
+          break;
+        }
         case "Home":
         case "End": {
           const handler = currentListHandler();
@@ -167,6 +174,9 @@ export function AppShell() {
           break;
         case "D":
           void navigate({ to: "/discover" });
+          break;
+        case "F":
+          void navigate({ to: "/favorites" });
           break;
         case "M":
           void setWindowMode("mini");
@@ -255,7 +265,7 @@ export function AppShell() {
 
   return (
     <div className="relative flex h-full flex-col">
-      <TitleBar />
+      <StatusBar />
       {/* 8px outer margin keeps square pane corners clear of the native
           window's rounded corners */}
       <div className="flex min-h-0 flex-1 px-2 pt-1.5">
@@ -296,7 +306,7 @@ export function AppShell() {
           </>
         )}
       </div>
-      <StatusBar />
+      <TransportDock />
       <CommandPalette />
       <HelpOverlay />
       <MetadataDialog />
@@ -342,45 +352,5 @@ function Resizer({ pane }: { pane: "library" | "inspector" }) {
     >
       <div className="h-10 w-0.5 bg-subtle group-hover:bg-accent" />
     </div>
-  );
-}
-
-/** Integrated titlebar mirroring the pane columns: brand block sits over
- *  the library pane, core transport + timeline over the main pane.
- *  Drags anywhere inert. */
-function TitleBar() {
-  const status = usePlayerStore((s) => s.status);
-  const libraryVisible = useUiStore((s) => s.libraryVisible);
-  const libraryWidth = useUiStore((s) => s.libraryWidth);
-
-  return (
-    <header
-      onMouseDown={dragWindow}
-      className="flex h-9 shrink-0 select-none items-center border-b border-subtle bg-surface pl-2 pr-3"
-    >
-      <span
-        className="pointer-events-none flex shrink-0 items-center gap-1.5 pl-[76px] text-[11px]"
-        style={{
-          width: libraryVisible ? Math.max(libraryWidth + 4, 176) : undefined,
-        }}
-      >
-        <HeartEqualizer size={16} playing={status === "playing"} />
-        <span className="text-accent">❯</span>{" "}
-        <span className="text-secondary">signal</span>
-      </span>
-      <span
-        className={cn(
-          "flex min-w-0 flex-1 items-center gap-3 text-[13px]",
-          !libraryVisible && "pl-4",
-        )}
-      >
-        <TransportControls />
-        <Timeline className="flex-1" />
-        <span className="flex shrink-0 items-center gap-3 text-[11px]">
-          <ModeButtons />
-          <VolumeSlider />
-        </span>
-      </span>
-    </header>
   );
 }

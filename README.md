@@ -217,7 +217,7 @@ Press `?` in-app for the live registry ([`src/lib/bindings.ts`](src/lib/bindings
 
 | Playback | | Navigate | |
 |---|---|---|---|
-| `space` | play / pause | `j` `k` | move down / up |
+| `space` | play / pause | `j` `k` · `h` `l` | move down / up · sideways (album grid) |
 | `{` `}` | previous / next track | `gg` `G` | jump to top / bottom |
 | `[` `]` | seek −5s / +5s | `enter` | play from here |
 | `=` `-` | volume up / down | `esc` | back |
@@ -230,7 +230,7 @@ Press `?` in-app for the live registry ([`src/lib/bindings.ts`](src/lib/bindings
 | `f` | toggle favorite | `M` | mini player |
 | `r` then `0`–`5` | rate track (`0` clears) | `P` | pulse mode |
 | `/` | search | `1` `2` `3` | focus library / main / inspector |
-| `ctrl+p` · `cmd+k` | command palette | `S` `L` `D` | stats / logs / discover |
+| `ctrl+p` · `cmd+k` | command palette | `S` `L` `D` `F` | stats / logs / discover / favorites |
 
 ## Design docs
 

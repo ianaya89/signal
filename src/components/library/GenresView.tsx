@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
@@ -8,15 +8,53 @@ import { useMainTitle } from "@/hooks/useMainTitle";
 import { useMultiSelect } from "@/hooks/useMultiSelect";
 import { useVirtualWindow } from "@/hooks/useVirtualWindow";
 import { api } from "@/ipc/invoke";
-import type { Track } from "@/ipc/types";
+import type { GenreSummary, Track } from "@/ipc/types";
 import { registerListHandler } from "@/lib/keyboard";
+import { cn } from "@/lib/utils";
 
 export function GenresView() {
   useMainTitle("genres");
+  const navigate = useNavigate();
+  const [cursor, setCursor] = useState(0);
+  const listRef = useRef<HTMLDivElement>(null);
   const { data: genres, isLoading } = useQuery({
     queryKey: ["genres"],
     queryFn: api.listGenres,
   });
+
+  const genresRef = useRef<GenreSummary[]>(genres ?? []);
+  genresRef.current = genres ?? [];
+  const cursorRef = useRef(cursor);
+  cursorRef.current = cursor;
+
+  useEffect(() => {
+    const goTo = (index: number) => {
+      listRef.current?.children[index]?.scrollIntoView({ block: "nearest" });
+      return index;
+    };
+    return registerListHandler({
+      move: (delta) =>
+        setCursor((c) =>
+          goTo(
+            Math.min(
+              Math.max(c + delta, 0),
+              Math.max(genresRef.current.length - 1, 0),
+            ),
+          ),
+        ),
+      top: () => setCursor(goTo(0)),
+      bottom: () => setCursor(goTo(Math.max(genresRef.current.length - 1, 0))),
+      open: () => {
+        const genre = genresRef.current[cursorRef.current];
+        if (genre) {
+          void navigate({
+            to: "/genres/$genreId",
+            params: { genreId: String(genre.id) },
+          });
+        }
+      },
+    });
+  }, [navigate]);
 
   if (isLoading) {
     return <p className="p-3 text-muted">loading…</p>;
@@ -28,13 +66,19 @@ export function GenresView() {
   const max = genres[0]?.trackCount ?? 1;
 
   return (
-    <div className="flex flex-col gap-px py-1">
-      {genres.map((genre) => (
+    <div ref={listRef} className="flex flex-col gap-px py-1">
+      {genres.map((genre, i) => (
         <Link
           key={genre.id}
           to="/genres/$genreId"
           params={{ genreId: String(genre.id) }}
-          className="group flex h-7 items-center gap-3 px-3 hover:bg-raised"
+          onClick={() => setCursor(i)}
+          className={cn(
+            "group flex h-7 items-center gap-3 border-l-2 px-3",
+            i === cursor
+              ? "border-focus bg-raised"
+              : "border-transparent hover:bg-raised/50",
+          )}
         >
           <span className="w-40 shrink-0 truncate text-[12px] text-primary group-hover:text-accent">
             {genre.name}
@@ -58,6 +102,7 @@ export function GenreDetailView() {
   const { genreId } = useParams({ from: "/genres/$genreId" });
   const id = Number(genreId);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [cursor, setCursor] = useState(0);
 
   const { data: genres } = useQuery({ queryKey: ["genres"], queryFn: api.listGenres });
@@ -106,6 +151,22 @@ export function GenreDetailView() {
       stage: () => {
         const track = tracksRef.current[cursorRef.current];
         if (track) void api.queueAdd(track.id);
+      },
+      fav: () => {
+        const track = tracksRef.current[cursorRef.current];
+        if (track) {
+          void api
+            .toggleFavorite(track.id)
+            .then(() => queryClient.invalidateQueries());
+        }
+      },
+      rate: (rating) => {
+        const track = tracksRef.current[cursorRef.current];
+        if (track) {
+          void api
+            .setRating(track.id, rating)
+            .then(() => queryClient.invalidateQueries());
+        }
       },
       back: () => {
         if (selectedRef.current.size > 0) {

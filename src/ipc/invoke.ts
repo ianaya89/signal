@@ -76,6 +76,7 @@ export type IpcCommand =
   | "queue_add_next"
   | "library_list_genres"
   | "library_get_genre_tracks"
+  | "library_list_favorites"
   | "reveal_in_file_manager"
   | "library_browse_folder"
   | "session_restore"
@@ -185,6 +186,7 @@ export const api = {
   listGenres: () => ipc<GenreSummary[]>("library_list_genres"),
   genreTracks: (genreId: number) =>
     ipc<Track[]>("library_get_genre_tracks", { genreId }),
+  listFavorites: () => ipc<Track[]>("library_list_favorites"),
   revealFile: (path: string) => ipc<void>("reveal_in_file_manager", { path }),
   browseFolder: (path?: string) =>
     ipc<FolderListing>("library_browse_folder", { path }),

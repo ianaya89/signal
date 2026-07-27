@@ -57,6 +57,11 @@ export function FoldersView() {
     }
   };
 
+  const trackAtCursor = () => {
+    const s = stateRef.current;
+    return s.tracks[s.cursor - s.dirs.length];
+  };
+
   const goUp = () => {
     const s = stateRef.current;
     if (!s.path || !s.root || s.path === s.root) return false;
@@ -84,10 +89,24 @@ export function FoldersView() {
         ),
       open: () => enterAt(stateRef.current.cursor),
       stage: () => {
-        const s = stateRef.current;
-        const trackIdx = s.cursor - s.dirs.length;
-        const track = s.tracks[trackIdx];
+        const track = trackAtCursor();
         if (track) void api.queueAdd(track.id);
+      },
+      fav: () => {
+        const track = trackAtCursor();
+        if (track) {
+          void api
+            .toggleFavorite(track.id)
+            .then(() => queryClient.invalidateQueries());
+        }
+      },
+      rate: (rating) => {
+        const track = trackAtCursor();
+        if (track) {
+          void api
+            .setRating(track.id, rating)
+            .then(() => queryClient.invalidateQueries());
+        }
       },
       back: () => {
         goUp();

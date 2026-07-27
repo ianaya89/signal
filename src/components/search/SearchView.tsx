@@ -5,7 +5,7 @@ import { EditableText } from "@/components/ui/EditableText";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { fmtDuration, fmtQuality, isHires, isLossy } from "@/lib/format";
-import { useKeyboardStore } from "@/lib/keyboard";
+import { registerListHandler, useKeyboardStore } from "@/lib/keyboard";
 import { cn } from "@/lib/utils";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { usePlayerStore } from "@/stores/playerStore";
@@ -14,7 +14,9 @@ export function SearchView() {
   useMainTitle("search");
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
+  const [cursor, setCursor] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
   const mode = useKeyboardStore((s) => s.mode);
   const setMode = useKeyboardStore((s) => s.setMode);
 
@@ -39,6 +41,56 @@ export function SearchView() {
     enabled: debounced.trim().length > 0,
     placeholderData: (prev) => prev,
   });
+
+  const resultsRef = useRef<Track[]>(results ?? []);
+  resultsRef.current = results ?? [];
+  const cursorRef = useRef(cursor);
+  cursorRef.current = cursor;
+
+  useEffect(() => {
+    setCursor(0);
+  }, [debounced]);
+
+  useEffect(() => {
+    const playFrom = (index: number) => {
+      const ids = resultsRef.current.map((t) => t.id);
+      if (ids.length > 0) void api.playContext(ids, index);
+    };
+    return registerListHandler({
+      move: (delta) =>
+        setCursor((c) =>
+          Math.min(
+            Math.max(c + delta, 0),
+            Math.max(resultsRef.current.length - 1, 0),
+          ),
+        ),
+      top: () => setCursor(0),
+      bottom: () => setCursor(Math.max(resultsRef.current.length - 1, 0)),
+      open: () => playFrom(cursorRef.current),
+      stage: () => {
+        const track = resultsRef.current[cursorRef.current];
+        if (track) void api.queueAdd(track.id);
+      },
+      fav: () => {
+        const track = resultsRef.current[cursorRef.current];
+        if (track) {
+          void api
+            .toggleFavorite(track.id)
+            .then(() => queryClient.invalidateQueries());
+        }
+      },
+      rate: (rating) => {
+        const track = resultsRef.current[cursorRef.current];
+        if (track) {
+          void api
+            .setRating(track.id, rating)
+            .then(() => queryClient.invalidateQueries());
+        }
+      },
+      // esc from the results goes back to the query box
+      back: () => inputRef.current?.focus(),
+    });
+  }, [queryClient]);
 
   return (
     <div className="flex h-full flex-col">
@@ -73,6 +125,8 @@ export function SearchView() {
                 <ResultRow
                   key={track.id}
                   track={track}
+                  selected={i === cursor}
+                  onSelect={() => setCursor(i)}
                   onPlay={() =>
                     void api.playContext(
                       results.map((t) => t.id),
@@ -89,19 +143,44 @@ export function SearchView() {
   );
 }
 
-function ResultRow({ track, onPlay }: { track: Track; onPlay: () => void }) {
+function ResultRow({
+  track,
+  selected,
+  onSelect,
+  onPlay,
+}: {
+  track: Track;
+  selected: boolean;
+  onSelect: () => void;
+  onPlay: () => void;
+}) {
   const t = track.technical;
   const playing = usePlayerStore((s) => s.trackId === track.id);
   const queryClient = useQueryClient();
+  const ref = useRef<HTMLTableRowElement>(null);
+
+  useEffect(() => {
+    if (selected) ref.current?.scrollIntoView({ block: "nearest" });
+  }, [selected]);
+
   return (
     <tr
+      ref={ref}
+      onClick={onSelect}
       onDoubleClick={onPlay}
-      className={cn("h-7 hover:bg-raised", playing ? "bg-raised" : undefined)}
+      className={cn(
+        "h-7 cursor-default",
+        selected ? "bg-raised" : playing ? "bg-raised" : "hover:bg-raised/50",
+      )}
     >
       <td
         className={cn(
           "w-6 border-l-2 pl-2 text-[11px]",
-          playing ? "border-accent text-accent" : "border-transparent text-muted",
+          playing
+            ? "border-accent text-accent"
+            : selected
+              ? "border-focus text-secondary"
+              : "border-transparent text-muted",
         )}
       >
         {playing ? "▶" : ""}

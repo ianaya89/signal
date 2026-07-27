@@ -77,6 +77,12 @@ export function CommandPalette() {
         run: () => navigate({ to: "/artists" }),
       },
       {
+        id: "favorites",
+        label: "go to favorites",
+        hint: "F",
+        run: () => navigate({ to: "/favorites" }),
+      },
+      {
         id: "search",
         label: "go to search",
         hint: "/",

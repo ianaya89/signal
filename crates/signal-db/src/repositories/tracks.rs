@@ -135,6 +135,17 @@ impl TrackRepo {
         rows.iter().map(track_from_row).collect()
     }
 
+    pub async fn list_favorites(&self) -> sqlx::Result<Vec<Track>> {
+        let rows = sqlx::query(
+            "SELECT * FROM tracks
+             WHERE favorite = 1
+             ORDER BY artist_id, album_id, disc_no, track_no",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        rows.iter().map(track_from_row).collect()
+    }
+
     /// Tracks directly inside `dir` (not in subdirectories).
     pub async fn list_in_dir(&self, dir: &str) -> sqlx::Result<Vec<Track>> {
         let prefix = format!("{}/", dir.trim_end_matches('/'));

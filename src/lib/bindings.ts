@@ -21,6 +21,7 @@ export const BINDING_GROUPS: { title: string; bindings: Binding[] }[] = [
     title: "navigate",
     bindings: [
       { keys: "j / k  ·  ↓ / ↑", action: "move down / up" },
+      { keys: "h / l  ·  ← / →", action: "move sideways (album grid)" },
       { keys: "gg / G  ·  home / end", action: "jump to top / bottom" },
       { keys: "enter", action: "play from here" },
       { keys: "esc", action: "back" },
@@ -29,6 +30,7 @@ export const BINDING_GROUPS: { title: string; bindings: Binding[] }[] = [
       { keys: "/", action: "search" },
       { keys: "ctrl+p / cmd+k", action: "command palette" },
       { keys: "S / L / D", action: "stats / logs / discover" },
+      { keys: "F", action: "favorites" },
     ],
   },
   {
