@@ -22,9 +22,30 @@ ORIGINAL="$(find "$BUNDLE" -maxdepth 1 -name '*.AppImage' -type f | head -1)"
 LIBDIR="${APPDIR}/usr/lib"
 mkdir -p "$LIBDIR"
 
-MPV="$(pkg-config --variable=libdir mpv)/libmpv.so.2"
-[ -f "$MPV" ] || MPV="$(ldconfig -p | awk '/libmpv\.so\.2/ {print $NF; exit}')"
-[ -f "$MPV" ] || { echo "error: libmpv.so.2 not found" >&2; exit 1; }
+# Never hardcode the soname: jammy ships libmpv.so.1 (mpv 0.34) and noble
+# libmpv.so.2 (0.37), so ask the binary what it actually linked against.
+APP_BIN="$(find "${APPDIR}/usr/bin" -maxdepth 1 -type f -perm -111 2>/dev/null | head -1)"
+MPV=""
+if [ -n "$APP_BIN" ]; then
+  MPV="$(ldd "$APP_BIN" | awk '/libmpv\.so/ {print $3; exit}')"
+fi
+if [ -z "$MPV" ] || [ ! -f "$MPV" ]; then
+  MPV="$(ldconfig -p | awk '/libmpv\.so\.[0-9]/ {print $NF; exit}')"
+fi
+if [ -z "$MPV" ] || [ ! -f "$MPV" ]; then
+  MPV="$(find "$(pkg-config --variable=libdir mpv 2>/dev/null || echo /usr/lib)" \
+    -maxdepth 2 -name 'libmpv.so.[0-9]*' 2>/dev/null | head -1)"
+fi
+[ -n "$MPV" ] && [ -f "$MPV" ] || { echo "error: no libmpv.so.N found on this host" >&2; exit 1; }
+
+SONAME="$(basename "$MPV")"
+echo "bundling ${SONAME} from ${MPV}"
+
+# linuxdeploy may already have caught it; then there is nothing left to do.
+if [ -f "${LIBDIR}/${SONAME}" ]; then
+  echo "${SONAME} is already inside the AppDir — leaving the AppImage as built"
+  exit 0
+fi
 
 # Anything provided by every glibc system stays out: bundling these is the
 # classic way to make an AppImage crash on a newer host.
@@ -42,8 +63,8 @@ copy_closure() {
   done < <(ldd "$lib" | awk '{print $1, $3}')
 }
 
-cp -L "$MPV" "${LIBDIR}/libmpv.so.2"
-copy_closure "${LIBDIR}/libmpv.so.2"
+cp -L "$MPV" "${LIBDIR}/${SONAME}"
+copy_closure "${LIBDIR}/${SONAME}"
 echo "AppDir now carries $(find "$LIBDIR" -name '*.so*' | wc -l | tr -d ' ') shared libraries"
 
 # appimagetool repacks the AppDir as it stands; linuxdeploy would re-run its own

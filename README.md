@@ -1,6 +1,8 @@
 <div align="center">
 
-<img src="docs/assets/cover.png" alt="signal — the lazygit of music players" />
+<img src="docs/assets/logo.svg" alt="" width="88" height="88" />
+
+# signal
 
 <br />
 
@@ -22,7 +24,7 @@ no telemetry, no Electron — just your files, one SQLite database, and a UI den
 enough to actually show what's going on.
 
 <div align="center">
-  <img src="docs/assets/app.png" alt="Three-pane layout: library, track table with codec badges, inspector with the audio chain, and the queue" />
+  <img src="docs/assets/cover.png" alt="signal — the lazygit of music players" />
 </div>
 
 ## Why
