@@ -204,9 +204,10 @@ impl StatsRepo {
 
     /// Recommendation shelves from listening signal — plain SQL, no ML.
     pub async fn discover(&self, per_shelf: i64) -> sqlx::Result<Discover> {
-        let track_rows = |rows: Vec<sqlx::sqlite::SqliteRow>| -> sqlx::Result<Vec<signal_core::Track>> {
-            rows.iter().map(crate::row::track_from_row).collect()
-        };
+        let track_rows =
+            |rows: Vec<sqlx::sqlite::SqliteRow>| -> sqlx::Result<Vec<signal_core::Track>> {
+                rows.iter().map(crate::row::track_from_row).collect()
+            };
 
         let on_repeat = track_rows(
             sqlx::query(

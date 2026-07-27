@@ -1,4 +1,4 @@
-//! Optional online artwork fetch: MusicBrainz release search feeding the
+//! Optional online artwork fetch: `MusicBrainz` release search feeding the
 //! Cover Art Archive. Strictly user-triggered (doctor button) — the app
 //! never phones home on its own.
 
@@ -12,7 +12,7 @@ const USER_AGENT: &str = "signal-player/0.1 (https://github.com/ianaya89/signal)
 const BATCH: i64 = 15;
 
 /// Tries to fetch missing covers for the most recently added albums
-/// without artwork (capped batch, ~1 req/s — MusicBrainz rate limit).
+/// without artwork (capped batch, ~1 req/s — `MusicBrainz` rate limit).
 /// Returns how many albums gained artwork.
 #[tauri::command]
 #[tracing::instrument(skip(state))]
