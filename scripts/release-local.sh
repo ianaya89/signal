@@ -94,6 +94,27 @@ dylibbundler \
   --search-path /opt/homebrew/lib \
   --search-path /usr/local/lib
 
+# dyld on macOS 15+ aborts at launch when a Mach-O carries the same LC_RPATH
+# twice, and dylibbundler adds @executable_path/../Frameworks to libs that were
+# already built with it (libmpv is one). Collapse the repeats.
+say "de-duplicating LC_RPATH entries"
+dedupe_rpaths() {
+  local file="$1" path count
+  while read -r path count; do
+    [ -n "$path" ] || continue
+    while [ "$count" -gt 1 ]; do
+      install_name_tool -delete_rpath "$path" "$file" 2>/dev/null
+      count=$((count - 1))
+    done
+    echo "  ${file##*/}: collapsed duplicate rpath ${path}"
+  done < <(otool -l "$file" | awk '/cmd LC_RPATH/{getline;getline;print $2}' |
+    sort | uniq -cd | awk '{print $2, $1}')
+}
+dedupe_rpaths "$EXE"
+while IFS= read -r dylib; do
+  dedupe_rpaths "$dylib"
+done < <(find "${APP}/Contents/Frameworks" -name '*.dylib')
+
 # A leftover absolute Homebrew path means the app only runs on this machine.
 if otool -L "$EXE" | grep -qE '/(opt/homebrew|usr/local)/'; then
   otool -L "$EXE" | grep -E '/(opt/homebrew|usr/local)/' >&2
