@@ -1,0 +1,96 @@
+name: release
+
+# Linux artifacts only. The macOS .dmg is built locally via
+# ./scripts/release-local.sh --publish (GitHub's macOS runners bill at 10x, and
+# the dmg needs Homebrew's libmpv bundled in anyway). Both paths upload to the
+# same draft release, which you then publish by hand.
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "version to build, e.g. 0.2.0 (tag vX.Y.Z must exist)"
+        required: true
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: v
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            echo "value=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+            echo "tag=v${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install system dependencies
+        # libmpv-dev brings libmpv.so + its pkg-config file, which
+        # crates/signal-player/build.rs needs to resolve the link path.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev \
+            libssl-dev libayatana-appindicator3-dev librsvg2-dev \
+            libmpv-dev pkg-config
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Write version into the manifests
+        # The tag is the source of truth — same script the local release uses.
+        run: ./scripts/set-version.sh "${{ steps.v.outputs.value }}"
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build .deb and AppImage
+        run: pnpm tauri build --bundles deb,appimage
+
+      - name: Bundle libmpv into the AppImage
+        run: ./scripts/appimage-bundle-mpv.sh
+
+      - name: Collect artifacts
+        id: artifacts
+        run: |
+          mkdir -p dist-release
+          V="${{ steps.v.outputs.value }}"
+          cp target/release/bundle/deb/*.deb "dist-release/Signal_${V}_amd64.deb"
+          cp target/release/bundle/appimage/*.AppImage "dist-release/Signal_${V}_amd64.AppImage"
+          cd dist-release
+          sha256sum ./* > "SHA256SUMS-linux-${V}.txt"
+          ls -lh
+
+      - name: Upload to the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.v.outputs.tag }}"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --draft --title "signal ${{ steps.v.outputs.value }}" \
+              --notes-file .github/release-notes-template.md
+          fi
+          gh release upload "$TAG" dist-release/* --clobber
+          gh release view "$TAG" --json url --jq .url
