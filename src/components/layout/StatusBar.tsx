@@ -1,9 +1,14 @@
+import { useQuery } from "@tanstack/react-query";
+
 import { NowPlayingLabel } from "@/components/player/TransportBar";
+import { api } from "@/ipc/invoke";
 import { useKeyboardStore } from "@/lib/keyboard";
 import { setWindowMode } from "@/lib/miniMode";
+import { installUpdate } from "@/lib/updater";
 import { cn } from "@/lib/utils";
 import { useScanStore } from "@/stores/scanStore";
 import { useUiStore } from "@/stores/uiStore";
+import { useUpdateStore } from "@/stores/updateStore";
 
 export function StatusBar() {
   const { scanning, processed, total, currentPath, lastError, summary } =
@@ -56,10 +61,46 @@ export function StatusBar() {
         >
           ?
         </button>
-        <span className="text-muted">signal v0.1.0</span>
+        <VersionLabel />
       </span>
     </footer>
   );
+}
+
+function VersionLabel() {
+  const { data: info } = useQuery({
+    queryKey: ["app-info"],
+    queryFn: api.appInfo,
+    staleTime: Infinity,
+  });
+  const status = useUpdateStore((s) => s.status);
+  const version = useUpdateStore((s) => s.version);
+  const downloaded = useUpdateStore((s) => s.downloaded);
+  const total = useUpdateStore((s) => s.total);
+
+  if (status === "downloading") {
+    const pct = total ? Math.round((downloaded / total) * 100) : null;
+    return (
+      <span className="text-accent">
+        updating{pct === null ? "…" : ` ${pct}%`}
+      </span>
+    );
+  }
+
+  if (status === "available" && version) {
+    return (
+      <button
+        type="button"
+        onClick={() => void installUpdate()}
+        title={`install v${version} and restart`}
+        className="text-accent hover:underline"
+      >
+        ↑ v{version}
+      </button>
+    );
+  }
+
+  return <span className="text-muted">signal v{info?.version ?? "—"}</span>;
 }
 
 function PaneToggles() {

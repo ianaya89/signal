@@ -28,6 +28,14 @@
       "csp": null
     }
   },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/ianaya89/signal/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDYzMUUyMzZCNEI0OUVCMTMKUldRVDYwbExheU1lWTkxaG9naGRTZmxRdk4xRVZMbEEzWVBSNXFVWWszenhISURYeUtzUnU4R0cK"
+    }
+  },
   "bundle": {
     "active": true,
     "targets": [

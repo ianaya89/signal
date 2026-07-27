@@ -1,6 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 
 import { onSignalEvent } from "@/ipc/events";
+import { startupUpdateCheck } from "@/lib/updater";
 import type {
   ScannerDoneEvent,
   ScannerErrorEvent,
@@ -26,6 +27,8 @@ export function bootstrapEvents(queryClient: QueryClient) {
   if (!("__TAURI_INTERNALS__" in window)) {
     return; // plain-browser dev: no tauri runtime, no events
   }
+
+  startupUpdateCheck();
 
   // restore persisted theme without re-persisting it
   void api

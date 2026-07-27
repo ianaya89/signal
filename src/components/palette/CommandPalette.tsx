@@ -5,6 +5,7 @@ import { api } from "@/ipc/invoke";
 import { useKeyboardStore } from "@/lib/keyboard";
 import { setWindowMode } from "@/lib/miniMode";
 import { pickFolder } from "@/lib/pickFolder";
+import { checkForUpdate, installUpdate } from "@/lib/updater";
 import { cn } from "@/lib/utils";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useScanStore } from "@/stores/scanStore";
@@ -113,6 +114,18 @@ export function CommandPalette() {
         label: "go to discover",
         hint: "D",
         run: () => navigate({ to: "/discover" }),
+      },
+      {
+        id: "check-updates",
+        label: "check for updates",
+        run: async () => {
+          await checkForUpdate();
+        },
+      },
+      {
+        id: "install-update",
+        label: "install update + restart",
+        run: () => installUpdate(),
       },
       {
         id: "edit-config",

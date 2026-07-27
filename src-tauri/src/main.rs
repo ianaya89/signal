@@ -41,6 +41,8 @@ fn main() {
 
     let result = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(move |app| {
             let data_dir = app.path().app_data_dir()?;
             let cache_dir = app.path().app_cache_dir()?;

@@ -24,6 +24,8 @@ reqwest = { workspace = true }
 toml = "0.8"
 tauri = { workspace = true }
 tauri-plugin-dialog = "2"
+tauri-plugin-process = "2"
+tauri-plugin-updater = "2"
 tokio = { workspace = true }
 sqlx = { workspace = true }
 serde = { workspace = true }

@@ -13,6 +13,21 @@ pub struct AppInfo {
     pub cache_dir: String,
     pub library_root: Option<String>,
     pub track_count: i64,
+    pub updatable: bool,
+}
+
+/// Whether this install can replace itself. The updater rewrites the .app on
+/// macOS and the running `AppImage` on Linux; a .deb install has neither, and
+/// apt owns that upgrade path anyway.
+fn updatable() -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        std::env::var_os("APPIMAGE").is_some()
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        true
+    }
 }
 
 /// Opens config.toml in the OS default editor.
@@ -42,5 +57,6 @@ pub async fn app_info(state: State<'_, AppState>) -> Result<AppInfo, SignalError
         cache_dir: state.config.cache_dir.to_string_lossy().into_owned(),
         library_root: state.db.settings().get("library.root").await.db_err()?,
         track_count: state.db.tracks().count().await.db_err()?,
+        updatable: updatable(),
     })
 }

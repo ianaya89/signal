@@ -5,11 +5,13 @@ import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { ReplayGainMode } from "@/ipc/types";
 import { pickFolder, pickSavePath } from "@/lib/pickFolder";
+import { checkForUpdate, installUpdate, setAutoCheck } from "@/lib/updater";
 import { cn } from "@/lib/utils";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useScanStore } from "@/stores/scanStore";
 import { toast } from "@/stores/toastStore";
 import { useUiStore } from "@/stores/uiStore";
+import { useUpdateStore } from "@/stores/updateStore";
 
 const RG_MODES: ReplayGainMode[] = ["off", "track", "album"];
 
@@ -158,6 +160,7 @@ export function SettingsView() {
         <Row label="version">
           <span className="text-[11px] text-secondary">signal v{info?.version}</span>
         </Row>
+        <UpdateRows updatable={info?.updatable ?? false} />
         <Row label="database">
           <button
             type="button"
@@ -185,6 +188,68 @@ export function SettingsView() {
         </Row>
       </Section>
     </div>
+  );
+}
+
+function UpdateRows({ updatable }: { updatable: boolean }) {
+  const { status, version, autoCheck, error, downloaded, total } = useUpdateStore();
+  const pct = total ? Math.round((downloaded / total) * 100) : null;
+
+  if (!updatable) {
+    return (
+      <Row label="updates">
+        <span className="text-[11px] text-muted">
+          handled by your package manager
+        </span>
+      </Row>
+    );
+  }
+
+  return (
+    <>
+      <Row label="updates">
+        <span
+          className={cn(
+            "min-w-0 flex-1 truncate text-[11px]",
+            status === "error" ? "text-error" : "text-secondary",
+          )}
+        >
+          {status === "checking" && "checking…"}
+          {status === "available" && `v${version} available`}
+          {status === "downloading" && `downloading${pct === null ? "…" : ` ${pct}%`}`}
+          {status === "ready" && "installed — restart to apply"}
+          {status === "error" && error}
+          {status === "idle" && "up to date"}
+        </span>
+        {status === "available" ? (
+          <button
+            type="button"
+            onClick={() => void installUpdate()}
+            className={cn(BTN, "text-accent")}
+          >
+            install + restart
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => void checkForUpdate()}
+            disabled={status === "checking" || status === "downloading"}
+            className={cn(BTN, "disabled:opacity-50")}
+          >
+            check now
+          </button>
+        )}
+      </Row>
+      <Row label="on launch">
+        <button
+          type="button"
+          onClick={() => void setAutoCheck(!autoCheck)}
+          className={cn(BTN, autoCheck ? "bg-raised text-accent" : undefined)}
+        >
+          {autoCheck ? "check automatically" : "never check"}
+        </button>
+      </Row>
+    </>
   );
 }
 

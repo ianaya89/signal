@@ -171,6 +171,7 @@ export interface AppInfo {
   cacheDir: string;
   libraryRoot: string | null;
   trackCount: number;
+  updatable: boolean;
 }
 
 export interface SmartCondition {
