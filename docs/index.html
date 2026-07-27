@@ -17,8 +17,16 @@
       property="og:description"
       content="Keyboard-first, bit-perfect, local-first Hi-Fi music player. Rust + Tauri. No Electron, no cloud, no account, no telemetry."
     />
-    <meta property="og:url" content="https://ianaya89.github.io/rocola/" />
+    <meta property="og:url" content="https://ianaya89.github.io/signal/" />
+    <meta
+      property="og:image"
+      content="https://ianaya89.github.io/signal/assets/cover.png"
+    />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:image"
+      content="https://ianaya89.github.io/signal/assets/cover.png"
+    />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -470,6 +478,44 @@
         margin: 10px 0 0;
         font-size: 11px;
         color: var(--text-muted);
+      }
+      .cta-note code {
+        font: inherit;
+        color: var(--text-secondary);
+      }
+
+      /* the install one-liner: the hero's primary call to action */
+      .install {
+        margin: 26px 0 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 8px 0 10px;
+        height: 40px;
+        background: var(--bg-surface);
+        border: 1px solid var(--accent-dim);
+        box-shadow: inset 0 0 0 1px
+          color-mix(in srgb, var(--accent) 8%, transparent);
+      }
+      .install-prompt {
+        color: var(--accent);
+        flex: none;
+      }
+      .install code {
+        font: inherit;
+        font-size: 12.5px;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow-x: auto;
+        flex: 1;
+        scrollbar-width: none;
+      }
+      .install code::-webkit-scrollbar {
+        display: none;
+      }
+      .install .copy {
+        flex: none;
+        height: 22px;
       }
 
       /* boot log block */
@@ -1004,6 +1050,64 @@
         }
       }
 
+      /* ============================================================
+         ?shot= mode — isolates one block so scripts/make-images.sh can
+         render the README / OG images straight from this page
+         ============================================================ */
+      body[data-shot] {
+        padding: 40px;
+        overflow: visible;
+      }
+      body[data-shot="app"] {
+        width: max-content;
+      }
+      body[data-shot="app"] .shot {
+        box-shadow: none;
+      }
+      body[data-shot="cover"] {
+        width: 1280px;
+        height: 520px;
+        padding: 0;
+        overflow: hidden;
+        position: relative;
+      }
+      .cover-text {
+        position: absolute;
+        z-index: 2;
+        left: 64px;
+        top: 50%;
+        translate: 0 -50%;
+        width: 620px;
+      }
+      /* the poster carries the identity; instructions live on the page itself */
+      .cover-text .cta,
+      .cover-text .cta-note,
+      .cover-text .install {
+        display: none;
+      }
+      .cover-text .lede {
+        max-width: 52ch;
+      }
+      .cover-text .hero-mark {
+        gap: 18px;
+      }
+      .cover-text h1 .caret {
+        display: none;
+      }
+      .cover-shot {
+        position: absolute;
+        left: 596px;
+        top: 40px;
+        width: 1180px;
+        transform: scale(0.72);
+        transform-origin: top left;
+        mask-image: linear-gradient(to right, transparent 0, #000 9%);
+      }
+      .cover-shot .shot {
+        min-width: 0;
+        box-shadow: 0 30px 90px -30px rgba(0, 0, 0, 0.8);
+      }
+
       @media (max-width: 540px) {
         .hero-mark > .heart {
           transform: scale(0.62);
@@ -1050,14 +1154,14 @@
         <a href="#why">why</a>
         <a href="#keys">keyboard</a>
         <a href="#cli">cli</a>
-        <a href="#build">build</a>
+        <a href="#install">install</a>
       </nav>
       <div class="top-right">
         <button class="icon-btn" id="theme" type="button" aria-pressed="false">
           <span id="theme-glyph">◐</span>
           <span id="theme-label">manila</span>
         </button>
-        <a class="icon-btn" href="https://github.com/ianaya89/rocola">github ↗</a>
+        <a class="icon-btn" href="https://github.com/ianaya89/signal">github ↗</a>
       </div>
     </header>
 
@@ -1089,16 +1193,34 @@
               <li><s>subscription</s></li>
             </ul>
 
-            <div class="cta">
-              <a class="btn btn-primary" href="#build">build from source →</a>
-              <span class="btn" aria-disabled="true" role="link" title="no release cut yet — build from source for now">
-                download · macos <span class="soon">soon</span>
-              </span>
-              <a class="btn" href="https://github.com/ianaya89/rocola">★ star on github</a>
+            <div class="install">
+              <span class="install-prompt" aria-hidden="true">$</span>
+              <code id="install-cmd"
+                >curl -fsSL https://ianaya89.github.io/signal/install.sh |
+                sh</code
+              >
+              <button class="copy" type="button" data-copy="#install-cmd">
+                copy
+              </button>
             </div>
             <p class="cta-note">
-              Rust + Tauri v2 · libmpv · SQLite/FTS5 · macOS &amp; Linux ·
-              v0.1.0, pre-release
+              macOS 11+ (arm64 · x86_64) → <code>/Applications</code> ·
+              Linux x86_64 → <code>.deb</code> or AppImage. libmpv travels with
+              the app; nothing else to install.
+            </p>
+
+            <div class="cta">
+              <a
+                class="btn btn-primary"
+                href="https://github.com/ianaya89/signal/releases/latest"
+                >releases ↗</a
+              >
+              <a class="btn" href="#build">build from source →</a>
+              <a class="btn" href="https://github.com/ianaya89/signal">★ star</a>
+            </div>
+            <p class="cta-note">
+              Pre-release: no binaries published yet — until the first tag lands
+              the installer says so and points you at the build steps.
             </p>
           </div>
 
@@ -1627,6 +1749,68 @@
         </section>
 
         <!-- ==================== build ==================== -->
+        <section id="install">
+          <div class="sec-head">
+            <h2>install</h2>
+            <p>one line, or a file from the releases page</p>
+          </div>
+
+          <div class="cards">
+            <div class="pane rise">
+              <div class="pane-bar">
+                <span>sh <span class="dim">· installer</span></span>
+                <button class="copy" type="button" data-copy="#install-code">
+                  copy
+                </button>
+              </div>
+              <div class="pane-body">
+<pre id="install-code"><span class="p">$</span> curl -fsSL https://ianaya89.github.io/signal/install.sh | sh</pre>
+                <ul
+                  style="
+                    margin: 10px 0 0;
+                    padding: 0;
+                    list-style: none;
+                    font-size: 11.5px;
+                    color: var(--text-muted);
+                  "
+                >
+                  <li>· macOS — mounts the dmg, copies Signal.app to /Applications, clears the quarantine flag</li>
+                  <li>· Debian/Ubuntu — installs the .deb through apt, which pulls libmpv</li>
+                  <li>· other Linux — drops the AppImage in ~/.local/bin/signal-app</li>
+                  <li>· no release published yet? it says so and prints the build steps</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="pane rise">
+              <div class="pane-bar">
+                <span>artifacts</span><span class="dim">per release</span>
+              </div>
+              <div class="pane-body">
+                <div class="kv" style="font-size: 12px">
+                  <div><span>macOS</span><span>.dmg · arm64 / x86_64</span></div>
+                  <div><span>Debian</span><span>.deb · amd64</span></div>
+                  <div><span>Linux</span><span>.AppImage · amd64</span></div>
+                  <div><span>checksums</span><span>SHA256SUMS</span></div>
+                </div>
+                <p
+                  style="
+                    margin: 10px 0 0;
+                    font-size: 11.5px;
+                    color: var(--text-muted);
+                  "
+                >
+                  The dmg carries libmpv and its ffmpeg tree inside
+                  <code>Contents/Frameworks</code>, so it runs without Homebrew.
+                  It is ad-hoc signed, not notarized — the installer strips the
+                  quarantine attribute for you; a manual download needs
+                  right-click → Open once.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section id="build">
           <div class="sec-head">
             <h2>build it</h2>
@@ -1640,8 +1824,8 @@
                 <button class="copy" type="button" data-copy="#build-code">copy</button>
               </div>
               <div class="pane-body">
-<pre id="build-code"><span class="p">$</span> git clone https://github.com/ianaya89/rocola
-<span class="p">$</span> cd rocola
+<pre id="build-code"><span class="p">$</span> git clone https://github.com/ianaya89/signal
+<span class="p">$</span> cd signal
 
 <span class="c"># rust toolchain via mise, + libmpv</span>
 <span class="p">$</span> mise trust &amp;&amp; mise install
@@ -1698,16 +1882,16 @@
             <div class="pane-body" style="padding: 4px 8px">
               <table class="docs-tbl">
                 <tbody>
-                  <tr><td><a href="https://github.com/ianaya89/rocola/blob/main/docs/01-architecture.md">01 — architecture</a></td><td>components, threads, event bus, error strategy</td></tr>
-                  <tr><td><a href="https://github.com/ianaya89/rocola/blob/main/docs/02-workspace.md">02 — workspace</a></td><td>cargo layout, crates, dependency rules</td></tr>
-                  <tr><td><a href="https://github.com/ianaya89/rocola/blob/main/docs/03-database-schema.md">03 — database</a></td><td>full DDL, fts5, smart playlist rules</td></tr>
-                  <tr><td><a href="https://github.com/ianaya89/rocola/blob/main/docs/04-player-libmpv.md">04 — player</a></td><td>mpv wrapper, gapless, bit-perfect detection</td></tr>
-                  <tr><td><a href="https://github.com/ianaya89/rocola/blob/main/docs/05-ipc-api.md">05 — ipc api</a></td><td>command catalog, events, DTOs, artwork</td></tr>
-                  <tr><td><a href="https://github.com/ianaya89/rocola/blob/main/docs/06-frontend.md">06 — frontend</a></td><td>routing, Query vs Zustand, event bridge</td></tr>
-                  <tr><td><a href="https://github.com/ianaya89/rocola/blob/main/docs/07-roadmap.md">07 — roadmap</a></td><td>milestones M0–M5, exit criteria, risks</td></tr>
-                  <tr><td><a href="https://github.com/ianaya89/rocola/blob/main/docs/08-plugins.md">08 — plugins</a></td><td>plugin trait, tiers, MPRIS / Last.fm sketches</td></tr>
-                  <tr><td><a href="https://github.com/ianaya89/rocola/blob/main/docs/09-keyboard.md">09 — keyboard</a></td><td>mode stack, binding tables, rebinding</td></tr>
-                  <tr><td><a href="https://github.com/ianaya89/rocola/blob/main/docs/10-design-system.md">10 — design system</a></td><td>palette, type, density, motion rules</td></tr>
+                  <tr><td><a href="https://github.com/ianaya89/signal/blob/main/docs/01-architecture.md">01 — architecture</a></td><td>components, threads, event bus, error strategy</td></tr>
+                  <tr><td><a href="https://github.com/ianaya89/signal/blob/main/docs/02-workspace.md">02 — workspace</a></td><td>cargo layout, crates, dependency rules</td></tr>
+                  <tr><td><a href="https://github.com/ianaya89/signal/blob/main/docs/03-database-schema.md">03 — database</a></td><td>full DDL, fts5, smart playlist rules</td></tr>
+                  <tr><td><a href="https://github.com/ianaya89/signal/blob/main/docs/04-player-libmpv.md">04 — player</a></td><td>mpv wrapper, gapless, bit-perfect detection</td></tr>
+                  <tr><td><a href="https://github.com/ianaya89/signal/blob/main/docs/05-ipc-api.md">05 — ipc api</a></td><td>command catalog, events, DTOs, artwork</td></tr>
+                  <tr><td><a href="https://github.com/ianaya89/signal/blob/main/docs/06-frontend.md">06 — frontend</a></td><td>routing, Query vs Zustand, event bridge</td></tr>
+                  <tr><td><a href="https://github.com/ianaya89/signal/blob/main/docs/07-roadmap.md">07 — roadmap</a></td><td>milestones M0–M5, exit criteria, risks</td></tr>
+                  <tr><td><a href="https://github.com/ianaya89/signal/blob/main/docs/08-plugins.md">08 — plugins</a></td><td>plugin trait, tiers, MPRIS / Last.fm sketches</td></tr>
+                  <tr><td><a href="https://github.com/ianaya89/signal/blob/main/docs/09-keyboard.md">09 — keyboard</a></td><td>mode stack, binding tables, rebinding</td></tr>
+                  <tr><td><a href="https://github.com/ianaya89/signal/blob/main/docs/10-design-system.md">10 — design system</a></td><td>palette, type, density, motion rules</td></tr>
                 </tbody>
               </table>
             </div>
@@ -1733,7 +1917,7 @@
                 </p>
               </div>
               <div class="cta" style="margin: 0">
-                <a class="btn btn-primary" href="https://github.com/ianaya89/rocola">github ↗</a>
+                <a class="btn btn-primary" href="https://github.com/ianaya89/signal">github ↗</a>
                 <a class="btn" href="#build">build steps</a>
               </div>
             </div>
@@ -1743,9 +1927,9 @@
         <footer>
           <span>signal · v0.1.0 · local-first by construction</span>
           <span class="links">
-            <a href="https://github.com/ianaya89/rocola">source</a>
-            <a href="https://github.com/ianaya89/rocola/issues">issues</a>
-            <a href="https://github.com/ianaya89/rocola/blob/main/docs/07-roadmap.md">roadmap</a>
+            <a href="https://github.com/ianaya89/signal">source</a>
+            <a href="https://github.com/ianaya89/signal/issues">issues</a>
+            <a href="https://github.com/ianaya89/signal/blob/main/docs/07-roadmap.md">roadmap</a>
           </span>
         </footer>
       </div>
@@ -1909,6 +2093,29 @@
           }
         });
       });
+
+      // ===== ?shot=cover|app — image generator hook =====
+      // The README banner and the OG image are rendered from this page rather
+      // than maintained as separate art, so they cannot drift from the design
+      // system. See scripts/make-images.sh.
+      const shot = new URLSearchParams(location.search).get("shot");
+      if (shot === "cover" || shot === "app") {
+        const hero = document.querySelector(".hero > div");
+        const mock = document.querySelector("#screen .shot");
+        if (shot === "app") {
+          document.body.replaceChildren(mock);
+        } else {
+          const text = document.createElement("div");
+          text.className = "cover-text";
+          text.append(hero);
+          const art = document.createElement("div");
+          art.className = "cover-shot";
+          art.append(mock);
+          document.body.replaceChildren(text, art);
+        }
+        document.body.dataset.shot = shot;
+        document.querySelectorAll(".rise").forEach((el) => el.classList.add("in"));
+      }
 
       // ===== keyboard easter egg: the landing answers to app keys =====
       addEventListener("keydown", (e) => {

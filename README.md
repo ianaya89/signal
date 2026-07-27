@@ -1,13 +1,8 @@
 <div align="center">
 
-<img src="docs/assets/logo.svg" width="88" alt="" />
+<img src="docs/assets/cover.png" alt="signal — the lazygit of music players" />
 
-# signal
-
-**The LazyGit of music players.**
-
-An open-source desktop Hi-Fi music player for developers, audiophiles and power users.<br />
-Keyboard-first, bit-perfect, local-first, scriptable.
+<br />
 
 [![rust](https://img.shields.io/badge/rust-1.82+-8286f5?style=flat-square&logo=rust&logoColor=white)](https://www.rust-lang.org)
 [![tauri](https://img.shields.io/badge/tauri-v2-8286f5?style=flat-square&logo=tauri&logoColor=white)](https://v2.tauri.app)
@@ -16,7 +11,7 @@ Keyboard-first, bit-perfect, local-first, scriptable.
 [![platform](https://img.shields.io/badge/platform-macOS%20%C2%B7%20Linux-63678f?style=flat-square)](#development)
 [![status](https://img.shields.io/badge/status-pre--release%20v0.1.0-e0af68?style=flat-square)](docs/07-roadmap.md)
 
-[**Website**](https://ianaya89.github.io/rocola/) · [Design docs](#design-docs) · [Keyboard](#keyboard) · [CLI](#cli) · [Roadmap](docs/07-roadmap.md)
+[**Website**](https://ianaya89.github.io/signal/) · [Design docs](#design-docs) · [Keyboard](#keyboard) · [CLI](#cli) · [Roadmap](docs/07-roadmap.md)
 
 </div>
 
@@ -26,25 +21,9 @@ Not another Apple Music clone. Not another Plexamp clone. No cloud, no account,
 no telemetry, no Electron — just your files, one SQLite database, and a UI dense
 enough to actually show what's going on.
 
-```
-┌─ library ──────────────┬─ bocanada (1999) ───────────────── focused ─┬─ inspector ───────────────┐
-│ + albums               │  #  title            time   codec       *   │ codec         FLAC        │
-│ - artists            3 │  1  tabú             4:12   [24/96]     ·   │ quality       24/96       │
-│     Charly García      │ >2  bocanada         5:33   [24/96]    **   │ replaygain    -6.2 dB     │
-│   > Gustavo Cerati     │  3  verbo carne      4:47   [24/96]     *   │ peak          -0.4 dBFS   │
-│     Soda Stereo        │  4  puente           4:05   [24/96]     ·   │ [BIT-PERFECT]             │
-│ + genres               │  5  engaña           3:58   [FLAC]      ·   │                           │
-│ + playlists            │  6  río babel        6:21   [MP3]       *   │ file    FLAC · 24/96 · 2ch│
-│ * discover             │  7  beautiful        4:29   [24/96]     ·   │ decode  s32 @ 96kHz       │
-│ + folders              │  8  paseo inmoral    3:41   [24/96]     ·   │ dsp     bypass            │
-│ + stats                │  9  alma             5:07   [FLAC]      *   │ output  s32 @ 96kHz       │
-│                        │                                             │ device  Scarlett 2i2      │
-│                        │                                             ├─ queue ───────────────── 4┤
-│                        │                                             │ > bocanada          4:33  │
-│                        │                                             │ 2 verbo carne       4:47  │
-└────────────────────────┴─────────────────────────────────────────────┴───────────────────────────┘
- > bocanada — Gustavo Cerati  [──────●───────────]  1:47/5:33  vol 72%  tab: panes · /: search · ?: help
-```
+<div align="center">
+  <img src="docs/assets/app.png" alt="Three-pane layout: library, track table with codec badges, inspector with the audio chain, and the queue" />
+</div>
 
 ## Why
 
@@ -96,6 +75,25 @@ scrobbling.
 | Frontend | React 19, TypeScript, TailwindCSS 4, TanStack Router/Query, Zustand, uPlot |
 | Crates | `signal-core` · `-db` · `-player` · `-scanner` · `-search` · `-plugins` · `-cli` |
 
+## Install
+
+```sh
+curl -fsSL https://ianaya89.github.io/signal/install.sh | sh
+```
+
+- **macOS 11+** (arm64 / x86_64) — mounts the `.dmg`, copies `Signal.app` to
+  `/Applications`, clears the quarantine flag. libmpv and its ffmpeg tree ride
+  along inside the bundle, so Homebrew is not required.
+- **Debian / Ubuntu** — installs the `.deb` via apt, which pulls `libmpv`.
+- **Other Linux (x86_64)** — drops the AppImage at `~/.local/bin/signal-app`.
+
+Artifacts are also attached to every [release](https://github.com/ianaya89/signal/releases).
+macOS builds are ad-hoc signed, not notarized: a manual download needs
+right-click → Open once, or `xattr -dr com.apple.quarantine /Applications/Signal.app`.
+
+No release is published yet — until the first tag lands, the installer says so
+and points at the build steps below.
+
 ## Development
 
 Rust toolchain is managed by [mise](https://mise.jdx.dev) (`mise.toml`).
@@ -119,8 +117,38 @@ cargo clippy --workspace -- -D warnings
 cargo test --workspace
 ```
 
-No release binaries yet — build from source, and open an issue when something
-breaks.
+## Releasing
+
+The git tag is the single source of truth: `scripts/set-version.sh` writes it
+into `Cargo.toml`, `src-tauri/tauri.conf.json` and `package.json` at build time,
+so no manual pre-tag bump is needed.
+
+```sh
+git tag v0.2.0 && git push origin v0.2.0
+```
+
+That tag starts [`.github/workflows/release.yml`](.github/workflows/release.yml),
+which builds the Linux `.deb` and AppImage on `ubuntu-22.04` and opens a **draft**
+release. macOS is built locally — GitHub's macOS runners bill at 10x, and the
+dmg needs Homebrew's libmpv folded in anyway:
+
+```sh
+./scripts/release-local.sh 0.2.0 --publish
+```
+
+That script builds `Signal.app` for the host architecture, runs `dylibbundler`
+so libmpv and its ~48-library ffmpeg/libass tree live in
+`Contents/Frameworks`, checks that no `/opt/homebrew` path survived, signs
+(ad-hoc unless `APPLE_SIGNING_IDENTITY` is exported), assembles the `.dmg` with
+`hdiutil`, and uploads it to the same draft release. Review the draft, then
+publish it.
+
+| Script | Does |
+|---|---|
+| [`scripts/set-version.sh`](scripts/set-version.sh) | Writes a version into every manifest |
+| [`scripts/release-local.sh`](scripts/release-local.sh) | macOS `.dmg`, self-contained, optional upload |
+| [`scripts/appimage-bundle-mpv.sh`](scripts/appimage-bundle-mpv.sh) | Folds libmpv into the AppImage in CI and repacks it |
+| [`scripts/make-images.sh`](scripts/make-images.sh) | Re-renders the README/OG images from `docs/index.html` |
 
 ## CLI
 
