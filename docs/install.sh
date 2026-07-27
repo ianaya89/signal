@@ -104,13 +104,14 @@ Linux)
     say "downloading ${DIM}$(basename "$URL")${RESET}"
     curl -fL# -o "$TMP/signal.deb" "$URL"
     say "installing with apt (pulls in libmpv)"
-    if [ "$(id -u)" -eq 0 ]; then
-      apt-get install -y "$TMP/signal.deb"
-    else
-      sudo apt-get install -y "$TMP/signal.deb"
+    if [ "$(id -u)" -eq 0 ]; then SUDO=""; else SUDO="sudo"; fi
+    if $SUDO apt-get install -y "$TMP/signal.deb"; then
+      say "installed ${BOLD}Signal ${TAG}${RESET} — launch it from your desktop menu"
+      exit 0
     fi
-    say "installed ${BOLD}Signal ${TAG}${RESET} — launch it from your desktop menu"
-    exit 0
+    # The .deb needs libmpv2, i.e. Ubuntu 24.04+ / Debian 13+. Older releases
+    # ship libmpv1 and get the self-contained AppImage instead.
+    say "apt declined the .deb — falling back to the AppImage"
   fi
 
   URL="$(asset_url 'amd64\.AppImage$')"

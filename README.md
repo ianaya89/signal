@@ -84,8 +84,9 @@ curl -fsSL https://ianaya89.github.io/signal/install.sh | sh
 - **macOS 11+** (arm64 / x86_64) — mounts the `.dmg`, copies `Signal.app` to
   `/Applications`, clears the quarantine flag. libmpv and its ffmpeg tree ride
   along inside the bundle, so Homebrew is not required.
-- **Debian / Ubuntu** — installs the `.deb` via apt, which pulls `libmpv`.
-- **Other Linux (x86_64)** — drops the AppImage at `~/.local/bin/signal-app`.
+- **Ubuntu 24.04+ / Debian 13+** — installs the `.deb` via apt, which pulls `libmpv2`.
+- **Other Linux (x86_64)** — drops the self-contained AppImage at
+  `~/.local/bin/signal-app`; libmpv rides along, so older releases work too.
 
 Artifacts are also attached to every [release](https://github.com/ianaya89/signal/releases).
 macOS builds are ad-hoc signed, not notarized: a manual download needs
@@ -127,9 +128,11 @@ so no manual pre-tag bump is needed.
 git tag v0.2.0 && git push origin v0.2.0
 ```
 
-That tag starts [`.github/workflows/release.yml`](.github/workflows/release.yml),
-which builds the Linux `.deb` and AppImage on `ubuntu-22.04` and opens a **draft**
-release. macOS is built locally — GitHub's macOS runners bill at 10x, and the
+That tag starts [`.github/workflows/release.yml`](.github/workflows/release.yml)
+and opens a **draft** release. The `.deb` is built on `ubuntu-24.04` because it
+links the host's libmpv and must match the `libmpv2` it declares; the AppImage
+is built on `ubuntu-22.04`, which only sets its glibc floor since libmpv travels
+inside it. macOS is built locally — GitHub's macOS runners bill at 10x, and the
 dmg needs Homebrew's libmpv folded in anyway:
 
 ```sh

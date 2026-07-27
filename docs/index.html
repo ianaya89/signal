@@ -1775,7 +1775,7 @@
                   "
                 >
                   <li>· macOS — mounts the dmg, copies Signal.app to /Applications, clears the quarantine flag</li>
-                  <li>· Debian/Ubuntu — installs the .deb through apt, which pulls libmpv</li>
+                  <li>· Ubuntu 24.04+ / Debian 13+ — installs the .deb through apt, which pulls libmpv2</li>
                   <li>· other Linux — drops the AppImage in ~/.local/bin/signal-app</li>
                   <li>· no release published yet? it says so and prints the build steps</li>
                 </ul>
@@ -1789,8 +1789,8 @@
               <div class="pane-body">
                 <div class="kv" style="font-size: 12px">
                   <div><span>macOS</span><span>.dmg · arm64 / x86_64</span></div>
-                  <div><span>Debian</span><span>.deb · amd64</span></div>
-                  <div><span>Linux</span><span>.AppImage · amd64</span></div>
+                  <div><span>Debian</span><span>.deb · ubuntu 24.04+</span></div>
+                  <div><span>Linux</span><span>.AppImage · glibc 2.35+</span></div>
                   <div><span>checksums</span><span>SHA256SUMS</span></div>
                 </div>
                 <p

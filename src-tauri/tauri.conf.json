@@ -44,7 +44,7 @@
       "icons/icon.ico"
     ],
     "category": "Music",
-    "copyright": "Copyright © 2026 Ignacio Anaya — GPL-3.0-or-later",
+    "copyright": "Copyright \u00a9 2026 Ignacio Anaya \u2014 GPL-3.0-or-later",
     "shortDescription": "Keyboard-first, bit-perfect Hi-Fi music player",
     "longDescription": "An open-source desktop Hi-Fi music player for developers, audiophiles and power users: dense keyboard-driven UI, bit-perfect playback through libmpv, a local SQLite library, and a Unix control socket with a CLI on top.",
     "licenseFile": "../LICENSE",
@@ -54,7 +54,7 @@
     "linux": {
       "deb": {
         "depends": [
-          "libmpv2 | libmpv1",
+          "libmpv2",
           "libwebkit2gtk-4.1-0",
           "libgtk-3-0"
         ]

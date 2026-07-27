@@ -11,11 +11,13 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: install tauri system deps
+        # libmpv-dev is what lets the test binaries link: clippy only type-checks,
+        # so a missing -lmpv stays invisible until `cargo test` reaches the linker.
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl \
             wget file libxdo-dev libssl-dev libayatana-appindicator3-dev \
-            librsvg2-dev
+            librsvg2-dev libmpv-dev pkg-config
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
