@@ -158,9 +158,38 @@ publish it.
 | Script | Does |
 |---|---|
 | [`scripts/set-version.sh`](scripts/set-version.sh) | Writes a version into every manifest |
-| [`scripts/release-local.sh`](scripts/release-local.sh) | macOS `.dmg`, self-contained, optional upload |
+| [`scripts/release-local.sh`](scripts/release-local.sh) | macOS `.dmg` + updater bundle, self-contained, optional upload |
+| [`scripts/update-manifest.sh`](scripts/update-manifest.sh) | Builds `latest.json` from a release's signatures |
 | [`scripts/appimage-bundle-mpv.sh`](scripts/appimage-bundle-mpv.sh) | Folds libmpv into the AppImage in CI and repacks it |
 | [`scripts/make-images.sh`](scripts/make-images.sh) | Re-renders the README/OG images from `docs/index.html` |
+
+### Updates
+
+The app checks
+`releases/latest/download/latest.json` on launch (opt out in settings, or run
+`check for updates` from the palette) and installs in place: the macOS
+`.app.tar.gz` replaces the bundle, the AppImage overwrites itself. `.deb`
+installs are left to apt.
+
+Every updatable artifact carries a minisign `.sig` verified against
+`plugins.updater.pubkey`. Signing happens *after* libmpv is folded in — the
+bundler's own `createUpdaterArtifacts` would sign a build that cannot start —
+so `release-local.sh` tars and signs the finished bundle, and the AppImage leg
+signs the repacked image.
+
+```sh
+pnpm tauri signer generate -w ~/.tauri/signal-updater.key   # once
+```
+
+The private key stays local (`TAURI_SIGNING_PRIVATE_KEY_PATH` overrides the
+default path) and lives in CI as the `TAURI_SIGNING_PRIVATE_KEY` secret; the
+public half is in `src-tauri/tauri.conf.json`. Rotating it means every older
+install stops updating, so it is effectively permanent.
+
+`latest.json` is regenerated from whatever signatures the release already has,
+which is why it runs at the end of the macOS leg — after the Linux jobs have
+uploaded theirs. Publish the draft only once it is attached: clients read the
+manifest from the *latest published* release.
 
 ## CLI
 

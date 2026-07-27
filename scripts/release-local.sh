@@ -157,8 +157,27 @@ hdiutil create -volname "${APP_NAME} ${VERSION}" -srcfolder "$STAGE" \
 rm -rf "$STAGE"
 
 shasum -a 256 "$DMG" | tee "${DMG}.sha256"
+
+# ----------------------------------------------------------- updater bundle
+# Built here rather than by `createUpdaterArtifacts`, because the bundler would
+# archive the .app before dylibbundler folds libmpv in — an update to a build
+# that cannot start.
+say "packaging + signing the updater artifact"
+KEY_PATH="${TAURI_SIGNING_PRIVATE_KEY_PATH:-${HOME}/.tauri/signal-updater.key}"
+[ -f "$KEY_PATH" ] || die "no updater signing key at ${KEY_PATH}
+  generate one with: pnpm tauri signer generate -w ${KEY_PATH}
+  (then put the public key in src-tauri/tauri.conf.json → plugins.updater.pubkey)"
+TGZ="${DIST}/${APP_NAME}_${VERSION}_${ARCH}.app.tar.gz"
+# COPYFILE_DISABLE keeps bsdtar from writing AppleDouble ._ files into the
+# archive; they unseal the code signature once the updater extracts it.
+COPYFILE_DISABLE=1 tar -czf "$TGZ" -C "$BUNDLE_DIR" "${APP_NAME}.app"
+rm -f "${TGZ}.sig"
+pnpm tauri signer sign -f "$KEY_PATH" \
+  -p "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" "$TGZ" >/dev/null
+[ -s "${TGZ}.sig" ] || die "signing produced no ${TGZ}.sig"
+
 echo
-ls -lh "$DMG"
+ls -lh "$DMG" "$TGZ"
 
 # ----------------------------------------------------------------- publish
 if [ "$PUBLISH" -eq 1 ]; then
@@ -167,10 +186,15 @@ if [ "$PUBLISH" -eq 1 ]; then
     gh release create "$TAG" --draft --title "signal ${VERSION}" \
       --notes "See the assets below. macOS builds are unsigned unless noted — first launch needs a right-click → Open, or \`xattr -dr com.apple.quarantine /Applications/signal.app\`."
   fi
-  gh release upload "$TAG" "$DMG" "${DMG}.sha256" --clobber
+  gh release upload "$TAG" "$DMG" "${DMG}.sha256" "$TGZ" "${TGZ}.sig" --clobber
+  # Rebuilt from whatever the release holds right now, so running this after the
+  # Linux leg lands picks up the AppImage too.
+  ./scripts/update-manifest.sh "$VERSION" --publish
   gh release view "$TAG" --json url --jq .url
 fi
 
 say "done"
 echo "artifact: ${DMG}"
+echo "updater:  ${TGZ}"
+[ "$PUBLISH" -eq 1 ] || echo "manifest not refreshed — ./scripts/update-manifest.sh ${VERSION} --publish"
 [ "$PUBLISH" -eq 1 ] || echo "not published — re-run with --publish to upload"

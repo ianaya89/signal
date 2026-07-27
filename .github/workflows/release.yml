@@ -94,6 +94,27 @@ jobs:
             deb) cp target/release/bundle/deb/*.deb "dist-release/signal_${V}_amd64.deb" ;;
             appimage) cp target/release/bundle/appimage/*.AppImage "dist-release/signal_${V}_amd64.AppImage" ;;
           esac
+
+      - name: Sign the AppImage for the updater
+        # Signed after the mpv repack, not by the bundler: the signature has to
+        # match the AppImage users actually download. The .deb is not signed —
+        # apt owns that upgrade path.
+        if: matrix.bundles == 'appimage'
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          V="${{ steps.v.outputs.value }}"
+          if [ -z "${TAURI_SIGNING_PRIVATE_KEY}" ]; then
+            echo "::warning::TAURI_SIGNING_PRIVATE_KEY is unset — the AppImage ships without an update signature"
+            exit 0
+          fi
+          pnpm tauri signer sign "dist-release/signal_${V}_amd64.AppImage"
+          test -s "dist-release/signal_${V}_amd64.AppImage.sig"
+
+      - name: Checksums
+        run: |
+          V="${{ steps.v.outputs.value }}"
           cd dist-release
           sha256sum ./* > "SHA256SUMS-${{ matrix.bundles }}-${V}.txt"
           ls -lh

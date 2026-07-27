@@ -14,6 +14,10 @@ curl -fsSL https://ianaya89.github.io/signal/install.sh | sh
 | `signal_*_amd64.deb` | Ubuntu 24.04+ / Debian 13+ (needs `libmpv2`). `apt install ./signal_*.deb` pulls it in. |
 | `signal_*_amd64.AppImage` | Any glibc 2.35+ distro, including older Ubuntu. `chmod +x` and run — libmpv travels inside the image. |
 
+signal updates itself from here: the `.dmg`/AppImage builds check this
+release's `latest.json` on launch and install in place. `.deb` users upgrade
+through apt.
+
 The `signal` CLI is not shipped as a binary yet — build it with
 `cargo build -p signal-cli`.
 
