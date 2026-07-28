@@ -5,7 +5,7 @@ import { api } from "@/ipc/invoke";
 import { useKeyboardStore } from "@/lib/keyboard";
 import { setWindowMode } from "@/lib/miniMode";
 import { pickFolder } from "@/lib/pickFolder";
-import { checkForUpdate, installUpdate } from "@/lib/updater";
+import { checkForUpdate, openUpdateDialog } from "@/lib/updater";
 import { cn } from "@/lib/utils";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useScanStore } from "@/stores/scanStore";
@@ -130,8 +130,8 @@ export function CommandPalette() {
       },
       {
         id: "install-update",
-        label: "install update + restart",
-        run: () => installUpdate(),
+        label: "update: review and install",
+        run: () => openUpdateDialog(),
       },
       {
         id: "edit-config",

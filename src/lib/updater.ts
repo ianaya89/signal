@@ -64,11 +64,32 @@ export async function checkForUpdate({ silent = false } = {}): Promise<boolean> 
 }
 
 export async function installUpdate(): Promise<void> {
-  if (!pending) {
-    toast.error("no update downloaded — check first");
-    return;
-  }
   const store = useUpdateStore.getState();
+  // one install at a time; a second click must not start a parallel download
+  if (store.status === "downloading") return;
+  // instant feedback: the click flips the UI before any await resolves
+  store.progress(0, null);
+
+  // The Update handle lives in the Rust resource table and can go stale
+  // (long-running window, a check that ran in another session). Re-check
+  // rather than dead-ending on "check first".
+  if (!pending) {
+    try {
+      pending = await check();
+    } catch (err) {
+      store.fail(message(err));
+      toast.error(`update failed: ${message(err)}`);
+      return;
+    }
+    if (!pending) {
+      store.upToDate();
+      toast.info("no update available anymore — already up to date");
+      return;
+    }
+    store.found(pending.version, pending.body ?? null);
+    store.progress(0, null);
+  }
+
   let received = 0;
   try {
     await pending.downloadAndInstall((event) => {
@@ -81,11 +102,37 @@ export async function installUpdate(): Promise<void> {
         store.ready();
       }
     });
+    store.ready();
     toast.ok("update installed — restarting");
-    await relaunch();
   } catch (err) {
+    pending = null;
     store.fail(message(err));
     toast.error(`update failed: ${message(err)}`);
+    return;
+  }
+
+  try {
+    await relaunch();
+  } catch (err) {
+    // installed on disk either way; the user just has to reopen it
+    store.fail(`installed, but the restart failed — quit and reopen signal (${message(err)})`);
+  }
+}
+
+/** Opens the review dialog, kicking off a check when nothing is known yet. */
+export function openUpdateDialog(): void {
+  const store = useUpdateStore.getState();
+  store.openDialog();
+  if (store.status === "idle" || store.status === "error") {
+    void checkForUpdate({ silent: true });
+  }
+}
+
+export async function restartNow(): Promise<void> {
+  try {
+    await relaunch();
+  } catch (err) {
+    toast.error(`restart failed: ${message(err)}`);
   }
 }
 

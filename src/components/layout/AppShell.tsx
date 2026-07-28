@@ -12,6 +12,7 @@ import { CommandPalette } from "@/components/palette/CommandPalette";
 import { DotPlayer } from "@/components/player/DotPlayer";
 import { MiniPlayer } from "@/components/player/MiniPlayer";
 import { QueuePanel } from "@/components/queue/QueuePanel";
+import { UpdateDialog } from "@/components/update/UpdateDialog";
 import { Toasts } from "@/components/ui/Toasts";
 import { TooltipLayer } from "@/components/ui/TooltipLayer";
 import { api } from "@/ipc/invoke";
@@ -25,6 +26,7 @@ import {
 import { exitDotMode, setWindowMode } from "@/lib/miniMode";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useUiStore } from "@/stores/uiStore";
+import { useUpdateStore } from "@/stores/updateStore";
 
 // remembered across mute toggles (module-level; survives re-renders)
 let lastVolume = 1;
@@ -53,8 +55,10 @@ export function AppShell() {
         return;
       }
 
-      // input fields swallow everything else
+      // input fields swallow everything else; the update dialog owns its own
+      // esc/enter and must not also drive the list underneath it
       if (inInput || mode === "palette") return;
+      if (useUpdateStore.getState().dialogOpen) return;
 
       // compact modes: space + esc only (esc steps up: dot → mini → full)
       const windowMode = useUiStore.getState().windowMode;
@@ -310,6 +314,7 @@ export function AppShell() {
       <CommandPalette />
       <HelpOverlay />
       <MetadataDialog />
+      <UpdateDialog />
       <Toasts />
       <TooltipLayer />
     </div>

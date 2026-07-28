@@ -5,7 +5,7 @@ import { api } from "@/ipc/invoke";
 import { dragWindow } from "@/lib/drag";
 import { useKeyboardStore } from "@/lib/keyboard";
 import { setWindowMode } from "@/lib/miniMode";
-import { installUpdate } from "@/lib/updater";
+import { openUpdateDialog, restartNow } from "@/lib/updater";
 import { cn } from "@/lib/utils";
 import { useScanStore } from "@/stores/scanStore";
 import { useUiStore } from "@/stores/uiStore";
@@ -87,9 +87,27 @@ function VersionLabel() {
   if (status === "downloading") {
     const pct = total ? Math.round((downloaded / total) * 100) : null;
     return (
-      <span className="text-accent">
+      <button
+        type="button"
+        onClick={openUpdateDialog}
+        title="show update progress"
+        className="text-accent"
+      >
         updating{pct === null ? "…" : ` ${pct}%`}
-      </span>
+      </button>
+    );
+  }
+
+  if (status === "ready") {
+    return (
+      <button
+        type="button"
+        onClick={() => void restartNow()}
+        title="update installed — restart to apply"
+        className="border border-focus px-1 text-accent"
+      >
+        ⏻ restart
+      </button>
     );
   }
 
@@ -97,16 +115,25 @@ function VersionLabel() {
     return (
       <button
         type="button"
-        onClick={() => void installUpdate()}
-        title={`install v${version} and restart`}
-        className="text-accent hover:underline"
+        onClick={openUpdateDialog}
+        title={`v${version} available — review and install`}
+        className="border border-accent-dim px-1 text-accent hover:border-focus hover:bg-raised"
       >
         ↑ v{version}
       </button>
     );
   }
 
-  return <span className="text-muted">v{info?.version ?? "—"}</span>;
+  return (
+    <button
+      type="button"
+      onClick={openUpdateDialog}
+      title="check for updates"
+      className="text-muted hover:text-accent"
+    >
+      v{info?.version ?? "—"}
+    </button>
+  );
 }
 
 function PaneToggles() {

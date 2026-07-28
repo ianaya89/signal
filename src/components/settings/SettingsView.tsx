@@ -5,7 +5,7 @@ import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { ReplayGainMode } from "@/ipc/types";
 import { pickFolder, pickSavePath } from "@/lib/pickFolder";
-import { checkForUpdate, installUpdate, setAutoCheck } from "@/lib/updater";
+import { checkForUpdate, openUpdateDialog, setAutoCheck } from "@/lib/updater";
 import { cn } from "@/lib/utils";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useScanStore } from "@/stores/scanStore";
@@ -221,19 +221,19 @@ function UpdateRows({ updatable }: { updatable: boolean }) {
           {status === "error" && error}
           {status === "idle" && "up to date"}
         </span>
-        {status === "available" ? (
+        {status === "available" || status === "downloading" || status === "ready" ? (
           <button
             type="button"
-            onClick={() => void installUpdate()}
+            onClick={openUpdateDialog}
             className={cn(BTN, "text-accent")}
           >
-            install + restart
+            {status === "ready" ? "restart to apply" : "review + install"}
           </button>
         ) : (
           <button
             type="button"
             onClick={() => void checkForUpdate()}
-            disabled={status === "checking" || status === "downloading"}
+            disabled={status === "checking"}
             className={cn(BTN, "disabled:opacity-50")}
           >
             check now
