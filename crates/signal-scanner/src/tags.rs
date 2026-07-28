@@ -34,6 +34,75 @@ pub fn is_audio_file(path: &Path) -> bool {
         .is_some_and(|ext| AUDIO_EXTENSIONS.contains(&ext.to_ascii_lowercase().as_str()))
 }
 
+/// Suffixes download clients append to the file they are still writing.
+const IN_PROGRESS_SUFFIXES: &[&str] = &[
+    ".part",
+    ".partial",
+    ".crdownload",
+    ".download",
+    ".!qb",
+    ".!ut",
+];
+
+/// A file that exists but has no usable audio in it yet. Downloaders
+/// pre-allocate the final name and fill it later, and iCloud leaves evicted
+/// files as zero-filled placeholders — both parse as "corrupt" otherwise, so
+/// they are skipped instead of counted as import errors.
+pub fn incomplete_reason(path: &Path) -> Option<&'static str> {
+    let name = path.file_name()?.to_string_lossy().to_ascii_lowercase();
+    if let Some(parent) = path.parent() {
+        if IN_PROGRESS_SUFFIXES
+            .iter()
+            .any(|suffix| parent.join(format!("{name}{suffix}")).exists())
+        {
+            return Some("download still in progress");
+        }
+        if parent.join(format!(".{name}.icloud")).exists() {
+            return Some("not downloaded from icloud yet");
+        }
+    }
+
+    let Ok(meta) = path.metadata() else {
+        return None;
+    };
+    if meta.len() == 0 {
+        return Some("empty file");
+    }
+    if zero_filled_header(path) {
+        return Some("placeholder: header is all zeros");
+    }
+    None
+}
+
+/// True when the first 16 bytes are zero — no supported container starts that
+/// way (even MP4's leading box length is non-zero).
+fn zero_filled_header(path: &Path) -> bool {
+    use std::io::Read;
+
+    let Ok(mut file) = std::fs::File::open(path) else {
+        return false;
+    };
+    let mut head = [0u8; 16];
+    match file.read_exact(&mut head) {
+        Ok(()) => head.iter().all(|b| *b == 0),
+        Err(_) => false,
+    }
+}
+
+/// Either the parsed file or the reason it is not importable yet.
+pub enum Import {
+    Skip(&'static str),
+    Ready(Box<Extracted>),
+}
+
+/// Blocking; callers run it via `spawn_blocking`.
+pub fn extract_if_complete(path: &Path) -> Result<Import, ExtractError> {
+    match incomplete_reason(path) {
+        Some(reason) => Ok(Import::Skip(reason)),
+        None => extract(path).map(|extracted| Import::Ready(Box::new(extracted))),
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum ExtractError {
     #[error("io: {0}")]
@@ -301,6 +370,49 @@ mod tests {
     #![allow(clippy::unwrap_used)]
 
     use super::*;
+
+    #[test]
+    fn incomplete_files_are_recognized() {
+        use std::io::Write;
+
+        let dir =
+            std::env::temp_dir().join(format!("signal-scanner-incomplete-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let empty = dir.join("empty.flac");
+        std::fs::File::create(&empty).unwrap();
+        assert_eq!(incomplete_reason(&empty), Some("empty file"));
+
+        let zeroed = dir.join("zeroed.flac");
+        std::fs::File::create(&zeroed)
+            .unwrap()
+            .write_all(&[0u8; 64])
+            .unwrap();
+        assert_eq!(
+            incomplete_reason(&zeroed),
+            Some("placeholder: header is all zeros")
+        );
+
+        let downloading = dir.join("downloading.flac");
+        std::fs::File::create(&downloading)
+            .unwrap()
+            .write_all(b"fLaC............")
+            .unwrap();
+        std::fs::File::create(dir.join("downloading.flac.part")).unwrap();
+        assert_eq!(
+            incomplete_reason(&downloading),
+            Some("download still in progress")
+        );
+
+        let ok = dir.join("ok.flac");
+        std::fs::File::create(&ok)
+            .unwrap()
+            .write_all(b"fLaC............")
+            .unwrap();
+        assert_eq!(incomplete_reason(&ok), None);
+
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 
     #[test]
     fn gain_parsing() {

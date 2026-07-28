@@ -27,6 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Album or artist names containing `:`, `/` or quotes made MusicBrainz reject
   the search outright, which surfaced as "no cover found". Queries are now
   escaped, and a loose search retries when the exact phrase misses.
+- Scanning a folder with an interrupted download reported every placeholder as
+  a corrupt file (`tag parse: Flac: File missing "fLaC" stream marker`). Files
+  that are still downloading (a sibling `.part`, `.crdownload`, `.download`…),
+  iCloud files that were never materialized, and zero-filled placeholders are
+  now skipped with a reason in the log instead of counted as import errors.
 - Toasts were rendered behind the transport dock.
 
 ## [0.1.3] - 2026-07-28

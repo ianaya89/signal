@@ -191,10 +191,17 @@ impl Scanner {
         }
 
         let owned = path.to_path_buf();
-        let extracted = tokio::task::spawn_blocking(move || tags::extract(&owned))
+        let imported = tokio::task::spawn_blocking(move || tags::extract_if_complete(&owned))
             .await
             .map_err(|e| ImportError::Extract(e.to_string()))?
             .map_err(|e| ImportError::Extract(e.to_string()))?;
+        let extracted = match imported {
+            tags::Import::Ready(extracted) => *extracted,
+            tags::Import::Skip(reason) => {
+                tracing::info!(path = %path.display(), reason, "skipped, not importable yet");
+                return Ok(Imported::Skipped);
+            }
+        };
 
         let artist_id = self.db.artists().get_or_create(&extracted.artist).await?;
         let album_id = match &extracted.album {
