@@ -148,6 +148,26 @@ export interface AlbumPlayCount {
   plays: number;
 }
 
+export interface TrackPlayCount {
+  trackId: number;
+  albumId: number;
+  title: string;
+  artistName: string;
+  plays: number;
+  favorite: boolean;
+  rating: number;
+}
+
+export interface LibrarySummary {
+  tracks: number;
+  albums: number;
+  artists: number;
+  totalMs: number;
+  losslessPct: number;
+  favorites: number;
+  liked: number;
+}
+
 export interface StatsOverview {
   totalPlays: number;
   totalMsPlayed: number;
@@ -156,7 +176,13 @@ export interface StatsOverview {
   topArtists: NameCount[];
   topCodecs: NameCount[];
   topAlbums: AlbumPlayCount[];
+  topTracks: TrackPlayCount[];
   hourly: number[];
+  /** index 0 = sunday */
+  weekday: number[];
+  library: LibrarySummary;
+  streakCurrent: number;
+  streakBest: number;
 }
 
 export interface GenreSummary {

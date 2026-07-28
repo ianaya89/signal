@@ -40,6 +40,31 @@ pub struct AlbumPlayCount {
 
 #[derive(Debug, Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct TrackPlayCount {
+    pub track_id: i64,
+    pub album_id: i64,
+    pub title: String,
+    pub artist_name: String,
+    pub plays: u32,
+    pub favorite: bool,
+    pub rating: u32,
+}
+
+/// Library shape, independent of listening history.
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibrarySummary {
+    pub tracks: u32,
+    pub albums: u32,
+    pub artists: u32,
+    pub total_ms: u64,
+    pub lossless_pct: u32,
+    pub favorites: u32,
+    pub liked: u32,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct StatsOverview {
     pub total_plays: u32,
     pub total_ms_played: u64,
@@ -48,8 +73,15 @@ pub struct StatsOverview {
     pub top_artists: Vec<NameCount>,
     pub top_codecs: Vec<NameCount>,
     pub top_albums: Vec<AlbumPlayCount>,
+    pub top_tracks: Vec<TrackPlayCount>,
     /// plays per hour of day, index 0-23
     pub hourly: Vec<u32>,
+    /// plays per weekday, index 0 = sunday
+    pub weekday: Vec<u32>,
+    pub library: LibrarySummary,
+    /// consecutive days with at least one play, ending today or yesterday
+    pub streak_current: u32,
+    pub streak_best: u32,
 }
 
 pub struct StatsRepo {
@@ -105,6 +137,8 @@ impl StatsRepo {
         Ok(id)
     }
 
+    // one linear sequence of independent aggregate queries; splitting adds nothing
+    #[allow(clippy::too_many_lines)]
     pub async fn overview(&self, heatmap_days: u32) -> sqlx::Result<StatsOverview> {
         let totals = sqlx::query(
             "SELECT COUNT(*) AS plays, COALESCE(SUM(ms_played), 0) AS ms,
@@ -158,6 +192,19 @@ impl StatsRepo {
         .fetch_all(&self.pool)
         .await?;
 
+        let top_tracks = sqlx::query(
+            "SELECT t.id AS track_id, t.album_id AS album_id, t.title AS title,
+                    ar.name AS artist_name, COUNT(*) AS plays,
+                    t.favorite AS favorite, COALESCE(t.rating, 0) AS rating
+             FROM play_events pe
+             JOIN tracks t ON t.id = pe.track_id
+             JOIN artists ar ON ar.id = t.artist_id
+             WHERE pe.skipped = 0
+             GROUP BY t.id ORDER BY plays DESC LIMIT 8",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
         let hourly_rows = sqlx::query(
             "SELECT CAST(strftime('%H', started_at) AS INTEGER) AS hour, COUNT(*) AS cnt
              FROM play_events WHERE skipped = 0 GROUP BY hour",
@@ -171,6 +218,43 @@ impl StatsRepo {
                 *slot = to_u32(row.try_get::<i64, _>("cnt")?);
             }
         }
+
+        let weekday_rows = sqlx::query(
+            "SELECT CAST(strftime('%w', started_at) AS INTEGER) AS dow, COUNT(*) AS cnt
+             FROM play_events WHERE skipped = 0 GROUP BY dow",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        let mut weekday = vec![0u32; 7];
+        for row in &weekday_rows {
+            let dow: i64 = row.try_get("dow")?;
+            if let Some(slot) = usize::try_from(dow).ok().and_then(|d| weekday.get_mut(d)) {
+                *slot = to_u32(row.try_get::<i64, _>("cnt")?);
+            }
+        }
+
+        let library = sqlx::query(
+            "SELECT COUNT(*) AS tracks,
+                    COUNT(DISTINCT album_id) AS albums,
+                    COUNT(DISTINCT artist_id) AS artists,
+                    COALESCE(SUM(duration_ms), 0) AS total_ms,
+                    COALESCE(SUM(codec IN ('FLAC','ALAC','PCM (WAV)','PCM (AIFF)')), 0) AS lossless,
+                    COALESCE(SUM(favorite = 1), 0) AS favorites,
+                    COALESCE(SUM(rating >= 4), 0) AS liked
+             FROM tracks",
+        )
+        .fetch_one(&self.pool)
+        .await?;
+        let library_tracks = to_u32(library.try_get::<i64, _>("tracks")?);
+        let lossless = to_u32(library.try_get::<i64, _>("lossless")?);
+
+        let play_days: Vec<String> = sqlx::query_scalar(
+            "SELECT DISTINCT date(started_at) FROM play_events
+             WHERE skipped = 0 ORDER BY date(started_at)",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        let (streak_current, streak_best) = streaks(&play_days);
 
         Ok(StatsOverview {
             total_plays: to_u32(totals.try_get::<i64, _>("plays")?),
@@ -198,7 +282,38 @@ impl StatsRepo {
                     })
                 })
                 .collect::<sqlx::Result<_>>()?,
+            top_tracks: top_tracks
+                .iter()
+                .map(|r| {
+                    Ok(TrackPlayCount {
+                        track_id: r.try_get("track_id")?,
+                        album_id: r.try_get("album_id")?,
+                        title: r.try_get("title")?,
+                        artist_name: r.try_get("artist_name")?,
+                        plays: to_u32(r.try_get::<i64, _>("plays")?),
+                        favorite: r.try_get::<i64, _>("favorite")? != 0,
+                        rating: to_u32(r.try_get::<i64, _>("rating")?),
+                    })
+                })
+                .collect::<sqlx::Result<_>>()?,
             hourly,
+            weekday,
+            library: LibrarySummary {
+                tracks: library_tracks,
+                albums: to_u32(library.try_get::<i64, _>("albums")?),
+                artists: to_u32(library.try_get::<i64, _>("artists")?),
+                total_ms: u64::try_from(library.try_get::<i64, _>("total_ms")?).unwrap_or_default(),
+                lossless_pct: if library_tracks == 0 {
+                    0
+                } else {
+                    u32::try_from(u64::from(lossless) * 100 / u64::from(library_tracks))
+                        .unwrap_or_default()
+                },
+                favorites: to_u32(library.try_get::<i64, _>("favorites")?),
+                liked: to_u32(library.try_get::<i64, _>("liked")?),
+            },
+            streak_current,
+            streak_best,
         })
     }
 
@@ -288,6 +403,37 @@ pub struct Discover {
     pub from_your_artists: Vec<signal_core::Track>,
     /// random unplayed corners of the library
     pub never_played: Vec<signal_core::Track>,
+}
+
+/// (current, best) run of consecutive listening days. `days` is ascending
+/// `YYYY-MM-DD`; the current run counts only if it reaches today or yesterday.
+fn streaks(days: &[String]) -> (u32, u32) {
+    use chrono::NaiveDate;
+
+    let parsed: Vec<NaiveDate> = days
+        .iter()
+        .filter_map(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
+        .collect();
+    let Some(&first) = parsed.first() else {
+        return (0, 0);
+    };
+
+    let mut best = 1u32;
+    let mut run = 1u32;
+    let mut prev = first;
+    for &day in parsed.iter().skip(1) {
+        run = if prev.succ_opt() == Some(day) { run + 1 } else { 1 };
+        best = best.max(run);
+        prev = day;
+    }
+
+    let today = Utc::now().date_naive();
+    let current = if prev == today || prev.succ_opt() == Some(today) {
+        run
+    } else {
+        0
+    };
+    (current, best)
 }
 
 fn name_counts(rows: &[sqlx::sqlite::SqliteRow]) -> sqlx::Result<Vec<NameCount>> {
