@@ -422,7 +422,11 @@ fn streaks(days: &[String]) -> (u32, u32) {
     let mut run = 1u32;
     let mut prev = first;
     for &day in parsed.iter().skip(1) {
-        run = if prev.succ_opt() == Some(day) { run + 1 } else { 1 };
+        run = if prev.succ_opt() == Some(day) {
+            run + 1
+        } else {
+            1
+        };
         best = best.max(run);
         prev = day;
     }
