@@ -47,10 +47,18 @@ const artistDetailRoute = createRoute({
   component: ArtistDetailView,
 });
 
+export type FavoritesFilter = "all" | "fav" | "liked";
+
 const favoritesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/favorites",
   component: FavoritesView,
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { filter?: FavoritesFilter } =>
+    search.filter === "fav" || search.filter === "liked"
+      ? { filter: search.filter }
+      : {},
 });
 
 const searchRoute = createRoute({

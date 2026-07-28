@@ -120,7 +120,7 @@ fn main() {
             commands::library::library_get_artist,
             commands::library::library_list_genres,
             commands::library::library_get_genre_tracks,
-            commands::library::library_list_favorites,
+            commands::library::library_list_loved,
             commands::library::reveal_in_file_manager,
             commands::library::library_browse_folder,
             commands::window::window_set_compact,

@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
 import { SelectionBar } from "@/components/library/SelectionBar";
@@ -11,18 +12,32 @@ import { useVirtualWindow } from "@/hooks/useVirtualWindow";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { registerListHandler } from "@/lib/keyboard";
+import { cn } from "@/lib/utils";
+import type { FavoritesFilter } from "@/router";
+
+const FILTERS: { key: FavoritesFilter; label: string }[] = [
+  { key: "all", label: "all" },
+  { key: "fav", label: "♥ favorites" },
+  { key: "liked", label: "✦ liked" },
+];
 
 export function FavoritesView() {
   useMainTitle("favorites");
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { filter = "all" } = useSearch({ from: "/favorites" });
   const [cursor, setCursor] = useState(0);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["favorites"],
-    queryFn: api.listFavorites,
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["loved"],
+    queryFn: api.listLoved,
   });
 
-  const sort = useTrackSort(data ?? []);
+  const all = data ?? [];
+  const filtered = all.filter((t) =>
+    filter === "fav" ? t.favorite : filter === "liked" ? (t.rating ?? 0) >= 4 : true,
+  );
+  const sort = useTrackSort(filtered);
   const tracks = sort.sorted;
   const tracksRef = useRef<Track[]>(tracks);
   tracksRef.current = tracks;
@@ -48,11 +63,27 @@ export function FavoritesView() {
     if (ids.length > 0) void api.playContext(ids, index);
   };
 
-  const unfavorite = () => {
+  const clampCursor = () =>
+    setCursor((c) => Math.max(Math.min(c, tracksRef.current.length - 2), 0));
+
+  const toggleFav = () => {
     const track = tracksRef.current[cursorRef.current];
     if (!track) return;
     void api.toggleFavorite(track.id).then(() => {
-      setCursor((c) => Math.max(Math.min(c, tracksRef.current.length - 2), 0));
+      clampCursor();
+      return queryClient.invalidateQueries();
+    });
+  };
+
+  // 'x' drops the track out of this view: unheart it, or clear a 4-5★ rating
+  const demote = () => {
+    const track = tracksRef.current[cursorRef.current];
+    if (!track) return;
+    const drop = track.favorite
+      ? api.toggleFavorite(track.id)
+      : api.setRating(track.id, 0);
+    void drop.then(() => {
+      clampCursor();
       return queryClient.invalidateQueries();
     });
   };
@@ -75,8 +106,8 @@ export function FavoritesView() {
         const track = tracksRef.current[cursorRef.current];
         if (track) void api.queueAdd(track.id);
       },
-      fav: unfavorite,
-      remove: unfavorite,
+      fav: toggleFav,
+      remove: demote,
       rate: (rating) => {
         const track = tracksRef.current[cursorRef.current];
         if (track) {
@@ -96,23 +127,45 @@ export function FavoritesView() {
   if (isLoading) {
     return <p className="p-3 text-muted">loading…</p>;
   }
-  if (tracks.length === 0) {
+  if (error) {
     return (
-      <p className="p-3 text-[12px] text-muted">
-        nothing favorited yet — press f on a track, or click its ♡
+      <p className="p-3 text-[12px] text-error">
+        could not read favorites — {String(error)}
       </p>
     );
   }
 
+  const counts = {
+    all: all.length,
+    fav: all.filter((t) => t.favorite).length,
+    liked: all.filter((t) => (t.rating ?? 0) >= 4).length,
+  };
+
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-7 shrink-0 items-center gap-2 border-b border-subtle px-3 text-[11px]">
-        <span className="text-accent">♥</span>
-        <span className="text-muted">{tracks.length} favorites</span>
+      <div className="flex h-7 shrink-0 items-center gap-1 border-b border-subtle px-3 text-[11px]">
+        {FILTERS.map(({ key, label }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() =>
+              void navigate({ to: "/favorites", search: { filter: key } })
+            }
+            className={cn(
+              "px-1.5 text-[10px]",
+              filter === key
+                ? "bg-raised text-accent"
+                : "text-muted hover:text-secondary",
+            )}
+          >
+            {label} <span className="tabular-nums">{counts[key]}</span>
+          </button>
+        ))}
         <button
           type="button"
           onClick={() => playFrom(0)}
-          className="ml-auto border border-subtle px-2 text-[10px] text-secondary hover:border-focus hover:text-accent"
+          disabled={tracks.length === 0}
+          className="ml-auto border border-subtle px-2 text-[10px] text-secondary hover:border-focus hover:text-accent disabled:opacity-40"
         >
           play all
         </button>
@@ -121,12 +174,22 @@ export function FavoritesView() {
           onClick={() => {
             for (const track of tracks) void api.queueAdd(track.id);
           }}
-          title="stage every favorite to the queue"
-          className="border border-subtle px-2 text-[10px] text-secondary hover:border-focus hover:text-accent"
+          disabled={tracks.length === 0}
+          title="stage everything in this filter to the queue"
+          className="border border-subtle px-2 text-[10px] text-secondary hover:border-focus hover:text-accent disabled:opacity-40"
         >
           queue all
         </button>
       </div>
+      {tracks.length === 0 && (
+        <p className="p-3 text-[12px] text-muted">
+          {filter === "liked"
+            ? "nothing rated 4★ or higher yet — press r then 4 or 5 on a track"
+            : filter === "fav"
+              ? "nothing hearted yet — press f on a track, or click its ♡"
+              : "nothing marked yet — f hearts a track, r then 4/5 rates it"}
+        </p>
+      )}
       <div ref={containerRef} className="relative min-h-0 flex-1 overflow-auto">
         <table className="w-full border-collapse">
           <TrackTableHeader sort={sort} />

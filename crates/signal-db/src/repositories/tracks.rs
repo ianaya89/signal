@@ -135,11 +135,13 @@ impl TrackRepo {
         rows.iter().map(track_from_row).collect()
     }
 
-    pub async fn list_favorites(&self) -> sqlx::Result<Vec<Track>> {
+    /// Everything the user marked: ♥ favorites and ✦ 4-5 star ratings, the
+    /// same signal `discover`'s rediscover shelf treats as "loved".
+    pub async fn list_loved(&self) -> sqlx::Result<Vec<Track>> {
         let rows = sqlx::query(
             "SELECT * FROM tracks
-             WHERE favorite = 1
-             ORDER BY artist_id, album_id, disc_no, track_no",
+             WHERE favorite = 1 OR rating >= 4
+             ORDER BY favorite DESC, rating DESC, artist_id, album_id, disc_no, track_no",
         )
         .fetch_all(&self.pool)
         .await?;
