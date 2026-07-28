@@ -4,6 +4,7 @@ import type {
   AlbumDetail,
   AlbumSummary,
   AppInfo,
+  ArtworkFetchSummary,
   ArtistDetail,
   ArtistSummary,
   AudioDevice,
@@ -98,6 +99,7 @@ export type IpcCommand =
   | "playlist_export_m3u"
   | "playlist_import_m3u"
   | "library_fetch_artwork"
+  | "library_fetch_artwork_cancel"
   | "library_discover"
   | "library_backup"
   | "open_config_file";
@@ -221,7 +223,8 @@ export const api = {
       "playlist_import_m3u",
       { sourcePath },
     ),
-  fetchArtwork: () => ipc<number>("library_fetch_artwork"),
+  fetchArtwork: () => ipc<ArtworkFetchSummary>("library_fetch_artwork"),
+  fetchArtworkCancel: () => ipc<void>("library_fetch_artwork_cancel"),
   discover: () => ipc<Discover>("library_discover"),
   libraryBackup: (destPath: string) =>
     ipc<void>("library_backup", { destPath }),

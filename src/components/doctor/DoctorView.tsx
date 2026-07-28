@@ -1,9 +1,11 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useMainTitle } from "@/hooks/useMainTitle";
+import { onSignalEvent } from "@/ipc/events";
 import { api } from "@/ipc/invoke";
+import type { ArtworkProgressEvent } from "@/ipc/types";
 import { cn } from "@/lib/utils";
 import { toast } from "@/stores/toastStore";
 
@@ -11,11 +13,32 @@ export function DoctorView() {
   useMainTitle("doctor");
   const queryClient = useQueryClient();
   const [fetchingArt, setFetchingArt] = useState(false);
+  const [artLog, setArtLog] = useState<ArtworkProgressEvent[]>([]);
+  const [artProgress, setArtProgress] = useState<{
+    processed: number;
+    total: number;
+  } | null>(null);
+  const logRef = useRef<HTMLUListElement>(null);
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["health"],
     queryFn: api.libraryHealth,
     staleTime: 60_000,
   });
+
+  useEffect(() => {
+    const unlisten = onSignalEvent<ArtworkProgressEvent>(
+      "artwork:progress",
+      (payload) => {
+        setArtProgress({ processed: payload.processed, total: payload.total });
+        setArtLog((log) => [...log, payload]);
+        requestAnimationFrame(() => {
+          const el = logRef.current;
+          if (el) el.scrollTop = el.scrollHeight;
+        });
+      },
+    );
+    return () => void unlisten.then((fn) => fn());
+  }, []);
 
   if (isLoading || !data) {
     return <p className="p-3 text-muted">examining library…</p>;
@@ -47,18 +70,34 @@ export function DoctorView() {
 
   const fetchArt = async () => {
     setFetchingArt(true);
+    setArtLog([]);
+    setArtProgress({ processed: 0, total: Math.min(data.albumsWithoutArtTotal, 15) });
     try {
-      const fetched = await api.fetchArtwork();
+      const result = await api.fetchArtwork();
       toast.ok(
-        fetched > 0
-          ? `${fetched} covers fetched`
-          : "no covers found for this batch",
+        result.fetched > 0
+          ? `${result.fetched} covers fetched · ${result.remaining} albums still bare`
+          : result.cancelled
+            ? "artwork lookup stopped"
+            : "no covers matched this batch",
       );
       await queryClient.invalidateQueries();
     } catch (err) {
       toast.error(String(err));
+      setArtLog((log) => [
+        ...log,
+        {
+          processed: 0,
+          total: 0,
+          album: "lookup failed",
+          artist: "",
+          outcome: "error",
+          detail: String(err),
+        },
+      ]);
     } finally {
       setFetchingArt(false);
+      setArtProgress(null);
     }
   };
 
@@ -151,15 +190,26 @@ export function DoctorView() {
         ok="every album has artwork"
         action={
           data.albumsWithoutArtTotal > 0 ? (
-            <button
-              type="button"
-              onClick={() => void fetchArt()}
-              disabled={fetchingArt}
-              title="look up covers on MusicBrainz + Cover Art Archive (online, batches of 15, ~1s each)"
-              className="border border-subtle px-2 py-0.5 text-[11px] text-accent hover:border-focus disabled:opacity-40"
-            >
-              {fetchingArt ? "fetching…" : "fetch online…"}
-            </button>
+            <span className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => void fetchArt()}
+                disabled={fetchingArt}
+                title="look up covers on MusicBrainz + Cover Art Archive — 15 albums per run, ~1s each (their rate limit)"
+                className="border border-subtle px-2 py-0.5 text-[11px] text-accent hover:border-focus disabled:opacity-40"
+              >
+                {fetchingArt ? "looking up…" : "fetch online…"}
+              </button>
+              {fetchingArt && (
+                <button
+                  type="button"
+                  onClick={() => void api.fetchArtworkCancel()}
+                  className="border border-subtle px-2 py-0.5 text-[11px] text-muted hover:border-error hover:text-error"
+                >
+                  stop
+                </button>
+              )}
+            </span>
           ) : undefined
         }
       >
@@ -178,6 +228,16 @@ export function DoctorView() {
           </li>
         ))}
       </Issue>
+
+      {(fetchingArt || artLog.length > 0) && (
+        <ArtworkRun
+          logRef={logRef}
+          log={artLog}
+          progress={artProgress}
+          running={fetchingArt}
+          onDismiss={() => setArtLog([])}
+        />
+      )}
 
       <Issue
         title="low-bitrate lossy"
@@ -200,6 +260,99 @@ export function DoctorView() {
         <span>{data.tracksWithoutGenre} tracks without genre</span>
       </div>
     </div>
+  );
+}
+
+/** Live console for the artwork lookup: the run is minutes long by protocol,
+ *  so every album's verdict lands here as it resolves. */
+function ArtworkRun({
+  logRef,
+  log,
+  progress,
+  running,
+  onDismiss,
+}: {
+  logRef: React.RefObject<HTMLUListElement | null>;
+  log: ArtworkProgressEvent[];
+  progress: { processed: number; total: number } | null;
+  running: boolean;
+  onDismiss: () => void;
+}) {
+  const found = log.filter((l) => l.outcome === "found").length;
+  const done = progress?.processed ?? log.length;
+  const total = progress?.total ?? log.length;
+  const remainingSecs = Math.max(total - done, 0) * 2;
+
+  return (
+    <section className="border border-subtle bg-surface">
+      <header className="flex h-7 items-center gap-2 border-b border-subtle px-2 text-[10px]">
+        <span className="uppercase tracking-[0.14em] text-accent">
+          [ artwork lookup ]
+        </span>
+        <span className="tabular-nums text-muted">
+          {done}/{total}
+        </span>
+        <span className="text-ok">{found} found</span>
+        {running && remainingSecs > 0 && (
+          <span className="text-muted">· ~{remainingSecs}s left</span>
+        )}
+        {!running && (
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="ml-auto text-[11px] text-muted hover:text-accent"
+          >
+            dismiss
+          </button>
+        )}
+      </header>
+      <div className="h-1 bg-base">
+        <div
+          className="h-full bg-accent transition-[width] duration-300"
+          style={{ width: total > 0 ? `${(done / total) * 100}%` : "0%" }}
+        />
+      </div>
+      <ul
+        ref={logRef}
+        className="flex max-h-40 flex-col gap-0.5 overflow-auto px-2 py-1.5 text-[11px]"
+      >
+        {log.map((entry, i) => (
+          <li key={`${entry.album}-${i}`} className="flex min-w-0 gap-2">
+            <span
+              className={cn(
+                "w-3 shrink-0",
+                entry.outcome === "found"
+                  ? "text-ok"
+                  : entry.outcome === "error"
+                    ? "text-error"
+                    : "text-muted",
+              )}
+            >
+              {entry.outcome === "found" ? "✓" : entry.outcome === "error" ? "✕" : "—"}
+            </span>
+            <span className="shrink-0 text-secondary">{entry.album}</span>
+            {entry.artist && (
+              <span className="shrink-0 text-muted">· {entry.artist}</span>
+            )}
+            {entry.detail && (
+              <span
+                className={cn(
+                  "min-w-0 truncate",
+                  entry.outcome === "error" ? "text-error" : "text-muted",
+                )}
+              >
+                {entry.detail}
+              </span>
+            )}
+          </li>
+        ))}
+        {running && (
+          <li className="text-muted">
+            querying musicbrainz… (their rate limit is 1 request/second)
+          </li>
+        )}
+      </ul>
+    </section>
   );
 }
 

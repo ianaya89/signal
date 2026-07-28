@@ -273,3 +273,20 @@ export interface ScannerDoneEvent {
 export interface ScannerErrorEvent {
   message: string;
 }
+
+export interface ArtworkProgressEvent {
+  processed: number;
+  total: number;
+  album: string;
+  artist: string;
+  outcome: "found" | "none" | "error";
+  detail: string | null;
+}
+
+export interface ArtworkFetchSummary {
+  scanned: number;
+  fetched: number;
+  failed: number;
+  remaining: number;
+  cancelled: boolean;
+}

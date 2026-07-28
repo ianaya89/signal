@@ -304,6 +304,12 @@ impl AlbumRepo {
         .await
     }
 
+    pub async fn count_without_artwork(&self) -> sqlx::Result<i64> {
+        sqlx::query_scalar("SELECT COUNT(*) FROM albums WHERE artwork_path IS NULL")
+            .fetch_one(&self.pool)
+            .await
+    }
+
     pub async fn set_artwork(&self, id: i64, path: &str) -> sqlx::Result<()> {
         sqlx::query("UPDATE albums SET artwork_path = ?2 WHERE id = ?1")
             .bind(id)

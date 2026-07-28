@@ -15,6 +15,9 @@ pub struct AppState {
     pub player: Player,
     /// Guards against concurrent library scans.
     pub scanning: Arc<AtomicBool>,
+    /// Set by the doctor's cancel button; the artwork batch checks it between
+    /// albums (each one costs a full second of `MusicBrainz` throttling).
+    pub artwork_cancel: Arc<AtomicBool>,
     /// Live fs watchers, one per library root; replaced together.
     pub watcher: Mutex<Vec<WatcherHandle>>,
     /// Path substrings excluded from scans (config.toml `[library] exclude`).

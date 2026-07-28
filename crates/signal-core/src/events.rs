@@ -56,6 +56,17 @@ pub enum SignalEvent {
     ScannerError {
         message: String,
     },
+    /// One album resolved during an online artwork fetch. `outcome` is
+    /// `found` | `none` | `error`, with `detail` carrying the reason.
+    #[serde(rename_all = "camelCase")]
+    ArtworkProgress {
+        processed: u32,
+        total: u32,
+        album: String,
+        artist: String,
+        outcome: String,
+        detail: Option<String>,
+    },
     QueueChanged,
     /// config.toml changed; `ui` is the serialized [ui] section.
     #[serde(rename_all = "camelCase")]
@@ -84,6 +95,7 @@ impl SignalEvent {
             Self::ScannerProgress { .. } => "scanner:progress",
             Self::ScannerDone { .. } => "scanner:done",
             Self::ScannerError { .. } => "scanner:error",
+            Self::ArtworkProgress { .. } => "artwork:progress",
             Self::QueueChanged => "queue:changed",
             Self::ConfigChanged { .. } => "config:changed",
             Self::LogLine { .. } => "log:line",

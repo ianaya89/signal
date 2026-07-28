@@ -10,6 +10,7 @@ export type SignalChannel =
   | "scanner:progress"
   | "scanner:done"
   | "scanner:error"
+  | "artwork:progress"
   | "queue:changed"
   | "config:changed"
   | "log:line";
