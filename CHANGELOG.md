@@ -15,9 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   FLACs with a lossy encoder's brickwall cliff between 15-20.8 kHz (transcoded
   from MP3/AAC, naming the likely source bitrate), and 24-bit files padded from
   a 16-bit master (reported as info, not an error). Trigger it from the new
-  "analyze library" button or the command palette's `doctor: analyze audio
-  authenticity`; the scan runs in the background with a streaming per-track log,
-  a progress bar and a stop button, and verdicts persist across restarts.
+  "analyze library" button, the command palette's `doctor: analyze audio
+  authenticity`, or the terminal with `signal analyze [force|status]`; the
+  scan runs in the background on a small worker pool (2-4 files at once) so
+  library-wide runs finish in a fraction of the time, with a streaming
+  per-track log, a progress bar and a stop button, and verdicts persist
+  across restarts.
   Flagged tracks explain themselves in plain language ("content stops at 21.1
   kHz with a 47 dB cliff…") alongside a confidence percentage — the detector is
   tuned conservative, so gentle analog rolloffs, quiet masters and dither noise
@@ -35,7 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bit-perfect as-is — and the server keeps running across app restarts if left
   on. The server also advertises the `formPost` extension so clients like
   Symfonium send credentials in request bodies instead of URLs, songs now
-  carry their genre, and playlists report real created/changed timestamps so
+  carry their genre, the `frequent` and `recent` album lists reflect real
+  listening (play counts and last-played times) instead of falling back to
+  newest additions, and playlists report real created/changed timestamps so
   clients only re-sync what actually changed; the settings section shows a
   paste-ready `http://<lan-ip>:port` URL instead of asking you to find your
   machine's IP.
