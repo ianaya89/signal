@@ -1,10 +1,9 @@
-//! Batch loop over analysis candidates. Mirrors the scanner's shape:
-//! sequential, one `spawn_blocking` per file, per-track progress events,
-//! a done event at the end. Sequential keeps cancel latency at one file;
-//! bounded 2–4-way parallelism is a clean follow-up if runtimes hurt.
+//! Batch loop over analysis candidates. A small worker pool decodes files
+//! concurrently (the work is CPU-bound), while persistence and progress
+//! events stay on one consumer so DB writes and event order are sane.
+//! Cancel latency stays at roughly one file per worker.
 
-use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use signal_core::{EventBus, SignalEvent};
@@ -17,35 +16,61 @@ pub struct Analyzer {
     events: EventBus,
 }
 
+fn worker_count() -> usize {
+    std::thread::available_parallelism().map_or(2, |n| (n.get() / 2).clamp(2, 4))
+}
+
 impl Analyzer {
     #[must_use]
     pub fn new(db: DbPool, events: EventBus) -> Self {
         Self { db, events }
     }
 
-    /// Analyzes every candidate, persisting verdicts as it goes. `cancel` is
-    /// checked between tracks and polled inside each file's decode loop.
+    /// Analyzes every candidate, persisting verdicts as completions arrive.
+    /// `cancel` is checked before each file and polled inside decode loops.
     pub async fn run(&self, candidates: Vec<AnalysisCandidate>, cancel: Arc<AtomicBool>) {
         let total = u32::try_from(candidates.len()).unwrap_or(u32::MAX);
+        let candidates = Arc::new(candidates);
+        let next = Arc::new(AtomicUsize::new(0));
+        let (tx, mut rx) = tokio::sync::mpsc::channel::<(usize, AnalysisResult)>(8);
+
+        for _ in 0..worker_count() {
+            let candidates = Arc::clone(&candidates);
+            let next = Arc::clone(&next);
+            let cancel = Arc::clone(&cancel);
+            let tx = tx.clone();
+            tokio::spawn(async move {
+                loop {
+                    if cancel.load(Ordering::SeqCst) {
+                        break;
+                    }
+                    let index = next.fetch_add(1, Ordering::SeqCst);
+                    let Some(candidate) = candidates.get(index) else {
+                        break;
+                    };
+                    let result = analyze_blocking(candidate, &cancel).await;
+                    if tx.send((index, result)).await.is_err() {
+                        break;
+                    }
+                }
+            });
+        }
+        drop(tx);
+
+        let mut processed = 0_u32;
         let mut analyzed = 0_u32;
         let mut flagged = 0_u32;
         let mut errors = 0_u32;
-        let mut cancelled = false;
 
-        for (index, candidate) in candidates.into_iter().enumerate() {
+        while let Some((index, result)) = rx.recv().await {
+            // in-flight results after a cancel are discarded, not persisted
             if cancel.load(Ordering::SeqCst) {
-                cancelled = true;
-                break;
+                continue;
             }
-
-            let result = analyze_blocking(&candidate, &cancel).await;
-            // a mid-file cancel comes back as Skipped("cancelled"); either way
-            // the flag decides, and the in-flight result is not persisted
-            if cancel.load(Ordering::SeqCst) {
-                cancelled = true;
-                break;
-            }
-            let processed = u32::try_from(index + 1).unwrap_or(u32::MAX);
+            let Some(candidate) = candidates.get(index) else {
+                continue;
+            };
+            processed += 1;
 
             match result.verdict {
                 Verdict::Unreadable => errors += 1,
@@ -80,13 +105,14 @@ impl Analyzer {
                 processed,
                 total,
                 track_id: candidate.track_id,
-                title: candidate.title,
-                artist: candidate.artist_name,
+                title: candidate.title.clone(),
+                artist: candidate.artist_name.clone(),
                 verdict: result.verdict.as_str().to_owned(),
                 detail: result.detail,
             });
         }
 
+        let cancelled = cancel.load(Ordering::SeqCst);
         tracing::info!(analyzed, flagged, errors, cancelled, "audio analysis finished");
         self.events.publish(SignalEvent::AnalysisDone {
             analyzed,
@@ -98,7 +124,7 @@ impl Analyzer {
 }
 
 async fn analyze_blocking(candidate: &AnalysisCandidate, cancel: &Arc<AtomicBool>) -> AnalysisResult {
-    let path = PathBuf::from(&candidate.file_path);
+    let path = std::path::PathBuf::from(&candidate.file_path);
     let claimed = candidate.bit_depth;
     let sample_rate = candidate.sample_rate_hz;
     let duration_ms = candidate.duration_ms;
