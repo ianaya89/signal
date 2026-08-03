@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Audio authenticity detector. A new "suspicious audio" section in the doctor
+  decodes lossless files and inspects their spectrum for three classic frauds:
+  "hi-res" 24/96 files whose content actually stops at CD bandwidth (upsampled),
+  FLACs with a lossy encoder's brickwall cliff between 15-20.8 kHz (transcoded
+  from MP3/AAC, naming the likely source bitrate), and 24-bit files padded from
+  a 16-bit master (reported as info, not an error). Trigger it from the new
+  "analyze library" button or the command palette's `doctor: analyze audio
+  authenticity`; the scan runs in the background with a streaming per-track log,
+  a progress bar and a stop button, and verdicts persist across restarts.
+  Flagged tracks explain themselves in plain language ("content stops at 21.1
+  kHz with a 47 dB cliff…") alongside a confidence percentage — the detector is
+  tuned conservative, so gentle analog rolloffs, quiet masters and dither noise
+  don't trip it.
+- Embedded OpenSubsonic server. A new "mobile server" section in settings lets
+  you set a password and press start; any Subsonic client on the LAN — Symfonium
+  (Android), Amperfy or play:Sub (iOS), Feishin (desktop) — can then browse and
+  stream the library at `http://<machine-ip>:port` (default 4040). Browsing,
+  search, playlists and covers all work, seeking works via HTTP Range, and stars
+  or ratings set from a phone land back in Signal; a track played to completion
+  on the phone counts toward Signal's stats (play source `remote`). Smart
+  playlists are visible but read-only from clients; static playlists are fully
+  editable. It's also controllable from the command palette and the CLI (`signal
+  server start|stop|status`). LAN only, no transcoding — files stream
+  bit-perfect as-is — and the server keeps running across app restarts if left
+  on.
+
 ### Fixed
 
 - Updates could not be installed from the UI. Clicking the version chip fired
