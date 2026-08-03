@@ -47,6 +47,16 @@ All commands are `snake_case` and domain-prefixed. They are invoked from the fro
 | `analysis_cancel` | `{}` | `()` — takes effect within the current file |
 | `analysis_report` | `{}` | `Result<AnalysisReport, IpcError>` — `{ running, summary, flagged }` from `track_analysis` |
 
+### Mobile server (OpenSubsonic)
+
+| Command | Args | Returns |
+|---|---|---|
+| `server_start` | `{}` | `Result<ServerStatus, IpcError>` — `{ running, port }`; fails with `invalidQuery` when `server.password` is unset. Restarts if already running |
+| `server_stop` | `{}` | `Result<(), IpcError>` |
+| `server_status` | `{}` | `Result<ServerStatus, IpcError>` |
+
+Settings keys (settings table): `server.enabled`, `server.port` (default 4040), `server.password`. The server itself is `signal-server` — Subsonic 1.16.1 REST + OpenSubsonic envelope on `/rest/*`, LAN only, GET only, no transcoding.
+
 ### Search
 
 | Command | Args | Returns |

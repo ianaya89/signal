@@ -104,6 +104,7 @@ impl StatsRepo {
             PlaySource::Playlist => "playlist",
             PlaySource::Album => "album",
             PlaySource::Search => "search",
+            PlaySource::Remote => "remote",
         };
         let id: i64 = sqlx::query_scalar(
             "INSERT INTO play_events (track_id, started_at, ms_played, completed, skipped, source)

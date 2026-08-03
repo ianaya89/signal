@@ -18,6 +18,7 @@ import type {
   PlaylistSummary,
   QueueEntry,
   ReplayGainMode,
+  ServerStatus,
   StatsOverview,
   Track,
   TrackMetaEdit,
@@ -104,6 +105,9 @@ export type IpcCommand =
   | "analysis_start"
   | "analysis_cancel"
   | "analysis_report"
+  | "server_start"
+  | "server_stop"
+  | "server_status"
   | "library_discover"
   | "library_backup"
   | "open_config_file";
@@ -232,6 +236,9 @@ export const api = {
   analysisStart: (force: boolean) => ipc<number>("analysis_start", { force }),
   analysisCancel: () => ipc<void>("analysis_cancel"),
   analysisReport: () => ipc<AnalysisReport>("analysis_report"),
+  serverStart: () => ipc<ServerStatus>("server_start"),
+  serverStop: () => ipc<void>("server_stop"),
+  serverStatus: () => ipc<ServerStatus>("server_status"),
   discover: () => ipc<Discover>("library_discover"),
   libraryBackup: (destPath: string) =>
     ipc<void>("library_backup", { destPath }),

@@ -22,6 +22,8 @@ usage: signal <command> [args]
   add <query>       stage the first match onto the queue
   queue             list the queue
   search <query>    search the library (JSON)
+  server <start|stop|status>
+                    control the OpenSubsonic mobile server
 
 socket: $SIGNAL_SOCKET or the app data dir. The app must be running.";
 
@@ -78,6 +80,12 @@ fn build_request(cmd: &str, rest: &[&str]) -> Option<String> {
         "search" if !joined.is_empty() => {
             serde_json::json!({ "cmd": "search", "query": joined })
         }
+        "server" if rest.len() == 1 => match rest[0] {
+            "start" => serde_json::json!({ "cmd": "server-start" }),
+            "stop" => serde_json::json!({ "cmd": "server-stop" }),
+            "status" => serde_json::json!({ "cmd": "server-status" }),
+            _ => return None,
+        },
         _ => return None,
     };
     Some(value.to_string())
@@ -169,6 +177,16 @@ fn render(cmd: &str, response: &serde_json::Value, json_flag: bool) -> ExitCode 
             _ => println!("queue empty"),
         },
         "search" => println!("{data}"),
+        "server" => {
+            let running =
+                data.get("running").and_then(serde_json::Value::as_bool) == Some(true);
+            if running {
+                let port = data.get("port").and_then(serde_json::Value::as_u64).unwrap_or(0);
+                println!("● serving on port {port}");
+            } else {
+                println!("○ off");
+            }
+        }
         _ => {
             if let Some(obj) = data.as_object() {
                 for (key, value) in obj {

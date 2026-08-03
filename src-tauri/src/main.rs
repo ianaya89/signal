@@ -66,6 +66,7 @@ fn main() {
                 analyzing: Arc::new(AtomicBool::new(false)),
                 analysis_cancel: Arc::new(AtomicBool::new(false)),
                 watcher: Mutex::new(Vec::new()),
+                server: Mutex::new(None),
                 excludes: Arc::new(Mutex::new(Vec::new())),
                 write_tags: Arc::new(AtomicBool::new(false)),
                 play_context: Mutex::new(state::PlayContext::default()),
@@ -96,6 +97,28 @@ fn main() {
                 }
                 if let Ok(token) = state.db.settings().get("plugin.listenbrainz.token").await {
                     state.plugins.set_listenbrainz_token(token);
+                }
+
+                // resume the opensubsonic server if it was on last session
+                if let Ok(Some(enabled)) = state.db.settings().get("server.enabled").await {
+                    if enabled == "true" {
+                        match commands::server::read_config(&state).await {
+                            Ok(config) if !config.password.is_empty() => {
+                                match signal_server::start(state.db.clone(), config).await {
+                                    Ok(handle) => {
+                                        if let Ok(mut guard) = state.server.lock() {
+                                            *guard = Some(handle);
+                                        }
+                                    }
+                                    Err(err) => {
+                                        tracing::warn!("opensubsonic autostart failed: {err}");
+                                    }
+                                }
+                            }
+                            Ok(_) => tracing::warn!("opensubsonic autostart skipped: no password"),
+                            Err(err) => tracing::warn!("opensubsonic autostart failed: {err}"),
+                        }
+                    }
                 }
             });
 
@@ -141,6 +164,9 @@ fn main() {
             commands::analysis::analysis_start,
             commands::analysis::analysis_cancel,
             commands::analysis::analysis_report,
+            commands::server::server_start,
+            commands::server::server_stop,
+            commands::server::server_status,
             commands::export::playlist_export_m3u,
             commands::export::playlist_import_m3u,
             commands::export::library_backup,

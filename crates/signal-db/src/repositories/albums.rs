@@ -319,6 +319,23 @@ impl AlbumRepo {
         Ok(())
     }
 
+    pub async fn name_map(&self) -> sqlx::Result<Vec<(i64, String)>> {
+        sqlx::query_as("SELECT id, name FROM albums")
+            .fetch_all(&self.pool)
+            .await
+    }
+
+    /// Total content length per album; `OpenSubsonic`'s `AlbumID3.duration`.
+    pub async fn durations(&self) -> sqlx::Result<Vec<(i64, i64)>> {
+        sqlx::query_as(
+            "SELECT album_id, COALESCE(SUM(duration_ms), 0)
+             FROM tracks WHERE album_id IS NOT NULL
+             GROUP BY album_id",
+        )
+        .fetch_all(&self.pool)
+        .await
+    }
+
     pub async fn artwork_path(&self, id: i64) -> sqlx::Result<Option<String>> {
         let row: Option<Option<String>> =
             sqlx::query_scalar("SELECT artwork_path FROM albums WHERE id = ?1")

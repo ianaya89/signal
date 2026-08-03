@@ -291,6 +291,12 @@ export interface ArtworkFetchSummary {
   cancelled: boolean;
 }
 
+export interface ServerStatus {
+  running: boolean;
+  port: number;
+  hasPassword: boolean;
+}
+
 export interface AnalysisProgressEvent {
   processed: number;
   total: number;

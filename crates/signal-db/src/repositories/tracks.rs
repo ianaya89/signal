@@ -135,6 +135,15 @@ impl TrackRepo {
         rows.iter().map(track_from_row).collect()
     }
 
+    /// Uniform random sample; used by the `OpenSubsonic` `getRandomSongs`.
+    pub async fn random(&self, limit: u32) -> sqlx::Result<Vec<Track>> {
+        let rows = sqlx::query("SELECT * FROM tracks ORDER BY RANDOM() LIMIT ?1")
+            .bind(limit)
+            .fetch_all(&self.pool)
+            .await?;
+        rows.iter().map(track_from_row).collect()
+    }
+
     /// Everything the user marked: ♥ favorites and ✦ 4-5 star ratings, the
     /// same signal `discover`'s rediscover shelf treats as "loved".
     pub async fn list_loved(&self) -> sqlx::Result<Vec<Track>> {

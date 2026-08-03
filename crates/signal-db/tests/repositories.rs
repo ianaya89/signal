@@ -252,3 +252,54 @@ async fn settings_roundtrip() {
         Some("/flac")
     );
 }
+
+#[tokio::test]
+async fn random_and_name_maps() {
+    let (db, _dir) = test_db().await;
+    let ar = db.artists().get_or_create("Soda Stereo").await.unwrap();
+    let feat = db.artists().get_or_create("Feat Only").await.unwrap();
+    let al = db.albums().upsert("Sueño Stereo", ar, Some(1995)).await.unwrap();
+    for i in 0..5 {
+        db.tracks()
+            .insert(&new_track(&format!("T{i}"), ar, al, &format!("/m/t{i}.flac")))
+            .await
+            .unwrap();
+    }
+
+    let random = db.tracks().random(3).await.unwrap();
+    assert_eq!(random.len(), 3);
+
+    // name_map carries ALL artists, including album-less credits
+    let artists = db.artists().name_map().await.unwrap();
+    assert!(artists.iter().any(|(id, _)| *id == feat));
+    assert!(artists.iter().any(|(id, name)| *id == ar && name == "Soda Stereo"));
+
+    let albums = db.albums().name_map().await.unwrap();
+    assert_eq!(albums.len(), 1);
+
+    let durations = db.albums().durations().await.unwrap();
+    assert_eq!(durations, vec![(al, 5 * 215_000)]);
+}
+
+#[tokio::test]
+async fn remote_play_source_accepted() {
+    let (db, _dir) = test_db().await;
+    let ar = db.artists().get_or_create("A").await.unwrap();
+    let al = db.albums().upsert("B", ar, None).await.unwrap();
+    let id = db.tracks().insert(&new_track("T", ar, al, "/m/t.flac")).await.unwrap();
+
+    db.stats()
+        .log_play_event(&signal_db::NewPlayEvent {
+            track_id: id,
+            started_at: chrono::Utc::now(),
+            ms_played: 215_000,
+            completed: true,
+            skipped: false,
+            source: signal_core::PlaySource::Remote,
+        })
+        .await
+        .unwrap();
+
+    let track = db.tracks().get(id).await.unwrap().unwrap();
+    assert_eq!(track.play_count, 1);
+}

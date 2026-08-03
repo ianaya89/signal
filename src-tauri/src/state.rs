@@ -24,6 +24,9 @@ pub struct AppState {
     pub analysis_cancel: Arc<AtomicBool>,
     /// Live fs watchers, one per library root; replaced together.
     pub watcher: Mutex<Vec<WatcherHandle>>,
+    /// Running `OpenSubsonic` server, if any. Lock → take → drop guard →
+    /// `stop().await`; never hold across an await.
+    pub server: Mutex<Option<signal_server::ServerHandle>>,
     /// Path substrings excluded from scans (config.toml `[library] exclude`).
     pub excludes: Excludes,
     /// Write metadata edits back into audio file tags

@@ -5,6 +5,7 @@ members = [
     "crates/signal-db",
     "crates/signal-scanner",
     "crates/signal-analysis",
+    "crates/signal-server",
     "crates/signal-player",
     "crates/signal-search",
     "crates/signal-plugins",
@@ -24,6 +25,7 @@ signal-core = { path = "crates/signal-core" }
 signal-db = { path = "crates/signal-db" }
 signal-scanner = { path = "crates/signal-scanner" }
 signal-analysis = { path = "crates/signal-analysis" }
+signal-server = { path = "crates/signal-server" }
 signal-player = { path = "crates/signal-player" }
 signal-search = { path = "crates/signal-search" }
 signal-plugins = { path = "crates/signal-plugins" }
@@ -48,6 +50,13 @@ notify-debouncer-full = "0.4"
 symphonia = { version = "0.5", default-features = false, features = ["flac", "pcm", "wav", "aiff", "isomp4", "alac"] }
 realfft = "3.4"
 hound = "3.5"
+
+axum = "0.8"
+tower = "0.5"
+tower-http = { version = "0.6", features = ["fs"] }
+md-5 = "0.10"
+hex = "0.4"
+serde_urlencoded = "0.7"
 
 libmpv2 = "6"
 

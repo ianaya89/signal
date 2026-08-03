@@ -11,6 +11,7 @@ pub mod playlist;
 pub mod plugins;
 pub mod queue;
 pub mod search;
+pub mod server;
 pub mod session;
 pub mod settings;
 pub mod stats;

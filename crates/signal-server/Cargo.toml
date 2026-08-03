@@ -1,0 +1,35 @@
+[package]
+name = "signal-server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+signal-core = { workspace = true }
+signal-db = { workspace = true }
+signal-search = { workspace = true }
+
+axum = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+
+chrono = { workspace = true }
+hex = { workspace = true }
+md-5 = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_urlencoded = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+md-5 = { workspace = true }
+reqwest = { workspace = true }
+sqlx = { workspace = true }
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

@@ -6,9 +6,10 @@ import { useKeyboardStore } from "@/lib/keyboard";
 import { setWindowMode } from "@/lib/miniMode";
 import { pickFolder } from "@/lib/pickFolder";
 import { checkForUpdate, openUpdateDialog } from "@/lib/updater";
-import { cn } from "@/lib/utils";
+import { cn, errText } from "@/lib/utils";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useScanStore } from "@/stores/scanStore";
+import { toast } from "@/stores/toastStore";
 import { useUiStore } from "@/stores/uiStore";
 
 interface Command {
@@ -123,6 +124,25 @@ export function CommandPalette() {
           await api.analysisStart(false);
         },
       },
+      {
+        id: "server-start",
+        label: "server: start (opensubsonic)",
+        run: async () => {
+          try {
+            const status = await api.serverStart();
+            toast.ok(`serving on port ${status.port}`);
+          } catch (err) {
+            toast.error(errText(err));
+          }
+        },
+      },
+      {
+        id: "server-stop",
+        label: "server: stop",
+        run: async () => {
+          await api.serverStop();
+          toast.ok("server stopped");
+        },
       },
       {
         id: "discover",

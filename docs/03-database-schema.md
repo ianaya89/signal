@@ -564,6 +564,8 @@ CREATE INDEX idx_track_analysis_verdict ON track_analysis(verdict);
 
 One row per analyzed track, upserted in place on re-analysis; `ON DELETE CASCADE` keeps it consistent with prunes. Only lossless codecs are ever analyzed (`codec IN ('FLAC', 'ALAC', 'PCM (WAV)', 'PCM (AIFF)')`).
 
+Migration `0005_remote_play_source.sql` rebuilds `play_events` to widen the `source` CHECK with `'remote'` — plays scrobbled through the embedded OpenSubsonic server.
+
 ## 9. Migration strategy
 
 Every schema change is a new, forward-only `.sql` file in `migrations/` at the repo root — no `.down.sql` files. A desktop app with a single embedded database can't meaningfully "roll back" a user's local schema mid-session anyway; a bad migration is fixed by shipping a corrective forward migration, not a revert.

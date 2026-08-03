@@ -29,6 +29,9 @@ enum Request {
     QueueAdd { query: String },
     QueueList,
     Search { query: String },
+    ServerStart,
+    ServerStop,
+    ServerStatus,
 }
 
 #[derive(Serialize)]
@@ -245,6 +248,24 @@ async fn dispatch(app: &AppHandle, request: Request) -> Result<serde_json::Value
                 .map(|e| serde_json::json!({ "id": e.track.id, "title": e.track.title }))
                 .collect();
             Ok(serde_json::Value::Array(list))
+        }
+        Request::ServerStart => {
+            let status = crate::commands::server::start_server(&state)
+                .await
+                .map_err(|e| err(&e))?;
+            serde_json::to_value(status).map_err(|e| err(&e))
+        }
+        Request::ServerStop => {
+            crate::commands::server::stop_server(&state)
+                .await
+                .map_err(|e| err(&e))?;
+            Ok(serde_json::json!({ "running": false }))
+        }
+        Request::ServerStatus => {
+            let status = crate::commands::server::status_of(&state)
+                .await
+                .map_err(|e| err(&e))?;
+            serde_json::to_value(status).map_err(|e| err(&e))
         }
         Request::Search { query } => {
             let tracks = signal_search::search(&state.db, &query, 25)

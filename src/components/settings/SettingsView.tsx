@@ -6,7 +6,7 @@ import { api } from "@/ipc/invoke";
 import type { ReplayGainMode } from "@/ipc/types";
 import { pickFolder, pickSavePath } from "@/lib/pickFolder";
 import { checkForUpdate, openUpdateDialog, setAutoCheck } from "@/lib/updater";
-import { cn } from "@/lib/utils";
+import { cn, errText } from "@/lib/utils";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useScanStore } from "@/stores/scanStore";
 import { toast } from "@/stores/toastStore";
@@ -156,6 +156,8 @@ export function SettingsView() {
 
       <PluginsSection />
 
+      <ServerSection />
+
       <Section title="about">
         <Row label="version">
           <span className="text-[11px] text-secondary">signal v{info?.version}</span>
@@ -268,7 +270,7 @@ function PluginsSection() {
       setToken("");
       void queryClient.invalidateQueries({ queryKey: ["plugin-status"] });
     } catch (err) {
-      toast.error(String(err));
+      toast.error(errText(err));
     }
   };
 
@@ -299,6 +301,114 @@ function PluginsSection() {
       </Row>
       <p className="text-[10px] text-muted">
         completed listens (≥50% or 4min) are submitted; empty token disables
+      </p>
+    </Section>
+  );
+}
+
+function ServerSection() {
+  const queryClient = useQueryClient();
+  const [port, setPort] = useState("");
+  const [password, setPassword] = useState("");
+  const { data: status } = useQuery({
+    queryKey: ["server-status"],
+    queryFn: api.serverStatus,
+  });
+
+  // start is only enabled once a password exists (stored or typed)
+  const canStart = (status?.hasPassword ?? false) || password.length > 0;
+
+  const savePending = async () => {
+    if (port) {
+      const n = Number(port);
+      if (n < 1 || n > 65_535) {
+        throw new Error("port must be between 1 and 65535");
+      }
+      await api.settingsSet("server.port", port);
+    }
+    if (password) await api.settingsSet("server.password", password);
+  };
+
+  const saveConfig = async () => {
+    try {
+      await savePending();
+      toast.ok("server settings saved — restart the server to apply");
+      setPassword("");
+      void queryClient.invalidateQueries({ queryKey: ["server-status"] });
+    } catch (err) {
+      toast.error(errText(err));
+    }
+  };
+
+  const toggle = async () => {
+    try {
+      if (status?.running) {
+        await api.serverStop();
+        toast.ok("server stopped");
+      } else {
+        // unsaved port/password in the inputs count — starting implies them
+        await savePending();
+        setPassword("");
+        const started = await api.serverStart();
+        toast.ok(`serving on port ${started.port}`);
+      }
+      void queryClient.invalidateQueries({ queryKey: ["server-status"] });
+    } catch (err) {
+      toast.error(errText(err));
+    }
+  };
+
+  return (
+    <Section title="mobile server">
+      <Row label="opensubsonic">
+        <span
+          className={cn("text-[11px]", status?.running ? "text-ok" : "text-muted")}
+        >
+          {status?.running ? `● serving on port ${status.port}` : "○ off"}
+        </span>
+        <button
+          type="button"
+          onClick={() => void toggle()}
+          disabled={!status?.running && !canStart}
+          title={
+            !status?.running && !canStart
+              ? "set a password below first — subsonic clients require one"
+              : undefined
+          }
+          className={cn(BTN, "disabled:cursor-not-allowed disabled:opacity-40")}
+        >
+          {status?.running ? "stop" : "start"}
+        </button>
+        {!status?.running && !canStart && (
+          <span className="text-[10px] text-warn">needs a password</span>
+        )}
+      </Row>
+      <Row label="port">
+        <input
+          value={port}
+          onChange={(e) => setPort(e.target.value.replace(/\D/g, ""))}
+          placeholder={String(status?.port ?? 4040)}
+          inputMode="numeric"
+          spellCheck={false}
+          className="w-24 border border-subtle bg-base/60 px-2 py-0.5 text-[11px] text-primary outline-none focus:border-focus"
+        />
+      </Row>
+      <Row label="password">
+        <input
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="required before starting"
+          spellCheck={false}
+          type="password"
+          className="w-72 border border-subtle bg-base/60 px-2 py-0.5 text-[11px] text-primary outline-none focus:border-focus"
+        />
+        <button type="button" onClick={() => void saveConfig()} className={BTN}>
+          save
+        </button>
+      </Row>
+      <p className="text-[10px] text-muted">
+        connect symfonium/dsub/feishin to http://&lt;this-machine's-LAN-ip&gt;:port —
+        any username, this password. LAN only, no transcoding.
       </p>
     </Section>
   );

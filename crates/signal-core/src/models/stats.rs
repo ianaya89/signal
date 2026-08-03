@@ -8,6 +8,8 @@ pub enum PlaySource {
     Playlist,
     Album,
     Search,
+    /// Played through the embedded `OpenSubsonic` server (e.g. Symfonium).
+    Remote,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

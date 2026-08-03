@@ -16,6 +16,14 @@ impl ArtistRepo {
 
     /// Case-insensitive get-or-create (the unique index is NOCASE). The
     /// first-seen spelling wins; later case variants map onto it.
+    /// ALL artists (including album-less "feat." credits), unlike [`Self::list`]
+    /// which filters to album artists. Server-side name joins depend on this.
+    pub async fn name_map(&self) -> sqlx::Result<Vec<(i64, String)>> {
+        sqlx::query_as("SELECT id, name FROM artists")
+            .fetch_all(&self.pool)
+            .await
+    }
+
     pub async fn get_or_create(&self, name: &str) -> sqlx::Result<i64> {
         let existing: Option<i64> =
             sqlx::query_scalar("SELECT id FROM artists WHERE name = ?1 COLLATE NOCASE")
