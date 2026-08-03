@@ -1,7 +1,8 @@
 //! Playlists: static ones are fully editable; smart playlists are visible
 //! but read-only (their rules live in Signal).
 
-use chrono::{SecondsFormat, Utc};
+use std::collections::HashMap;
+
 use serde_json::json;
 
 use crate::dto::{to_value, Child};
@@ -13,13 +14,32 @@ use crate::Ctx;
 
 const READ_ONLY_SMART: &str = "smart playlists are read-only over the server API";
 
-fn now_iso() -> String {
-    Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true)
+/// `(smart, id)` → `(created_at, updated_at)`.
+type Stamps = HashMap<(bool, i64), (String, String)>;
+
+async fn stamps(ctx: &Ctx) -> Result<Stamps, ApiError> {
+    Ok(ctx
+        .db
+        .playlists()
+        .timestamps()
+        .await
+        .map_err(ApiError::db)?
+        .into_iter()
+        .map(|(id, smart, created, updated)| ((smart, id), (created, updated)))
+        .collect())
 }
 
-fn playlist_attrs(id: &Sid, name: &str, song_count: usize, duration_secs: u64) -> serde_json::Value {
-    // changed = now on every call: forces clients to re-sync rather than
-    // trust a staleness signal Signal doesn't track yet
+fn playlist_attrs(
+    id: &Sid,
+    name: &str,
+    song_count: usize,
+    duration_secs: u64,
+    stamp: Option<&(String, String)>,
+) -> serde_json::Value {
+    let (created, changed) = match stamp {
+        Some((created, changed)) => (created.as_str(), changed.as_str()),
+        None => ("", ""),
+    };
     json!({
         "id": id.to_string(),
         "name": name,
@@ -27,13 +47,14 @@ fn playlist_attrs(id: &Sid, name: &str, song_count: usize, duration_secs: u64) -
         "duration": duration_secs,
         "public": false,
         "owner": "signal",
-        "created": now_iso(),
-        "changed": now_iso(),
+        "created": created,
+        "changed": changed,
     })
 }
 
 pub(crate) async fn list(ctx: &Ctx) -> HandlerResult {
     let summaries = ctx.db.playlists().list().await.map_err(ApiError::db)?;
+    let stamps = stamps(ctx).await?;
     let playlist: Vec<serde_json::Value> = summaries
         .iter()
         .map(|p| {
@@ -42,7 +63,13 @@ pub(crate) async fn list(ctx: &Ctx) -> HandlerResult {
             } else {
                 Sid::Playlist(p.id)
             };
-            playlist_attrs(&sid, &p.name, p.track_count as usize, 0)
+            playlist_attrs(
+                &sid,
+                &p.name,
+                p.track_count as usize,
+                0,
+                stamps.get(&(p.smart, p.id)),
+            )
         })
         .collect();
     Ok(Some(("playlists", json!({ "playlist": playlist }))))
@@ -81,7 +108,14 @@ pub(crate) async fn get(ctx: &Ctx, params: &Params) -> HandlerResult {
         .map(|t| Child::from_track(t, &maps))
         .collect();
 
-    let mut payload = playlist_attrs(&sid, &name, entry.len(), duration_secs);
+    let stamps = stamps(ctx).await?;
+    let mut payload = playlist_attrs(
+        &sid,
+        &name,
+        entry.len(),
+        duration_secs,
+        stamps.get(&(smart, id)),
+    );
     if let Some(obj) = payload.as_object_mut() {
         obj.insert("entry".into(), to_value(entry));
     }

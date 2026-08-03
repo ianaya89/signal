@@ -78,12 +78,32 @@ impl PlaylistRepo {
     }
 
     pub async fn remove_track(&self, playlist_id: i64, track_id: i64) -> sqlx::Result<()> {
+        let mut tx = self.pool.begin().await?;
         sqlx::query("DELETE FROM playlist_tracks WHERE playlist_id = ?1 AND track_id = ?2")
             .bind(playlist_id)
             .bind(track_id)
-            .execute(&self.pool)
+            .execute(&mut *tx)
             .await?;
-        Ok(())
+        sqlx::query(
+            "UPDATE playlists SET updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?1",
+        )
+        .bind(playlist_id)
+        .execute(&mut *tx)
+        .await?;
+        tx.commit().await
+    }
+
+    /// `(id, smart, created_at, updated_at)` for every playlist, both kinds —
+    /// lets the server report honest `changed` values so clients only re-sync
+    /// playlists that actually moved.
+    pub async fn timestamps(&self) -> sqlx::Result<Vec<(i64, bool, String, String)>> {
+        sqlx::query_as(
+            "SELECT id, 0 AS smart, created_at, updated_at FROM playlists
+             UNION ALL
+             SELECT id, 1 AS smart, created_at, updated_at FROM smart_playlists",
+        )
+        .fetch_all(&self.pool)
+        .await
     }
 
     /// Static + smart playlists in one list; the `smart` flag disambiguates

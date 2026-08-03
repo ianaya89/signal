@@ -235,6 +235,8 @@ async fn lists_search_playlists_starred() {
         .find(|p| p["name"] == "road trip")
         .unwrap();
     assert!(ours["id"].as_str().unwrap().starts_with("pl-"));
+    // real timestamps, not a fresh now() per call
+    assert!(ours["changed"].as_str().unwrap().starts_with("20"));
     assert!(playlists
         .iter()
         .any(|p| p["id"].as_str().unwrap().starts_with("sp-")));
