@@ -196,6 +196,7 @@ async fn browse_chain_artists_to_album_songs() {
     let songs = env["album"]["song"].as_array().unwrap();
     assert_eq!(songs.len(), 2);
     assert_eq!(songs[0]["artist"], "Soda Stereo");
+    assert_eq!(songs[0]["genre"], "Rock");
     assert_eq!(songs[0]["suffix"], "flac");
     assert_eq!(songs[0]["contentType"], "audio/flac");
     assert!(songs[1]["starred"].is_string());

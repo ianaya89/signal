@@ -8,6 +8,7 @@ use chrono::SecondsFormat;
 use serde::Serialize;
 use signal_core::{AlbumSummary, ArtistSummary, Track};
 
+use crate::handlers::NameMaps;
 use crate::ids::Sid;
 
 #[derive(Debug, Serialize)]
@@ -28,6 +29,8 @@ pub(crate) struct Child {
     pub disc_number: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub year: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub genre: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cover_art: Option<String>,
     pub size: u64,
@@ -53,13 +56,9 @@ pub(crate) struct Child {
 }
 
 impl Child {
-    pub fn from_track(
-        track: &Track,
-        artists: &HashMap<i64, String>,
-        albums: &HashMap<i64, String>,
-    ) -> Self {
-        let artist = artists.get(&track.artist_id).cloned();
-        let album = albums.get(&track.album_id).cloned();
+    pub fn from_track(track: &Track, maps: &NameMaps) -> Self {
+        let artist = maps.artists.get(&track.artist_id).cloned();
+        let album = maps.albums.get(&track.album_id).cloned();
         let has_album = track.album_id != 0;
         let suffix = suffix_of(&track.technical.file_path);
         let created = track.added_at.to_rfc3339_opts(SecondsFormat::Secs, true);
@@ -82,6 +81,7 @@ impl Child {
             track: track.track_no,
             disc_number: track.disc_no,
             year: track.year,
+            genre: maps.genres.get(&track.id).cloned(),
             cover_art: has_album.then(|| Sid::Album(track.album_id).to_string()),
             size: track.technical.file_size_bytes,
             content_type: content_type_of(&suffix).to_owned(),
@@ -225,14 +225,21 @@ mod tests {
         }
     }
 
+    fn maps() -> NameMaps {
+        NameMaps {
+            artists: HashMap::from([(1_i64, "Soda Stereo".to_owned())]),
+            albums: HashMap::from([(3_i64, "Doble Vida".to_owned())]),
+            genres: HashMap::from([(7_i64, "Rock Nacional".to_owned())]),
+        }
+    }
+
     #[test]
     fn child_mapping() {
-        let artists = HashMap::from([(1_i64, "Soda Stereo".to_owned())]);
-        let albums = HashMap::from([(3_i64, "Doble Vida".to_owned())]);
-        let c = Child::from_track(&track(), &artists, &albums);
+        let c = Child::from_track(&track(), &maps());
         assert_eq!(c.id, "tr-7");
         assert_eq!(c.album_id.as_deref(), Some("al-3"));
         assert_eq!(c.artist.as_deref(), Some("Soda Stereo"));
+        assert_eq!(c.genre.as_deref(), Some("Rock Nacional"));
         assert_eq!(c.duration, 285);
         assert_eq!(c.suffix, "flac");
         assert_eq!(c.content_type, "audio/flac");
@@ -250,10 +257,16 @@ mod tests {
         let mut t = track();
         t.album_id = 0;
         t.favorite = false;
-        let c = Child::from_track(&t, &HashMap::new(), &HashMap::new());
+        let empty = NameMaps {
+            artists: HashMap::new(),
+            albums: HashMap::new(),
+            genres: HashMap::new(),
+        };
+        let c = Child::from_track(&t, &empty);
         assert!(c.album_id.is_none());
         assert!(c.cover_art.is_none());
         assert!(c.starred.is_none());
+        assert!(c.genre.is_none());
         assert_eq!(c.artist.as_deref(), None);
     }
 }

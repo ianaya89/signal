@@ -135,6 +135,18 @@ impl TrackRepo {
         rows.iter().map(track_from_row).collect()
     }
 
+    /// First genre per track (alphabetical when several) — batch lookup for
+    /// server responses, same shape as the artist/album name maps.
+    pub async fn genre_map(&self) -> sqlx::Result<Vec<(i64, String)>> {
+        sqlx::query_as(
+            "SELECT tg.track_id, MIN(g.name)
+             FROM track_genres tg JOIN genres g ON g.id = tg.genre_id
+             GROUP BY tg.track_id",
+        )
+        .fetch_all(&self.pool)
+        .await
+    }
+
     /// Uniform random sample; used by the `OpenSubsonic` `getRandomSongs`.
     pub async fn random(&self, limit: u32) -> sqlx::Result<Vec<Track>> {
         let rows = sqlx::query("SELECT * FROM tracks ORDER BY RANDOM() LIMIT ?1")

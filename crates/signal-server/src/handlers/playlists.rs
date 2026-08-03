@@ -73,12 +73,12 @@ pub(crate) async fn get(ctx: &Ctx, params: &Params) -> HandlerResult {
     } else {
         ctx.db.playlists().tracks(id).await.map_err(ApiError::db)?
     };
-    let (artists, albums) = name_maps(ctx).await?;
+    let maps = name_maps(ctx).await?;
 
     let duration_secs = tracks.iter().map(|t| t.duration_ms / 1_000).sum();
     let entry: Vec<Child> = tracks
         .iter()
-        .map(|t| Child::from_track(t, &artists, &albums))
+        .map(|t| Child::from_track(t, &maps))
         .collect();
 
     let mut payload = playlist_attrs(&sid, &name, entry.len(), duration_secs);

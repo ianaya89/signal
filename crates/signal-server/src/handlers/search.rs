@@ -41,10 +41,10 @@ pub(crate) async fn search3(ctx: &Ctx, params: &Params) -> HandlerResult {
     let tracks = signal_search::search(&ctx.db, query, song_count)
         .await
         .map_err(|err| ApiError::generic(format!("search failed: {err}")))?;
-    let (artists_map, albums_map) = name_maps(ctx).await?;
+    let maps = name_maps(ctx).await?;
     let song: Vec<Child> = tracks
         .iter()
-        .map(|t| Child::from_track(t, &artists_map, &albums_map))
+        .map(|t| Child::from_track(t, &maps))
         .collect();
 
     let needle = query.to_lowercase();

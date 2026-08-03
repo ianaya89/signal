@@ -111,10 +111,10 @@ pub(crate) async fn album_list2(ctx: &Ctx, params: &Params) -> HandlerResult {
 pub(crate) async fn random_songs(ctx: &Ctx, params: &Params) -> HandlerResult {
     let size = params.get_u32("size").unwrap_or(DEFAULT_SIZE).min(MAX_SIZE);
     let tracks = ctx.db.tracks().random(size).await.map_err(ApiError::db)?;
-    let (artists, albums) = name_maps(ctx).await?;
+    let maps = name_maps(ctx).await?;
     let song: Vec<Child> = tracks
         .iter()
-        .map(|t| Child::from_track(t, &artists, &albums))
+        .map(|t| Child::from_track(t, &maps))
         .collect();
     Ok(Some(("randomSongs", json!({ "song": to_value(song) }))))
 }
@@ -137,14 +137,14 @@ pub(crate) async fn songs_by_genre(ctx: &Ctx, params: &Params) -> HandlerResult 
         .list_by_genre(genre_id)
         .await
         .map_err(ApiError::db)?;
-    let (artists, albums) = name_maps(ctx).await?;
+    let maps = name_maps(ctx).await?;
 
     let (size, offset) = page(params.get_u32("count"), params.get_u32("offset"));
     let song: Vec<Child> = tracks
         .iter()
         .skip(offset)
         .take(size)
-        .map(|t| Child::from_track(t, &artists, &albums))
+        .map(|t| Child::from_track(t, &maps))
         .collect();
     Ok(Some(("songsByGenre", json!({ "song": to_value(song) }))))
 }
@@ -153,11 +153,11 @@ pub(crate) async fn starred2(ctx: &Ctx) -> HandlerResult {
     // strict ♥ favorites only — Subsonic stars map to favorites, and loved
     // additionally includes 4-5★ ratings which have their own field
     let loved = ctx.db.tracks().list_loved().await.map_err(ApiError::db)?;
-    let (artists, albums) = name_maps(ctx).await?;
+    let maps = name_maps(ctx).await?;
     let song: Vec<Child> = loved
         .iter()
         .filter(|t| t.favorite)
-        .map(|t| Child::from_track(t, &artists, &albums))
+        .map(|t| Child::from_track(t, &maps))
         .collect();
     Ok(Some(("starred2", json!({ "song": to_value(song) }))))
 }

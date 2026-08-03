@@ -96,13 +96,13 @@ pub(crate) async fn album(ctx: &Ctx, params: &Params) -> HandlerResult {
         .ok_or_else(|| ApiError::not_found("no such album"))?;
     let tracks = ctx.db.albums().tracks(id).await.map_err(ApiError::db)?;
     let durations = durations_map(ctx).await?;
-    let (artists, albums) = name_maps(ctx).await?;
+    let maps = name_maps(ctx).await?;
 
     let mut payload = to_value(AlbumID3::from_summary(&album, &durations));
     if let Some(obj) = payload.as_object_mut() {
         let songs: Vec<Child> = tracks
             .iter()
-            .map(|t| Child::from_track(t, &artists, &albums))
+            .map(|t| Child::from_track(t, &maps))
             .collect();
         obj.insert("song".into(), to_value(songs));
     }
@@ -120,10 +120,10 @@ pub(crate) async fn song(ctx: &Ctx, params: &Params) -> HandlerResult {
         .await
         .map_err(ApiError::db)?
         .ok_or_else(|| ApiError::not_found("no such song"))?;
-    let (artists, albums) = name_maps(ctx).await?;
+    let maps = name_maps(ctx).await?;
     Ok(Some((
         "song",
-        to_value(Child::from_track(&track, &artists, &albums)),
+        to_value(Child::from_track(&track, &maps)),
     )))
 }
 
