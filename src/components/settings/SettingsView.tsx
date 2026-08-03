@@ -364,7 +364,9 @@ function ServerSection() {
         <span
           className={cn("text-[11px]", status?.running ? "text-ok" : "text-muted")}
         >
-          {status?.running ? `● serving on port ${status.port}` : "○ off"}
+          {status?.running
+            ? `● http://${status.lanIp ?? "<this-machine's-ip>"}:${status.port}`
+            : "○ off"}
         </span>
         <button
           type="button"
@@ -407,8 +409,8 @@ function ServerSection() {
         </button>
       </Row>
       <p className="text-[10px] text-muted">
-        connect symfonium/dsub/feishin to http://&lt;this-machine's-LAN-ip&gt;:port —
-        any username, this password. LAN only, no transcoding.
+        point symfonium/amperfy/feishin at the address above — any username,
+        this password. LAN only, no transcoding.
       </p>
     </Section>
   );

@@ -295,6 +295,7 @@ export interface ServerStatus {
   running: boolean;
   port: number;
   hasPassword: boolean;
+  lanIp: string | null;
 }
 
 export interface AnalysisProgressEvent {

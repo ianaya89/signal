@@ -16,6 +16,16 @@ pub struct ServerStatus {
     pub port: u16,
     /// Lets the UI disable "start" instead of surfacing a backend error.
     pub has_password: bool,
+    /// This machine's LAN address, so the UI can show a paste-ready URL.
+    pub lan_ip: Option<String>,
+}
+
+/// Routing-table trick: connecting a UDP socket sends nothing but resolves
+/// which local address would reach the internet. `None` off-network.
+fn lan_ip() -> Option<String> {
+    let socket = std::net::UdpSocket::bind("0.0.0.0:0").ok()?;
+    socket.connect("8.8.8.8:80").ok()?;
+    Some(socket.local_addr().ok()?.ip().to_string())
 }
 
 fn take_handle(state: &AppState) -> Option<signal_server::ServerHandle> {
@@ -71,6 +81,7 @@ pub async fn start_server(state: &AppState) -> Result<ServerStatus, SignalError>
         running: true,
         port,
         has_password: true,
+        lan_ip: lan_ip(),
     })
 }
 
@@ -98,6 +109,7 @@ pub async fn status_of(state: &AppState) -> Result<ServerStatus, SignalError> {
         running: live_port.is_some(),
         port: live_port.unwrap_or(config.port),
         has_password: !config.password.is_empty(),
+        lan_ip: lan_ip(),
     })
 }
 
