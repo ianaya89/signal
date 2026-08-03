@@ -566,6 +566,8 @@ One row per analyzed track, upserted in place on re-analysis; `ON DELETE CASCADE
 
 Migration `0005_remote_play_source.sql` rebuilds `play_events` to widen the `source` CHECK with `'remote'` — plays scrobbled through the embedded OpenSubsonic server.
 
+Migration `0006_alac_codec_backfill.sql` relabels existing ALAC rows the scanner had stored as `AAC` (rescans skip known paths, so new-scan sniffing alone can't fix them); `bit_depth IS NOT NULL` is the discriminator since lofty only reports bit depth for lossless codecs.
+
 ## 9. Migration strategy
 
 Every schema change is a new, forward-only `.sql` file in `migrations/` at the repo root — no `.down.sql` files. A desktop app with a single embedded database can't meaningfully "roll back" a user's local schema mid-session anyway; a bad migration is fixed by shipping a corrective forward migration, not a revert.

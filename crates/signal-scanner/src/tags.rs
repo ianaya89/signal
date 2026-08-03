@@ -246,7 +246,7 @@ pub fn extract(path: &Path) -> Result<Extracted, ExtractError> {
         duration_ms: u64::try_from(props.duration().as_millis()).unwrap_or_default(),
         genres,
         technical: TrackTechnical {
-            codec: codec_name(file_type),
+            codec: codec_name(path, file_type),
             container: container_name(path, file_type),
             bitrate_kbps: props.audio_bitrate().unwrap_or_default(),
             bit_depth: props.bit_depth(),
@@ -335,17 +335,35 @@ fn parse_gain_db(s: &str) -> Option<f64> {
         .ok()
 }
 
-fn codec_name(file_type: FileType) -> String {
+fn codec_name(path: &Path, file_type: FileType) -> String {
     match file_type {
         FileType::Flac => "FLAC",
         FileType::Mpeg => "MP3",
-        // AAC vs ALAC inside MP4 is refined at playback time (M2)
-        FileType::Mp4 | FileType::Aac => "AAC",
+        FileType::Mp4 => return mp4_codec_name(path),
+        FileType::Aac => "AAC",
         FileType::Opus => "Opus",
         FileType::Vorbis => "Vorbis",
         FileType::Wav => "PCM (WAV)",
         FileType::Aiff => "PCM (AIFF)",
         _ => "Unknown",
+    }
+    .to_owned()
+}
+
+/// ALAC and AAC share the .m4a container; only the `stsd` sample entry tells
+/// them apart, so MP4 gets a second, codec-aware parse. Falls back to "AAC"
+/// when the atom is unreadable — the lossy assumption is the safe one.
+fn mp4_codec_name(path: &Path) -> String {
+    let codec = std::fs::File::open(path).ok().and_then(|mut file| {
+        lofty::mp4::Mp4File::read_from(&mut file, lofty::config::ParseOptions::new())
+            .ok()
+            .map(|mp4| *mp4.properties().codec())
+    });
+    match codec {
+        Some(lofty::mp4::Mp4Codec::ALAC) => "ALAC",
+        Some(lofty::mp4::Mp4Codec::FLAC) => "FLAC",
+        Some(lofty::mp4::Mp4Codec::MP3) => "MP3",
+        _ => "AAC",
     }
     .to_owned()
 }
@@ -460,5 +478,33 @@ mod tests {
         assert!(is_audio_file(Path::new("/a/b.opus")));
         assert!(!is_audio_file(Path::new("/a/cover.jpg")));
         assert!(!is_audio_file(Path::new("/a/noext")));
+    }
+
+    /// ALAC vs AAC discrimination on real .m4a files. Soft-skips when
+    /// ffmpeg is unavailable.
+    #[test]
+    fn mp4_codec_sniffing() {
+        let dir = std::env::temp_dir().join(format!("signal-scanner-mp4-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let make = |codec: &str, name: &str| -> Option<std::path::PathBuf> {
+            let out = dir.join(name);
+            let status = std::process::Command::new("ffmpeg")
+                .args(["-y", "-v", "error", "-f", "lavfi", "-i", "anoisesrc=d=1:a=0.3"])
+                .args(["-c:a", codec])
+                .arg(&out)
+                .status()
+                .ok()?;
+            status.success().then_some(out)
+        };
+
+        let Some(alac) = make("alac", "test.m4a") else {
+            eprintln!("ffmpeg not found — skipping mp4 codec test");
+            return;
+        };
+        let lossy = make("aac", "test-aac.m4a").unwrap();
+
+        assert_eq!(extract(&alac).unwrap().technical.codec, "ALAC");
+        assert_eq!(extract(&lossy).unwrap().technical.codec, "AAC");
     }
 }
