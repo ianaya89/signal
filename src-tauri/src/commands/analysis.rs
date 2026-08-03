@@ -20,9 +20,8 @@ pub struct AnalysisReport {
 /// Kicks off background spectral analysis of lossless tracks and returns the
 /// candidate count immediately; progress arrives on `analysis:progress` /
 /// `analysis:done`. `force` drops previous results and re-analyzes everything.
-#[tauri::command]
-#[tracing::instrument(skip(state))]
-pub async fn analysis_start(state: State<'_, AppState>, force: bool) -> Result<u32, SignalError> {
+/// Shared by the IPC command and the CLI socket.
+pub async fn start_analysis(state: &AppState, force: bool) -> Result<u32, SignalError> {
     if state.analyzing.swap(true, Ordering::SeqCst) {
         return Err(SignalError::Analysis(
             "an analysis is already running".into(),
@@ -58,6 +57,12 @@ pub async fn analysis_start(state: State<'_, AppState>, force: bool) -> Result<u
         analyzing.store(false, Ordering::SeqCst);
     });
     Ok(total)
+}
+
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn analysis_start(state: State<'_, AppState>, force: bool) -> Result<u32, SignalError> {
+    start_analysis(&state, force).await
 }
 
 /// Stops the running analysis; takes effect within the current file.

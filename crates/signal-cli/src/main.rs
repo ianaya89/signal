@@ -24,6 +24,8 @@ usage: signal <command> [args]
   search <query>    search the library (JSON)
   server <start|stop|status>
                     control the OpenSubsonic mobile server
+  analyze [force|status]
+                    audio authenticity scan (force = redo all files)
 
 socket: $SIGNAL_SOCKET or the app data dir. The app must be running.";
 
@@ -84,6 +86,12 @@ fn build_request(cmd: &str, rest: &[&str]) -> Option<String> {
             "start" => serde_json::json!({ "cmd": "server-start" }),
             "stop" => serde_json::json!({ "cmd": "server-stop" }),
             "status" => serde_json::json!({ "cmd": "server-status" }),
+            _ => return None,
+        },
+        "analyze" => match rest {
+            [] => serde_json::json!({ "cmd": "analyze-start" }),
+            ["force"] => serde_json::json!({ "cmd": "analyze-start", "force": true }),
+            ["status"] => serde_json::json!({ "cmd": "analyze-status" }),
             _ => return None,
         },
         _ => return None,

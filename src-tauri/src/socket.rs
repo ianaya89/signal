@@ -32,6 +32,11 @@ enum Request {
     ServerStart,
     ServerStop,
     ServerStatus,
+    AnalyzeStart {
+        #[serde(default)]
+        force: bool,
+    },
+    AnalyzeStatus,
 }
 
 #[derive(Serialize)]
@@ -266,6 +271,25 @@ async fn dispatch(app: &AppHandle, request: Request) -> Result<serde_json::Value
                 .await
                 .map_err(|e| err(&e))?;
             serde_json::to_value(status).map_err(|e| err(&e))
+        }
+        Request::AnalyzeStart { force } => {
+            let queued = crate::commands::analysis::start_analysis(&state, force)
+                .await
+                .map_err(|e| err(&e))?;
+            Ok(serde_json::json!({ "queued": queued }))
+        }
+        Request::AnalyzeStatus => {
+            let summary = state.db.analysis().summary().await.map_err(|e| err(&e))?;
+            let mut value = serde_json::to_value(summary).map_err(|e| err(&e))?;
+            if let Some(obj) = value.as_object_mut() {
+                obj.insert(
+                    "running".into(),
+                    serde_json::Value::Bool(
+                        state.analyzing.load(std::sync::atomic::Ordering::SeqCst),
+                    ),
+                );
+            }
+            Ok(value)
         }
         Request::Search { query } => {
             let tracks = signal_search::search(&state.db, &query, 25)
