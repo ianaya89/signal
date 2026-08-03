@@ -29,6 +29,8 @@ pub struct ServerConfig {
     pub password: String,
     /// Reported as `serverVersion` in every envelope.
     pub server_version: String,
+    /// Directory for scaled cover-art thumbnails (`getCoverArt?size=`).
+    pub cover_cache_dir: std::path::PathBuf,
 }
 
 pub struct ServerHandle {
@@ -59,6 +61,7 @@ pub(crate) struct Ctx {
     pub db: DbPool,
     pub password: String,
     pub server_version: String,
+    pub cover_cache_dir: std::path::PathBuf,
 }
 
 /// Binds and serves until [`ServerHandle::stop`].
@@ -69,10 +72,14 @@ pub async fn start(db: DbPool, cfg: ServerConfig) -> Result<ServerHandle, Server
     let listener = tokio::net::TcpListener::bind(("0.0.0.0", cfg.port)).await?;
     let addr = listener.local_addr()?;
 
+    if let Err(err) = std::fs::create_dir_all(&cfg.cover_cache_dir) {
+        tracing::warn!("cover cache dir unavailable, serving originals: {err}");
+    }
     let ctx = Arc::new(Ctx {
         db,
         password: cfg.password,
         server_version: cfg.server_version,
+        cover_cache_dir: cfg.cover_cache_dir,
     });
     let app = axum::Router::new()
         // some clients (Amperfy) GET the bare URL to verify reachability

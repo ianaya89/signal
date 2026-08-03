@@ -12,7 +12,7 @@ struct TestServer {
     db: DbPool,
     base: String,
     handle: ServerHandle,
-    _dir: tempfile::TempDir,
+    dir: tempfile::TempDir,
 }
 
 async fn setup() -> TestServer {
@@ -74,6 +74,7 @@ async fn setup() -> TestServer {
             port: 0,
             password: PASSWORD.to_owned(),
             server_version: "test".to_owned(),
+            cover_cache_dir: dir.path().join("covers"),
         },
     )
     .await
@@ -83,7 +84,7 @@ async fn setup() -> TestServer {
         db,
         base,
         handle,
-        _dir: dir,
+        dir,
     }
 }
 
@@ -312,6 +313,54 @@ async fn scrobble_star_and_rating_write_back() {
     let env = get_json(&ts.base, "setRating?id=tr-1&rating=4").await;
     assert_eq!(env["status"], "ok");
     assert_eq!(ts.db.tracks().get(1).await.unwrap().unwrap().rating, Some(4));
+
+    ts.handle.stop().await;
+}
+
+#[tokio::test]
+async fn cover_art_scales_on_request() {
+    let ts = setup().await;
+
+    let art = ts.dir.path().join("cover.png");
+    image::RgbImage::from_pixel(600, 600, image::Rgb([200, 40, 40]))
+        .save(&art)
+        .unwrap();
+    ts.db
+        .albums()
+        .set_artwork(1, &art.to_string_lossy())
+        .await
+        .unwrap();
+
+    // scaled: fits the 128 bucket, comes back as jpeg
+    let resp = reqwest::get(format!(
+        "{}/rest/getCoverArt?id=al-1&size=100&{}",
+        ts.base,
+        auth()
+    ))
+    .await
+    .unwrap();
+    assert_eq!(resp.status(), 200);
+    assert_eq!(resp.headers()["content-type"].to_str().unwrap(), "image/jpeg");
+    let scaled = image::load_from_memory(&resp.bytes().await.unwrap()).unwrap();
+    assert_eq!(scaled.width(), 128);
+
+    // no size param → original png untouched
+    let resp = reqwest::get(format!("{}/rest/getCoverArt?id=al-1&{}", ts.base, auth()))
+        .await
+        .unwrap();
+    assert_eq!(resp.headers()["content-type"].to_str().unwrap(), "image/png");
+    let original = image::load_from_memory(&resp.bytes().await.unwrap()).unwrap();
+    assert_eq!(original.width(), 600);
+
+    // absurd size → falls back to the original bytes
+    let resp = reqwest::get(format!(
+        "{}/rest/getCoverArt?id=al-1&size=9999&{}",
+        ts.base,
+        auth()
+    ))
+    .await
+    .unwrap();
+    assert_eq!(resp.headers()["content-type"].to_str().unwrap(), "image/png");
 
     ts.handle.stop().await;
 }

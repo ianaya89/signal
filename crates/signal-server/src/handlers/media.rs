@@ -63,8 +63,21 @@ pub(crate) async fn cover_art(ctx: &Ctx, params: &Params, format: Format) -> Res
         Err(err) => return enveloped_err(ApiError::db(err)),
     };
 
-    // same resolution as the desktop's signal-art:// protocol handler;
-    // `size` param ignored (no resizing, v1)
+    if let Some(size) = params.get_u32("size").filter(|s| *s > 0) {
+        if let Some(bytes) = thumbnail(ctx, album_id, &art_path, size).await {
+            return (
+                StatusCode::OK,
+                [
+                    (header::CONTENT_TYPE, "image/jpeg"),
+                    (header::CACHE_CONTROL, "max-age=86400"),
+                ],
+                bytes,
+            )
+                .into_response();
+        }
+        // resize failed — serving the original beats failing the request
+    }
+
     let mime = if art_path.to_ascii_lowercase().ends_with(".png") {
         "image/png"
     } else {
@@ -82,6 +95,40 @@ pub(crate) async fn cover_art(ctx: &Ctx, params: &Params, format: Format) -> Res
             .into_response(),
         Err(_) => enveloped_err(ApiError::not_found("artwork file missing on disk")),
     }
+}
+
+/// Bucketed so client whims (300 vs 320 vs 342…) can't grow the cache
+/// unboundedly. Anything above the top bucket serves the original.
+const THUMB_BUCKETS: &[u32] = &[64, 128, 256, 512, 1024];
+
+/// Scaled JPEG from the on-disk thumbnail cache, generating on miss.
+/// `None` on any failure or when the requested size exceeds the buckets.
+async fn thumbnail(ctx: &Ctx, album_id: i64, art_path: &str, size: u32) -> Option<Vec<u8>> {
+    let bucket = *THUMB_BUCKETS.iter().find(|b| **b >= size)?;
+    let thumb_path = ctx.cover_cache_dir.join(format!("al-{album_id}-{bucket}.jpg"));
+    let source = std::path::PathBuf::from(art_path);
+
+    tokio::task::spawn_blocking(move || {
+        let stale = match (thumb_path.metadata(), source.metadata()) {
+            (Ok(thumb), Ok(src)) => match (thumb.modified(), src.modified()) {
+                (Ok(t), Ok(s)) => s > t,
+                _ => false,
+            },
+            _ => true,
+        };
+        if !stale {
+            if let Ok(bytes) = std::fs::read(&thumb_path) {
+                return Some(bytes);
+            }
+        }
+
+        let scaled = image::open(&source).ok()?.thumbnail(bucket, bucket);
+        scaled.to_rgb8().save(&thumb_path).ok()?;
+        std::fs::read(&thumb_path).ok()
+    })
+    .await
+    .ok()
+    .flatten()
 }
 
 async fn track_of(ctx: &Ctx, params: &Params) -> Result<signal_core::Track, ApiError> {

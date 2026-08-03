@@ -43,7 +43,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   newest additions, and playlists report real created/changed timestamps so
   clients only re-sync what actually changed; the settings section shows a
   paste-ready `http://<lan-ip>:port` URL instead of asking you to find your
-  machine's IP.
+  machine's IP. Covers are scaled server-side on request (`size` parameter,
+  disk-cached in a few bucket sizes), so a phone's first sync no longer pulls
+  every full-resolution artwork.
 
 ### Fixed
 

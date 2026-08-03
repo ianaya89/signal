@@ -52,6 +52,7 @@ pub async fn read_config(state: &AppState) -> Result<signal_server::ServerConfig
         port,
         password,
         server_version: env!("CARGO_PKG_VERSION").to_owned(),
+        cover_cache_dir: state.config.cache_dir.join("server-covers"),
     })
 }
 
