@@ -10,6 +10,13 @@ impl Params {
         Self(serde_urlencoded::from_str::<Vec<(String, String)>>(query).unwrap_or_default())
     }
 
+    /// Query string + formPost body; body pairs append so either source works.
+    pub fn parse_merged(query: &str, form_body: &str) -> Self {
+        let mut pairs = Self::parse(query).0;
+        pairs.extend(Self::parse(form_body).0);
+        Self(pairs)
+    }
+
     pub fn get(&self, key: &str) -> Option<&str> {
         self.0
             .iter()

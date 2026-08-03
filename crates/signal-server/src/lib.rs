@@ -78,7 +78,11 @@ pub async fn start(db: DbPool, cfg: ServerConfig) -> Result<ServerHandle, Server
         // some clients (Amperfy) GET the bare URL to verify reachability
         // before speaking Subsonic; a 404 there aborts their login
         .route("/", axum::routing::get(|| async { "Signal OpenSubsonic server" }))
-        .route("/rest/{endpoint}", axum::routing::get(dispatch))
+        // POST = the OpenSubsonic formPost extension: same params, form body
+        .route(
+            "/rest/{endpoint}",
+            axum::routing::get(dispatch).post(dispatch),
+        )
         .with_state(ctx);
 
     let (shutdown, rx) = tokio::sync::oneshot::channel::<()>();
@@ -105,12 +109,27 @@ pub async fn start(db: DbPool, cfg: ServerConfig) -> Result<ServerHandle, Server
 /// shares query-string auth, `f=` negotiation, the envelope, and the
 /// `.view` suffix quirk — and `star`'s repeated `id=` params rule out
 /// axum's `Query<HashMap>` extractor anyway.
+/// Largest accepted formPost body; real requests are a few hundred bytes.
+const FORM_BODY_CAP: usize = 256 * 1024;
+
 async fn dispatch(
     State(ctx): State<Arc<Ctx>>,
     Path(endpoint): Path<String>,
     req: Request,
 ) -> Response {
-    let params = Params::parse(req.uri().query().unwrap_or(""));
+    let query = req.uri().query().unwrap_or("").to_owned();
+    let (req, form_body) = if is_form_post(&req) {
+        let (parts, body) = req.into_parts();
+        let bytes = axum::body::to_bytes(body, FORM_BODY_CAP)
+            .await
+            .unwrap_or_default();
+        let form = String::from_utf8(bytes.to_vec()).unwrap_or_default();
+        // media handlers only need the head (Range etc.), never the body
+        (Request::from_parts(parts, axum::body::Body::empty()), form)
+    } else {
+        (req, String::new())
+    };
+    let params = Params::parse_merged(&query, &form_body);
     let format = Format::from_param(params.get("f"));
 
     if let Err(err) = auth::check(&params, &ctx.password) {
@@ -163,4 +182,13 @@ async fn dispatch(
         ))),
     };
     envelope::render(format, &ctx.server_version, result)
+}
+
+fn is_form_post(req: &Request) -> bool {
+    req.method() == axum::http::Method::POST
+        && req
+            .headers()
+            .get(axum::http::header::CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok())
+            .is_some_and(|v| v.starts_with("application/x-www-form-urlencoded"))
 }

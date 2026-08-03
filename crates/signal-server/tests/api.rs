@@ -308,6 +308,52 @@ async fn scrobble_star_and_rating_write_back() {
 }
 
 #[tokio::test]
+async fn form_post_carries_params() {
+    let ts = setup().await;
+    let client = reqwest::Client::new();
+
+    // auth + format entirely in the body
+    let body = client
+        .post(format!("{}/rest/ping", ts.base))
+        .form(&[("u", "x"), ("p", PASSWORD), ("f", "json")])
+        .send()
+        .await
+        .unwrap()
+        .text()
+        .await
+        .unwrap();
+    let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["subsonic-response"]["status"], "ok");
+
+    // repeated ids in the body (the reason formPost exists)
+    let body = client
+        .post(format!("{}/rest/star", ts.base))
+        .form(&[
+            ("u", "x"),
+            ("p", PASSWORD),
+            ("f", "json"),
+            ("id", "tr-1"),
+            ("id", "tr-2"),
+        ])
+        .send()
+        .await
+        .unwrap()
+        .text()
+        .await
+        .unwrap();
+    let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["subsonic-response"]["status"], "ok");
+    assert!(ts.db.tracks().get(1).await.unwrap().unwrap().favorite);
+    assert!(ts.db.tracks().get(2).await.unwrap().unwrap().favorite);
+
+    // extension advertised
+    let env = get_json(&ts.base, "getOpenSubsonicExtensions?").await;
+    assert_eq!(env["openSubsonicExtensions"][0]["name"], "formPost");
+
+    ts.handle.stop().await;
+}
+
+#[tokio::test]
 async fn unknown_endpoint_and_shutdown() {
     let ts = setup().await;
 

@@ -14,7 +14,10 @@ pub(crate) fn license() -> Entry {
 }
 
 pub(crate) fn extensions() -> Entry {
-    ("openSubsonicExtensions", json!([]))
+    (
+        "openSubsonicExtensions",
+        json!([{ "name": "formPost", "versions": [1] }]),
+    )
 }
 
 pub(crate) async fn scan_status(ctx: &Ctx) -> HandlerResult {
