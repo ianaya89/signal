@@ -186,10 +186,12 @@ fn render(cmd: &str, response: &serde_json::Value, json_flag: bool) -> ExitCode 
         },
         "search" => println!("{data}"),
         "server" => {
-            let running =
-                data.get("running").and_then(serde_json::Value::as_bool) == Some(true);
+            let running = data.get("running").and_then(serde_json::Value::as_bool) == Some(true);
             if running {
-                let port = data.get("port").and_then(serde_json::Value::as_u64).unwrap_or(0);
+                let port = data
+                    .get("port")
+                    .and_then(serde_json::Value::as_u64)
+                    .unwrap_or(0);
                 match data.get("lanIp").and_then(serde_json::Value::as_str) {
                     Some(ip) => println!("● http://{ip}:{port}"),
                     None => println!("● serving on port {port}"),

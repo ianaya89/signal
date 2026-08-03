@@ -130,7 +130,12 @@ mod tests {
 
     const LEN: usize = 1 << 19;
 
-    fn write_wav(dir: &tempfile::TempDir, name: &str, sample_rate: u32, to_i32: impl Fn(f32) -> i32) -> std::path::PathBuf {
+    fn write_wav(
+        dir: &tempfile::TempDir,
+        name: &str,
+        sample_rate: u32,
+        to_i32: impl Fn(f32) -> i32,
+    ) -> std::path::PathBuf {
         let path = dir.path().join(name);
         let spec = hound::WavSpec {
             channels: 1,
@@ -139,8 +144,16 @@ mod tests {
             sample_format: hound::SampleFormat::Int,
         };
         let mut writer = hound::WavWriter::create(&path, spec).unwrap();
-        let f_max = if sample_rate >= 88_200 { 20_000.0 } else { 21_000.0 };
-        for s in shaped_noise(LEN, sample_rate, move |f| if f <= f_max { 1.0 } else { 0.0 }) {
+        let f_max = if sample_rate >= 88_200 {
+            20_000.0
+        } else {
+            21_000.0
+        };
+        for s in shaped_noise(
+            LEN,
+            sample_rate,
+            move |f| if f <= f_max { 1.0 } else { 0.0 },
+        ) {
             writer.write_sample(to_i32(s)).unwrap();
         }
         writer.finalize().unwrap();
@@ -197,7 +210,13 @@ mod tests {
     #[test]
     fn short_track_is_skipped_before_decoding() {
         let cancel = AtomicBool::new(false);
-        let r = analyze_file(std::path::Path::new("/nonexistent"), None, 44_100, 3_000, &cancel);
+        let r = analyze_file(
+            std::path::Path::new("/nonexistent"),
+            None,
+            44_100,
+            3_000,
+            &cancel,
+        );
         assert_eq!(r.verdict, Verdict::Skipped);
     }
 

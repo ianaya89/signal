@@ -29,7 +29,10 @@ pub(crate) async fn scan_status(ctx: &Ctx) -> HandlerResult {
 }
 
 pub(crate) fn user(params: &Params) -> Entry {
-    let username = params.get("username").or_else(|| params.get("u")).unwrap_or("signal");
+    let username = params
+        .get("username")
+        .or_else(|| params.get("u"))
+        .unwrap_or("signal");
     (
         "user",
         json!({

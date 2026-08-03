@@ -42,10 +42,7 @@ pub(crate) async fn search3(ctx: &Ctx, params: &Params) -> HandlerResult {
         .await
         .map_err(|err| ApiError::generic(format!("search failed: {err}")))?;
     let maps = name_maps(ctx).await?;
-    let song: Vec<Child> = tracks
-        .iter()
-        .map(|t| Child::from_track(t, &maps))
-        .collect();
+    let song: Vec<Child> = tracks.iter().map(|t| Child::from_track(t, &maps)).collect();
 
     let needle = query.to_lowercase();
     let artist: Vec<ArtistID3> = ctx

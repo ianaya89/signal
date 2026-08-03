@@ -103,10 +103,7 @@ pub(crate) async fn get(ctx: &Ctx, params: &Params) -> HandlerResult {
     let maps = name_maps(ctx).await?;
 
     let duration_secs = tracks.iter().map(|t| t.duration_ms / 1_000).sum();
-    let entry: Vec<Child> = tracks
-        .iter()
-        .map(|t| Child::from_track(t, &maps))
-        .collect();
+    let entry: Vec<Child> = tracks.iter().map(|t| Child::from_track(t, &maps)).collect();
 
     let stamps = stamps(ctx).await?;
     let mut payload = playlist_attrs(

@@ -77,7 +77,12 @@ pub async fn start_server(state: &AppState) -> Result<ServerStatus, SignalError>
     if let Ok(mut guard) = state.server.lock() {
         *guard = Some(handle);
     }
-    state.db.settings().set("server.enabled", "true").await.db_err()?;
+    state
+        .db
+        .settings()
+        .set("server.enabled", "true")
+        .await
+        .db_err()?;
     Ok(ServerStatus {
         running: true,
         port,

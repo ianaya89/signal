@@ -23,12 +23,22 @@ enum Request {
     Next,
     Prev,
     Stop,
-    Play { query: String },
-    Seek { to: String },
-    Volume { to: String },
-    QueueAdd { query: String },
+    Play {
+        query: String,
+    },
+    Seek {
+        to: String,
+    },
+    Volume {
+        to: String,
+    },
+    QueueAdd {
+        query: String,
+    },
     QueueList,
-    Search { query: String },
+    Search {
+        query: String,
+    },
     ServerStart,
     ServerStop,
     ServerStatus,

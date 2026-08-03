@@ -258,10 +258,19 @@ async fn random_and_name_maps() {
     let (db, _dir) = test_db().await;
     let ar = db.artists().get_or_create("Soda Stereo").await.unwrap();
     let feat = db.artists().get_or_create("Feat Only").await.unwrap();
-    let al = db.albums().upsert("Sueño Stereo", ar, Some(1995)).await.unwrap();
+    let al = db
+        .albums()
+        .upsert("Sueño Stereo", ar, Some(1995))
+        .await
+        .unwrap();
     for i in 0..5 {
         db.tracks()
-            .insert(&new_track(&format!("T{i}"), ar, al, &format!("/m/t{i}.flac")))
+            .insert(&new_track(
+                &format!("T{i}"),
+                ar,
+                al,
+                &format!("/m/t{i}.flac"),
+            ))
             .await
             .unwrap();
     }
@@ -272,7 +281,9 @@ async fn random_and_name_maps() {
     // name_map carries ALL artists, including album-less credits
     let artists = db.artists().name_map().await.unwrap();
     assert!(artists.iter().any(|(id, _)| *id == feat));
-    assert!(artists.iter().any(|(id, name)| *id == ar && name == "Soda Stereo"));
+    assert!(artists
+        .iter()
+        .any(|(id, name)| *id == ar && name == "Soda Stereo"));
 
     let albums = db.albums().name_map().await.unwrap();
     assert_eq!(albums.len(), 1);
@@ -286,7 +297,11 @@ async fn remote_play_source_accepted() {
     let (db, _dir) = test_db().await;
     let ar = db.artists().get_or_create("A").await.unwrap();
     let al = db.albums().upsert("B", ar, None).await.unwrap();
-    let id = db.tracks().insert(&new_track("T", ar, al, "/m/t.flac")).await.unwrap();
+    let id = db
+        .tracks()
+        .insert(&new_track("T", ar, al, "/m/t.flac"))
+        .await
+        .unwrap();
 
     db.stats()
         .log_play_event(&signal_db::NewPlayEvent {

@@ -231,10 +231,7 @@ async fn lists_search_playlists_starred() {
     // default smart playlists (migration 0003) ride along with sp- ids
     let env = get_json(&ts.base, "getPlaylists?").await;
     let playlists = env["playlists"]["playlist"].as_array().unwrap();
-    let ours = playlists
-        .iter()
-        .find(|p| p["name"] == "road trip")
-        .unwrap();
+    let ours = playlists.iter().find(|p| p["name"] == "road trip").unwrap();
     assert!(ours["id"].as_str().unwrap().starts_with("pl-"));
     // real timestamps, not a fresh now() per call
     assert!(ours["changed"].as_str().unwrap().starts_with("20"));
@@ -289,11 +286,10 @@ async fn scrobble_star_and_rating_write_back() {
     assert_eq!(env["status"], "ok");
     let track = ts.db.tracks().get(1).await.unwrap().unwrap();
     assert_eq!(track.play_count, 1);
-    let source: String =
-        sqlx::query_scalar("SELECT source FROM play_events WHERE track_id = 1")
-            .fetch_one(ts.db.inner())
-            .await
-            .unwrap();
+    let source: String = sqlx::query_scalar("SELECT source FROM play_events WHERE track_id = 1")
+        .fetch_one(ts.db.inner())
+        .await
+        .unwrap();
     assert_eq!(source, "remote");
 
     // the scrobble makes the album show up in frequent + recent lists
@@ -312,7 +308,10 @@ async fn scrobble_star_and_rating_write_back() {
 
     let env = get_json(&ts.base, "setRating?id=tr-1&rating=4").await;
     assert_eq!(env["status"], "ok");
-    assert_eq!(ts.db.tracks().get(1).await.unwrap().unwrap().rating, Some(4));
+    assert_eq!(
+        ts.db.tracks().get(1).await.unwrap().unwrap().rating,
+        Some(4)
+    );
 
     ts.handle.stop().await;
 }
@@ -340,7 +339,10 @@ async fn cover_art_scales_on_request() {
     .await
     .unwrap();
     assert_eq!(resp.status(), 200);
-    assert_eq!(resp.headers()["content-type"].to_str().unwrap(), "image/jpeg");
+    assert_eq!(
+        resp.headers()["content-type"].to_str().unwrap(),
+        "image/jpeg"
+    );
     let scaled = image::load_from_memory(&resp.bytes().await.unwrap()).unwrap();
     assert_eq!(scaled.width(), 128);
 
@@ -348,7 +350,10 @@ async fn cover_art_scales_on_request() {
     let resp = reqwest::get(format!("{}/rest/getCoverArt?id=al-1&{}", ts.base, auth()))
         .await
         .unwrap();
-    assert_eq!(resp.headers()["content-type"].to_str().unwrap(), "image/png");
+    assert_eq!(
+        resp.headers()["content-type"].to_str().unwrap(),
+        "image/png"
+    );
     let original = image::load_from_memory(&resp.bytes().await.unwrap()).unwrap();
     assert_eq!(original.width(), 600);
 
@@ -360,7 +365,10 @@ async fn cover_art_scales_on_request() {
     ))
     .await
     .unwrap();
-    assert_eq!(resp.headers()["content-type"].to_str().unwrap(), "image/png");
+    assert_eq!(
+        resp.headers()["content-type"].to_str().unwrap(),
+        "image/png"
+    );
 
     ts.handle.stop().await;
 }

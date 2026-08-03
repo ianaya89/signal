@@ -135,7 +135,12 @@ mod tests {
 
     #[test]
     fn upsampled_when_hires_content_stops_at_cd_band() {
-        let r = classify(96_000, Some(24), &metrics(Some(20_100), Some(60.0)), Some(24));
+        let r = classify(
+            96_000,
+            Some(24),
+            &metrics(Some(20_100), Some(60.0)),
+            Some(24),
+        );
         assert_eq!(r.verdict, Verdict::Upsampled);
         assert!(r.confidence > 0.7);
         assert!(r.detail.contains("20.1 kHz"), "{}", r.detail);
@@ -149,25 +154,45 @@ mod tests {
 
     #[test]
     fn transcode_named_by_ancestor_bitrate() {
-        let r = classify(44_100, Some(16), &metrics(Some(16_000), Some(52.0)), Some(16));
+        let r = classify(
+            44_100,
+            Some(16),
+            &metrics(Some(16_000), Some(52.0)),
+            Some(16),
+        );
         assert_eq!(r.verdict, Verdict::Transcode);
         assert!(r.detail.contains("~128 kbps"), "{}", r.detail);
 
-        let r = classify(44_100, Some(16), &metrics(Some(20_300), Some(40.0)), Some(16));
+        let r = classify(
+            44_100,
+            Some(16),
+            &metrics(Some(20_300), Some(40.0)),
+            Some(16),
+        );
         assert_eq!(r.verdict, Verdict::Transcode);
         assert!(r.detail.contains("256–320"), "{}", r.detail);
     }
 
     #[test]
     fn gentle_cliff_stays_clean() {
-        let r = classify(44_100, Some(16), &metrics(Some(17_000), Some(12.0)), Some(16));
+        let r = classify(
+            44_100,
+            Some(16),
+            &metrics(Some(17_000), Some(12.0)),
+            Some(16),
+        );
         assert_eq!(r.verdict, Verdict::Clean);
     }
 
     #[test]
     fn low_sample_rates_never_get_transcode_verdicts() {
         // Nyquist sits inside the transcode band — nothing to distinguish.
-        let r = classify(32_000, Some(16), &metrics(Some(15_500), Some(50.0)), Some(16));
+        let r = classify(
+            32_000,
+            Some(16),
+            &metrics(Some(15_500), Some(50.0)),
+            Some(16),
+        );
         assert_eq!(r.verdict, Verdict::Clean);
     }
 
@@ -180,7 +205,12 @@ mod tests {
 
     #[test]
     fn padded_bits_rides_along_on_upsampled() {
-        let r = classify(96_000, Some(24), &metrics(Some(20_000), Some(55.0)), Some(16));
+        let r = classify(
+            96_000,
+            Some(24),
+            &metrics(Some(20_000), Some(55.0)),
+            Some(16),
+        );
         assert_eq!(r.verdict, Verdict::Upsampled);
         assert!(r.detail.contains("effective bits"), "{}", r.detail);
     }

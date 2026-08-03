@@ -199,7 +199,11 @@ pub(crate) mod tests {
 
     /// Synthesizes noise whose spectrum follows `shape(freq_hz)` (linear
     /// magnitude), via random-phase inverse FFT. Peak-normalized to ~0.5.
-    pub(crate) fn shaped_noise(len: usize, sample_rate: u32, shape: impl Fn(f64) -> f64) -> Vec<f32> {
+    pub(crate) fn shaped_noise(
+        len: usize,
+        sample_rate: u32,
+        shape: impl Fn(f64) -> f64,
+    ) -> Vec<f32> {
         let mut planner = realfft::RealFftPlanner::<f64>::new();
         let ifft = planner.plan_fft_inverse(len);
         let mut spectrum = ifft.make_input_vec();

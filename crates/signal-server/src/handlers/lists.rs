@@ -63,9 +63,8 @@ pub(crate) async fn album_list2(ctx: &Ctx, params: &Params) -> HandlerResult {
             } else {
                 albums.retain(|a| stats.get(&a.id).is_some_and(|(_, last)| last.is_some()));
                 albums.sort_by(|a, b| {
-                    let last = |x: &signal_core::AlbumSummary| {
-                        stats.get(&x.id).and_then(|s| s.1.clone())
-                    };
+                    let last =
+                        |x: &signal_core::AlbumSummary| stats.get(&x.id).and_then(|s| s.1.clone());
                     last(b).cmp(&last(a))
                 });
             }
@@ -133,10 +132,7 @@ pub(crate) async fn random_songs(ctx: &Ctx, params: &Params) -> HandlerResult {
     let size = params.get_u32("size").unwrap_or(DEFAULT_SIZE).min(MAX_SIZE);
     let tracks = ctx.db.tracks().random(size).await.map_err(ApiError::db)?;
     let maps = name_maps(ctx).await?;
-    let song: Vec<Child> = tracks
-        .iter()
-        .map(|t| Child::from_track(t, &maps))
-        .collect();
+    let song: Vec<Child> = tracks.iter().map(|t| Child::from_track(t, &maps)).collect();
     Ok(Some(("randomSongs", json!({ "song": to_value(song) }))))
 }
 

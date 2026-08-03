@@ -105,7 +105,9 @@ const THUMB_BUCKETS: &[u32] = &[64, 128, 256, 512, 1024];
 /// `None` on any failure or when the requested size exceeds the buckets.
 async fn thumbnail(ctx: &Ctx, album_id: i64, art_path: &str, size: u32) -> Option<Vec<u8>> {
     let bucket = *THUMB_BUCKETS.iter().find(|b| **b >= size)?;
-    let thumb_path = ctx.cover_cache_dir.join(format!("al-{album_id}-{bucket}.jpg"));
+    let thumb_path = ctx
+        .cover_cache_dir
+        .join(format!("al-{album_id}-{bucket}.jpg"));
     let source = std::path::PathBuf::from(art_path);
 
     tokio::task::spawn_blocking(move || {

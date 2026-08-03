@@ -97,7 +97,10 @@ impl Analyzer {
                 )
                 .await;
             if let Err(err) = upsert {
-                tracing::warn!(track_id = candidate.track_id, "analysis upsert failed: {err}");
+                tracing::warn!(
+                    track_id = candidate.track_id,
+                    "analysis upsert failed: {err}"
+                );
                 errors += 1;
             }
 
@@ -113,7 +116,13 @@ impl Analyzer {
         }
 
         let cancelled = cancel.load(Ordering::SeqCst);
-        tracing::info!(analyzed, flagged, errors, cancelled, "audio analysis finished");
+        tracing::info!(
+            analyzed,
+            flagged,
+            errors,
+            cancelled,
+            "audio analysis finished"
+        );
         self.events.publish(SignalEvent::AnalysisDone {
             analyzed,
             flagged,
@@ -123,7 +132,10 @@ impl Analyzer {
     }
 }
 
-async fn analyze_blocking(candidate: &AnalysisCandidate, cancel: &Arc<AtomicBool>) -> AnalysisResult {
+async fn analyze_blocking(
+    candidate: &AnalysisCandidate,
+    cancel: &Arc<AtomicBool>,
+) -> AnalysisResult {
     let path = std::path::PathBuf::from(&candidate.file_path);
     let claimed = candidate.bit_depth;
     let sample_rate = candidate.sample_rate_hz;

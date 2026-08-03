@@ -84,7 +84,10 @@ pub async fn start(db: DbPool, cfg: ServerConfig) -> Result<ServerHandle, Server
     let app = axum::Router::new()
         // some clients (Amperfy) GET the bare URL to verify reachability
         // before speaking Subsonic; a 404 there aborts their login
-        .route("/", axum::routing::get(|| async { "Signal OpenSubsonic server" }))
+        .route(
+            "/",
+            axum::routing::get(|| async { "Signal OpenSubsonic server" }),
+        )
         // POST = the OpenSubsonic formPost extension: same params, form body
         .route(
             "/rest/{endpoint}",

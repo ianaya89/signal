@@ -146,6 +146,9 @@ mod tests {
             "starred2",
             &serde_json::json!({ "song": [ {"id": "tr-1"}, {"id": "tr-2"} ], "gone": null }),
         );
-        assert_eq!(xml, "<starred2><song id=\"tr-1\"/><song id=\"tr-2\"/></starred2>");
+        assert_eq!(
+            xml,
+            "<starred2><song id=\"tr-1\"/><song id=\"tr-2\"/></starred2>"
+        );
     }
 }

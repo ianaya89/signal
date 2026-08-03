@@ -154,6 +154,9 @@ mod tests {
         let body = body_of(resp).await;
         assert!(body.contains("status=\"failed\""), "{body}");
         assert!(body.contains("<error code=\"40\""), "{body}");
-        assert!(body.contains("xmlns=\"http://subsonic.org/restapi\""), "{body}");
+        assert!(
+            body.contains("xmlns=\"http://subsonic.org/restapi\""),
+            "{body}"
+        );
     }
 }

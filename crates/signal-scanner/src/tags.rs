@@ -490,7 +490,15 @@ mod tests {
         let make = |codec: &str, name: &str| -> Option<std::path::PathBuf> {
             let out = dir.join(name);
             let status = std::process::Command::new("ffmpeg")
-                .args(["-y", "-v", "error", "-f", "lavfi", "-i", "anoisesrc=d=1:a=0.3"])
+                .args([
+                    "-y",
+                    "-v",
+                    "error",
+                    "-f",
+                    "lavfi",
+                    "-i",
+                    "anoisesrc=d=1:a=0.3",
+                ])
                 .args(["-c:a", codec])
                 .arg(&out)
                 .status()

@@ -58,7 +58,11 @@ pub(crate) fn decode_windows(
     let starts: Vec<u64> = if dur_secs < SHORT_TRACK_SECS {
         vec![0]
     } else {
-        #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        #[allow(
+            clippy::cast_precision_loss,
+            clippy::cast_possible_truncation,
+            clippy::cast_sign_loss
+        )]
         WINDOW_POSITIONS
             .iter()
             .map(|p| ((dur_secs as f64 * p) as u64).min(dur_secs.saturating_sub(WINDOW_SECS + 1)))
@@ -141,7 +145,8 @@ pub(crate) fn decode_windows(
 type Opened = (Box<dyn FormatReader>, Box<dyn Decoder>, u32, u32);
 
 fn open(path: &Path) -> Result<Opened, DecodeFailure> {
-    let file = File::open(path).map_err(|err| DecodeFailure::Failed(format!("open failed: {err}")))?;
+    let file =
+        File::open(path).map_err(|err| DecodeFailure::Failed(format!("open failed: {err}")))?;
     let mss = MediaSourceStream::new(Box::new(file), MediaSourceStreamOptions::default());
 
     let mut hint = Hint::new();
@@ -259,11 +264,7 @@ fn fold(buffer: &AudioBufferRef<'_>, collector: &mut Collector) {
 }
 
 #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation)]
-fn fold_int<T: Sample>(
-    buf: &AudioBuffer<T>,
-    collector: &mut Collector,
-    to_i32: impl Fn(T) -> i32,
-) {
+fn fold_int<T: Sample>(buf: &AudioBuffer<T>, collector: &mut Collector, to_i32: impl Fn(T) -> i32) {
     let channels = buf.spec().channels.count().max(1);
     for frame in 0..buf.frames() {
         if collector.window.len() >= collector.target {

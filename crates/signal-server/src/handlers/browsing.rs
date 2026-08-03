@@ -100,10 +100,7 @@ pub(crate) async fn album(ctx: &Ctx, params: &Params) -> HandlerResult {
 
     let mut payload = to_value(AlbumID3::from_summary(&album, &durations));
     if let Some(obj) = payload.as_object_mut() {
-        let songs: Vec<Child> = tracks
-            .iter()
-            .map(|t| Child::from_track(t, &maps))
-            .collect();
+        let songs: Vec<Child> = tracks.iter().map(|t| Child::from_track(t, &maps)).collect();
         obj.insert("song".into(), to_value(songs));
     }
     Ok(Some(("album", payload)))
@@ -121,19 +118,14 @@ pub(crate) async fn song(ctx: &Ctx, params: &Params) -> HandlerResult {
         .map_err(ApiError::db)?
         .ok_or_else(|| ApiError::not_found("no such song"))?;
     let maps = name_maps(ctx).await?;
-    Ok(Some((
-        "song",
-        to_value(Child::from_track(&track, &maps)),
-    )))
+    Ok(Some(("song", to_value(Child::from_track(&track, &maps)))))
 }
 
 pub(crate) async fn genres(ctx: &Ctx) -> HandlerResult {
     let genres = ctx.db.artists().list_genres().await.map_err(ApiError::db)?;
     let genre: Vec<serde_json::Value> = genres
         .into_iter()
-        .map(|(_, name, count)| {
-            json!({ "value": name, "songCount": count, "albumCount": 0 })
-        })
+        .map(|(_, name, count)| json!({ "value": name, "songCount": count, "albumCount": 0 }))
         .collect();
     Ok(Some(("genres", json!({ "genre": genre }))))
 }
