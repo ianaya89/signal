@@ -33,10 +33,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   editable. It's also controllable from the command palette and the CLI (`signal
   server start|stop|status`). LAN only, no transcoding — files stream
   bit-perfect as-is — and the server keeps running across app restarts if left
-  on.
+  on. The server also advertises the `formPost` extension so clients like
+  Symfonium send credentials in request bodies instead of URLs, songs now
+  carry their genre, and playlists report real created/changed timestamps so
+  clients only re-sync what actually changed; the settings section shows a
+  paste-ready `http://<lan-ip>:port` URL instead of asking you to find your
+  machine's IP.
 
 ### Fixed
 
+- ALAC files were labeled AAC. The scanner assumed AAC for every `.m4a`; it
+  now reads the MP4 sample entry to tell them apart, and a migration relabels
+  already-imported files (rescans skip known paths, so scanning again would
+  never have fixed them). This corrects the lossless share in health and
+  stats, lets the authenticity detector analyze ALAC, and serves ALAC as
+  lossless to mobile clients.
 - Updates could not be installed from the UI. Clicking the version chip fired
   the download immediately and every failure was invisible: repeat clicks
   started parallel downloads, a missing content-length froze the label on
