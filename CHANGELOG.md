@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-08-03
+
 ### Added
 
 - Audio authenticity detector. A new "suspicious audio" section in the doctor
@@ -49,6 +51,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Failed actions could toast `[object Object]` instead of the reason —
+  backend errors arrive as structured objects and several spots stringified
+  them raw. Every error toast now shows the actual message (saving a
+  scrobbler token, playlist operations, artwork lookups, the new server and
+  analysis controls).
 - ALAC files were labeled AAC. The scanner assumed AAC for every `.m4a`; it
   now reads the MP4 sample entry to tell them apart, and a migration relabels
   already-imported files (rescans skip known paths, so scanning again would
@@ -168,7 +175,8 @@ First pre-release.
 - **Distribution** — macOS `.dmg` with libmpv bundled, Linux `.deb` and
   AppImage, an install script, and a GitHub Pages landing page.
 
-[Unreleased]: https://github.com/ianaya89/signal/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/ianaya89/signal/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/ianaya89/signal/compare/v0.1.3...v0.1.5
 [0.1.3]: https://github.com/ianaya89/signal/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/ianaya89/signal/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/ianaya89/signal/compare/v0.1.0...v0.1.1
