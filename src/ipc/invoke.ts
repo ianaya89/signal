@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type {
   AlbumDetail,
   AlbumSummary,
+  AnalysisReport,
   AppInfo,
   ArtworkFetchSummary,
   ArtistDetail,
@@ -100,6 +101,9 @@ export type IpcCommand =
   | "playlist_import_m3u"
   | "library_fetch_artwork"
   | "library_fetch_artwork_cancel"
+  | "analysis_start"
+  | "analysis_cancel"
+  | "analysis_report"
   | "library_discover"
   | "library_backup"
   | "open_config_file";
@@ -225,6 +229,9 @@ export const api = {
     ),
   fetchArtwork: () => ipc<ArtworkFetchSummary>("library_fetch_artwork"),
   fetchArtworkCancel: () => ipc<void>("library_fetch_artwork_cancel"),
+  analysisStart: (force: boolean) => ipc<number>("analysis_start", { force }),
+  analysisCancel: () => ipc<void>("analysis_cancel"),
+  analysisReport: () => ipc<AnalysisReport>("analysis_report"),
   discover: () => ipc<Discover>("library_discover"),
   libraryBackup: (destPath: string) =>
     ipc<void>("library_backup", { destPath }),

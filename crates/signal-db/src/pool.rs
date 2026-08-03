@@ -7,6 +7,7 @@ use sqlx::sqlite::{
 };
 
 use crate::repositories::albums::AlbumRepo;
+use crate::repositories::analysis::AnalysisRepo;
 use crate::repositories::artists::ArtistRepo;
 use crate::repositories::health::HealthRepo;
 use crate::repositories::playlists::PlaylistRepo;
@@ -72,6 +73,11 @@ impl DbPool {
     #[must_use]
     pub fn health(&self) -> HealthRepo {
         HealthRepo::new(self.pool.clone())
+    }
+
+    #[must_use]
+    pub fn analysis(&self) -> AnalysisRepo {
+        AnalysisRepo::new(self.pool.clone())
     }
 
     #[must_use]

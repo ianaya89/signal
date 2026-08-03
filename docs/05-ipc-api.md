@@ -39,6 +39,14 @@ All commands are `snake_case` and domain-prefixed. They are invoked from the fro
 | `library_list_artists` | `{ limit: u32, offset: u32 }` | `Result<Page<Artist>, IpcError>` |
 | `library_get_album` | `{ albumId: i64 }` | `Result<AlbumDetail, IpcError>` (album + tracks) |
 
+### Audio analysis (doctor)
+
+| Command | Args | Returns |
+|---|---|---|
+| `analysis_start` | `{ force: bool }` | `Result<u32, IpcError>` — queued count; returns immediately, progress via `analysis:progress`/`analysis:done`. `force` clears stored verdicts and re-analyzes everything |
+| `analysis_cancel` | `{}` | `()` — takes effect within the current file |
+| `analysis_report` | `{}` | `Result<AnalysisReport, IpcError>` — `{ running, summary, flagged }` from `track_analysis` |
+
 ### Search
 
 | Command | Args | Returns |
@@ -468,6 +476,8 @@ Events are backend -> frontend, pushed via Tauri's event system and subscribed t
 | `player:device-changed` | `DeviceChanged` | After `device_select` resolves, or on device hot-plug/removal |
 | `scanner:progress` | `ScannerProgress` | Throttled to ~5 Hz during `library_scan` |
 | `scanner:done` | `ScannerDone` | Once, at scan completion (success or partial failure) |
+| `analysis:progress` | `AnalysisProgress` | Per track during `analysis_start` (title, artist, verdict, detail) |
+| `analysis:done` | `AnalysisDone` | Once per analysis run (`{ analyzed, flagged, errors, cancelled }`) |
 | `queue:changed` | `QueueChanged` | After any mutation to the queue (add/remove/move/clear) |
 | `log:line` | `LogLine` | Per emitted log line, unthrottled (log volume is low; UI ring-buffers to last N lines) |
 

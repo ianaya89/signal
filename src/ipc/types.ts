@@ -290,3 +290,44 @@ export interface ArtworkFetchSummary {
   remaining: number;
   cancelled: boolean;
 }
+
+export interface AnalysisProgressEvent {
+  processed: number;
+  total: number;
+  trackId: number;
+  title: string;
+  artist: string;
+  verdict: string;
+  detail: string;
+}
+
+export interface AnalysisDoneEvent {
+  analyzed: number;
+  flagged: number;
+  errors: number;
+  cancelled: boolean;
+}
+
+export interface AnalysisFlaggedTrack {
+  id: number;
+  title: string;
+  artistName: string;
+  albumId: number;
+  verdict: "upsampled" | "transcode" | "padded_bits";
+  confidence: number;
+  detail: string;
+}
+
+export interface AnalysisReport {
+  running: boolean;
+  summary: {
+    analyzedTotal: number;
+    clean: number;
+    upsampled: number;
+    transcode: number;
+    paddedBits: number;
+    unreadable: number;
+    lastRunAt: string | null;
+  };
+  flagged: AnalysisFlaggedTrack[];
+}

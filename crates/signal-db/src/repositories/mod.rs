@@ -1,4 +1,5 @@
 pub mod albums;
+pub mod analysis;
 pub mod artists;
 pub mod health;
 pub mod playlists;

@@ -5,8 +5,13 @@ import { useEffect, useRef, useState } from "react";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { onSignalEvent } from "@/ipc/events";
 import { api } from "@/ipc/invoke";
-import type { ArtworkProgressEvent } from "@/ipc/types";
-import { cn } from "@/lib/utils";
+import type {
+  AnalysisDoneEvent,
+  AnalysisFlaggedTrack,
+  AnalysisProgressEvent,
+  ArtworkProgressEvent,
+} from "@/ipc/types";
+import { cn, errText } from "@/lib/utils";
 import { toast } from "@/stores/toastStore";
 
 export function DoctorView() {
@@ -25,6 +30,21 @@ export function DoctorView() {
     staleTime: 60_000,
   });
 
+  // null = trust the backend's `running` flag (restores a live run on mount)
+  const [analyzing, setAnalyzing] = useState<boolean | null>(null);
+  const [analysisLog, setAnalysisLog] = useState<AnalysisProgressEvent[]>([]);
+  const [analysisProgress, setAnalysisProgress] = useState<{
+    processed: number;
+    total: number;
+  } | null>(null);
+  const analysisLogRef = useRef<HTMLUListElement>(null);
+  const { data: analysis } = useQuery({
+    queryKey: ["analysis"],
+    queryFn: api.analysisReport,
+    staleTime: 15_000,
+  });
+  const analysisRunning = analyzing ?? analysis?.running ?? false;
+
   useEffect(() => {
     const unlisten = onSignalEvent<ArtworkProgressEvent>(
       "artwork:progress",
@@ -38,6 +58,36 @@ export function DoctorView() {
       },
     );
     return () => void unlisten.then((fn) => fn());
+  }, []);
+
+  useEffect(() => {
+    const unlistenProgress = onSignalEvent<AnalysisProgressEvent>(
+      "analysis:progress",
+      (payload) => {
+        setAnalysisProgress({ processed: payload.processed, total: payload.total });
+        // libraries run 10k+ tracks — keep only the tail of the log
+        setAnalysisLog((log) => [...log, payload].slice(-500));
+        requestAnimationFrame(() => {
+          const el = analysisLogRef.current;
+          if (el) el.scrollTop = el.scrollHeight;
+        });
+      },
+    );
+    const unlistenDone = onSignalEvent<AnalysisDoneEvent>("analysis:done", (done) => {
+      setAnalyzing(false);
+      setAnalysisProgress(null);
+      toast.ok(
+        done.cancelled
+          ? "analysis stopped"
+          : done.flagged > 0
+            ? `${done.flagged} suspicious files found`
+            : `${done.analyzed} files analyzed — all clean`,
+      );
+    });
+    return () => {
+      void unlistenProgress.then((fn) => fn());
+      void unlistenDone.then((fn) => fn());
+    };
   }, []);
 
   if (isLoading || !data) {
@@ -98,6 +148,22 @@ export function DoctorView() {
     } finally {
       setFetchingArt(false);
       setArtProgress(null);
+    }
+  };
+
+  const startAnalysis = async (force: boolean) => {
+    setAnalysisLog([]);
+    setAnalysisProgress(null);
+    setAnalyzing(true);
+    try {
+      const queued = await api.analysisStart(force);
+      if (queued === 0) {
+        setAnalyzing(false);
+        toast.info("nothing new to analyze — use re-analyze all");
+      }
+    } catch (err) {
+      setAnalyzing(false);
+      toast.error(errText(err));
     }
   };
 
@@ -255,6 +321,79 @@ export function DoctorView() {
         ))}
       </Issue>
 
+      <Issue
+        title="suspicious audio"
+        count={analysis?.flagged.length ?? 0}
+        ok={
+          (analysis?.summary.analyzedTotal ?? 0) > 0
+            ? `no fake hi-res or transcodes among ${analysis?.summary.analyzedTotal} analyzed files`
+            : "not analyzed yet"
+        }
+        hint="spectral analysis of lossless files"
+        action={
+          <span className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() =>
+                void startAnalysis((analysis?.summary.analyzedTotal ?? 0) > 0)
+              }
+              disabled={analysisRunning}
+              title="decode lossless files and inspect their spectrum for upsampling, lossy transcodes and padded bit depth"
+              className="border border-subtle px-2 py-0.5 text-[11px] text-accent hover:border-focus disabled:opacity-40"
+            >
+              {analysisRunning
+                ? "analyzing…"
+                : (analysis?.summary.analyzedTotal ?? 0) > 0
+                  ? "re-analyze all"
+                  : "analyze library"}
+            </button>
+            {analysisRunning && (
+              <button
+                type="button"
+                onClick={() => void api.analysisCancel()}
+                className="border border-subtle px-2 py-0.5 text-[11px] text-muted hover:border-error hover:text-error"
+              >
+                stop
+              </button>
+            )}
+          </span>
+        }
+      >
+        {(analysis?.flagged ?? []).map((t) => (
+          <li key={t.id} className="flex min-w-0 items-baseline gap-2">
+            <span
+              className={cn(
+                "shrink-0",
+                t.verdict === "padded_bits" ? "text-muted" : "text-warn",
+              )}
+            >
+              {verdictLabel(t.verdict)}
+            </span>
+            <Link
+              to="/albums/$albumId"
+              params={{ albumId: String(t.albumId) }}
+              className="shrink-0 text-secondary hover:text-accent"
+            >
+              {t.artistName} — {t.title}
+            </Link>
+            <span className="min-w-0 truncate text-muted">{t.detail}</span>
+            <span className="ml-auto shrink-0 tabular-nums text-[10px] text-muted">
+              {Math.round(t.confidence * 100)}%
+            </span>
+          </li>
+        ))}
+      </Issue>
+
+      {(analysisRunning || analysisLog.length > 0) && (
+        <AnalysisRun
+          logRef={analysisLogRef}
+          log={analysisLog}
+          progress={analysisProgress}
+          running={analysisRunning}
+          onDismiss={() => setAnalysisLog([])}
+        />
+      )}
+
       <div className="flex gap-6 text-[11px] text-muted">
         <span>{data.tracksWithoutYear} tracks without year</span>
         <span>{data.tracksWithoutGenre} tracks without genre</span>
@@ -351,6 +490,111 @@ function ArtworkRun({
             querying musicbrainz… (their rate limit is 1 request/second)
           </li>
         )}
+      </ul>
+    </section>
+  );
+}
+
+function verdictLabel(verdict: AnalysisFlaggedTrack["verdict"]): string {
+  return verdict === "upsampled"
+    ? "fake hi-res"
+    : verdict === "transcode"
+      ? "lossy transcode"
+      : "padded bits";
+}
+
+/** Live console for the audio authenticity analysis, mirroring ArtworkRun:
+ *  a library-wide run takes minutes, so every verdict streams in here. */
+function AnalysisRun({
+  logRef,
+  log,
+  progress,
+  running,
+  onDismiss,
+}: {
+  logRef: React.RefObject<HTMLUListElement | null>;
+  log: AnalysisProgressEvent[];
+  progress: { processed: number; total: number } | null;
+  running: boolean;
+  onDismiss: () => void;
+}) {
+  const flagged = log.filter(
+    (l) => l.verdict === "upsampled" || l.verdict === "transcode" || l.verdict === "padded_bits",
+  ).length;
+  const done = progress?.processed ?? log.length;
+  const total = progress?.total ?? log.length;
+
+  return (
+    <section className="border border-subtle bg-surface">
+      <header className="flex h-7 items-center gap-2 border-b border-subtle px-2 text-[10px]">
+        <span className="uppercase tracking-[0.14em] text-accent">
+          [ audio analysis ]
+        </span>
+        <span className="tabular-nums text-muted">
+          {done}/{total}
+        </span>
+        <span className={flagged > 0 ? "text-warn" : "text-ok"}>
+          {flagged} flagged
+        </span>
+        {!running && (
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="ml-auto text-[11px] text-muted hover:text-accent"
+          >
+            dismiss
+          </button>
+        )}
+      </header>
+      <div className="h-1 bg-base">
+        <div
+          className="h-full bg-accent transition-[width] duration-300"
+          style={{ width: total > 0 ? `${(done / total) * 100}%` : "0%" }}
+        />
+      </div>
+      <ul
+        ref={logRef}
+        className="flex max-h-40 flex-col gap-0.5 overflow-auto px-2 py-1.5 text-[11px]"
+      >
+        {log.map((entry, i) => (
+          <li key={`${entry.trackId}-${i}`} className="flex min-w-0 gap-2">
+            <span
+              className={cn(
+                "w-3 shrink-0",
+                entry.verdict === "clean"
+                  ? "text-ok"
+                  : entry.verdict === "unreadable"
+                    ? "text-error"
+                    : entry.verdict === "skipped"
+                      ? "text-muted"
+                      : "text-warn",
+              )}
+            >
+              {entry.verdict === "clean"
+                ? "✓"
+                : entry.verdict === "unreadable"
+                  ? "✕"
+                  : entry.verdict === "skipped"
+                    ? "—"
+                    : "!"}
+            </span>
+            <span className="shrink-0 text-secondary">{entry.title}</span>
+            {entry.artist && (
+              <span className="shrink-0 text-muted">· {entry.artist}</span>
+            )}
+            {entry.detail && (
+              <span
+                className={cn(
+                  "min-w-0 truncate",
+                  entry.verdict === "unreadable" ? "text-error" : "text-muted",
+                )}
+              >
+                {entry.detail}
+              </span>
+            )}
+          </li>
+        ))}
+        {running && <li className="text-muted">decoding spectra…</li>}
       </ul>
     </section>
   );

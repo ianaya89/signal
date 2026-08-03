@@ -116,6 +116,15 @@ export function CommandPalette() {
         run: () => navigate({ to: "/doctor" }),
       },
       {
+        id: "analyze-audio",
+        label: "doctor: analyze audio authenticity",
+        run: async () => {
+          await navigate({ to: "/doctor" });
+          await api.analysisStart(false);
+        },
+      },
+      },
+      {
         id: "discover",
         label: "go to discover",
         hint: "D",

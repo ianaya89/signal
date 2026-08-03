@@ -18,6 +18,10 @@ pub struct AppState {
     /// Set by the doctor's cancel button; the artwork batch checks it between
     /// albums (each one costs a full second of `MusicBrainz` throttling).
     pub artwork_cancel: Arc<AtomicBool>,
+    /// Guards against concurrent audio authenticity analyses.
+    pub analyzing: Arc<AtomicBool>,
+    /// Doctor's stop button; polled between tracks and inside decode loops.
+    pub analysis_cancel: Arc<AtomicBool>,
     /// Live fs watchers, one per library root; replaced together.
     pub watcher: Mutex<Vec<WatcherHandle>>,
     /// Path substrings excluded from scans (config.toml `[library] exclude`).

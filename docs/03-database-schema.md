@@ -543,7 +543,28 @@ LIMIT 10;
 
 Both stats queries lean on `idx_play_events_started_at` and a full-table scan of `tracks` respectively — the codec/sample-rate breakdowns run over the whole library, so they're cheap enough (thousands, not millions, of rows) not to need a dedicated index; they're re-run on demand when the Stats view opens rather than cached.
 
-## 8. Migration strategy
+## 8. Audio authenticity analysis — `track_analysis`
+
+Added in `migrations/0004_track_analysis.sql`; written by `signal-analysis` via `AnalysisRepo`, read by the doctor view.
+
+```sql
+CREATE TABLE track_analysis (
+    track_id            INTEGER PRIMARY KEY REFERENCES tracks(id) ON DELETE CASCADE,
+    analyzed_at         TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    -- clean | upsampled | transcode | padded_bits | unreadable | skipped
+    verdict             TEXT NOT NULL,
+    cutoff_hz           INTEGER,
+    effective_bit_depth INTEGER,
+    cliff_db            REAL,
+    confidence          REAL NOT NULL DEFAULT 0,
+    detail              TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX idx_track_analysis_verdict ON track_analysis(verdict);
+```
+
+One row per analyzed track, upserted in place on re-analysis; `ON DELETE CASCADE` keeps it consistent with prunes. Only lossless codecs are ever analyzed (`codec IN ('FLAC', 'ALAC', 'PCM (WAV)', 'PCM (AIFF)')`).
+
+## 9. Migration strategy
 
 Every schema change is a new, forward-only `.sql` file in `migrations/` at the repo root — no `.down.sql` files. A desktop app with a single embedded database can't meaningfully "roll back" a user's local schema mid-session anyway; a bad migration is fixed by shipping a corrective forward migration, not a revert.
 

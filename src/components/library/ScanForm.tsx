@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { api } from "@/ipc/invoke";
+import { errText } from "@/lib/utils";
 import { pickFolder } from "@/lib/pickFolder";
 import { useScanStore } from "@/stores/scanStore";
 
@@ -68,11 +69,4 @@ export function ScanForm() {
       )}
     </div>
   );
-}
-
-function errText(err: unknown): string {
-  if (typeof err === "object" && err !== null && "message" in err) {
-    return String((err as { message: unknown }).message);
-  }
-  return String(err);
 }

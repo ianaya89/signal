@@ -1,0 +1,22 @@
+[package]
+name = "signal-analysis"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+signal-core = { workspace = true }
+signal-db = { workspace = true }
+realfft = { workspace = true }
+symphonia = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+hound = { workspace = true }
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

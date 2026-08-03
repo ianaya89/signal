@@ -13,6 +13,8 @@ pub enum SignalError {
     Player(String),
     #[error("scanner error: {0}")]
     Scanner(String),
+    #[error("analysis error: {0}")]
+    Analysis(String),
     #[error("search error: {0}")]
     Search(String),
     #[error("plugin error: {0}")]

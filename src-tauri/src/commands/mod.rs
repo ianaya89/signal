@@ -1,3 +1,4 @@
+pub mod analysis;
 pub mod artwork_net;
 pub mod device;
 pub mod edit;

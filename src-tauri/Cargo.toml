@@ -13,6 +13,7 @@ tauri-build = { workspace = true }
 signal-core = { workspace = true }
 signal-db = { workspace = true }
 signal-scanner = { workspace = true }
+signal-analysis = { workspace = true }
 signal-player = { workspace = true }
 signal-search = { workspace = true }
 signal-plugins = { workspace = true }

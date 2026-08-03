@@ -4,6 +4,7 @@ members = [
     "crates/signal-core",
     "crates/signal-db",
     "crates/signal-scanner",
+    "crates/signal-analysis",
     "crates/signal-player",
     "crates/signal-search",
     "crates/signal-plugins",
@@ -22,6 +23,7 @@ repository = "https://github.com/ianaya89/signal"
 signal-core = { path = "crates/signal-core" }
 signal-db = { path = "crates/signal-db" }
 signal-scanner = { path = "crates/signal-scanner" }
+signal-analysis = { path = "crates/signal-analysis" }
 signal-player = { path = "crates/signal-player" }
 signal-search = { path = "crates/signal-search" }
 signal-plugins = { path = "crates/signal-plugins" }
@@ -42,6 +44,10 @@ sqlx = { version = "0.8", default-features = false, features = [
 lofty = "0.21"
 notify = "7.0"
 notify-debouncer-full = "0.4"
+
+symphonia = { version = "0.5", default-features = false, features = ["flac", "pcm", "wav", "aiff", "isomp4", "alac"] }
+realfft = "3.4"
+hound = "3.5"
 
 libmpv2 = "6"
 

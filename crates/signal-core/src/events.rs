@@ -67,6 +67,25 @@ pub enum SignalEvent {
         outcome: String,
         detail: Option<String>,
     },
+    /// One track resolved during an audio authenticity analysis. `verdict`
+    /// is a `track_analysis.verdict` value, `detail` the human evidence.
+    #[serde(rename_all = "camelCase")]
+    AnalysisProgress {
+        processed: u32,
+        total: u32,
+        track_id: i64,
+        title: String,
+        artist: String,
+        verdict: String,
+        detail: String,
+    },
+    #[serde(rename_all = "camelCase")]
+    AnalysisDone {
+        analyzed: u32,
+        flagged: u32,
+        errors: u32,
+        cancelled: bool,
+    },
     QueueChanged,
     /// config.toml changed; `ui` is the serialized [ui] section.
     #[serde(rename_all = "camelCase")]
@@ -96,6 +115,8 @@ impl SignalEvent {
             Self::ScannerDone { .. } => "scanner:done",
             Self::ScannerError { .. } => "scanner:error",
             Self::ArtworkProgress { .. } => "artwork:progress",
+            Self::AnalysisProgress { .. } => "analysis:progress",
+            Self::AnalysisDone { .. } => "analysis:done",
             Self::QueueChanged => "queue:changed",
             Self::ConfigChanged { .. } => "config:changed",
             Self::LogLine { .. } => "log:line",

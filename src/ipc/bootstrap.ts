@@ -3,6 +3,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { onSignalEvent } from "@/ipc/events";
 import { startupUpdateCheck } from "@/lib/updater";
 import type {
+  AnalysisDoneEvent,
   ScannerDoneEvent,
   ScannerErrorEvent,
   ScannerProgressEvent,
@@ -77,6 +78,11 @@ export function bootstrapEvents(queryClient: QueryClient) {
 
   void onSignalEvent<ScannerErrorEvent>("scanner:error", (e) => {
     useScanStore.getState().fail(e.message);
+  });
+
+  // refresh stored verdicts even when the doctor view isn't mounted
+  void onSignalEvent<AnalysisDoneEvent>("analysis:done", () => {
+    void queryClient.invalidateQueries({ queryKey: ["analysis"] });
   });
 
   void onSignalEvent<{ state: PlayerStateDto }>("player:state", (e) => {
