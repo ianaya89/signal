@@ -336,6 +336,18 @@ impl AlbumRepo {
         .await
     }
 
+    /// `(album_id, total plays, last played)` from the denormalized track
+    /// counters — backs the server's `frequent` and `recent` album lists.
+    pub async fn play_stats(&self) -> sqlx::Result<Vec<(i64, i64, Option<String>)>> {
+        sqlx::query_as(
+            "SELECT album_id, COALESCE(SUM(play_count), 0), MAX(last_played_at)
+             FROM tracks WHERE album_id IS NOT NULL
+             GROUP BY album_id",
+        )
+        .fetch_all(&self.pool)
+        .await
+    }
+
     pub async fn artwork_path(&self, id: i64) -> sqlx::Result<Option<String>> {
         let row: Option<Option<String>> =
             sqlx::query_scalar("SELECT artwork_path FROM albums WHERE id = ?1")

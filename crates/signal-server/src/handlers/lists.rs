@@ -44,10 +44,31 @@ pub(crate) async fn album_list2(ctx: &Ctx, params: &Params) -> HandlerResult {
         }
         // repo order is already artist, year, name
         "alphabeticalByArtist" => {}
-        "newest" | "recent" | "frequent" => {
-            // recent/frequent need album-level play stats Signal doesn't
-            // aggregate yet — newest is the honest fallback
+        "newest" => {
             albums.sort_by(|a, b| b.added_at.cmp(&a.added_at));
+        }
+        "frequent" | "recent" => {
+            let stats: std::collections::HashMap<i64, (i64, Option<String>)> = ctx
+                .db
+                .albums()
+                .play_stats()
+                .await
+                .map_err(ApiError::db)?
+                .into_iter()
+                .map(|(id, plays, last)| (id, (plays, last)))
+                .collect();
+            if list_type == "frequent" {
+                albums.retain(|a| stats.get(&a.id).is_some_and(|(plays, _)| *plays > 0));
+                albums.sort_by_key(|a| std::cmp::Reverse(stats.get(&a.id).map_or(0, |s| s.0)));
+            } else {
+                albums.retain(|a| stats.get(&a.id).is_some_and(|(_, last)| last.is_some()));
+                albums.sort_by(|a, b| {
+                    let last = |x: &signal_core::AlbumSummary| {
+                        stats.get(&x.id).and_then(|s| s.1.clone())
+                    };
+                    last(b).cmp(&last(a))
+                });
+            }
         }
         "random" => shuffle(&mut albums),
         "byYear" => {

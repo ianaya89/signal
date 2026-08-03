@@ -295,6 +295,12 @@ async fn scrobble_star_and_rating_write_back() {
             .unwrap();
     assert_eq!(source, "remote");
 
+    // the scrobble makes the album show up in frequent + recent lists
+    let env = get_json(&ts.base, "getAlbumList2?type=frequent").await;
+    assert_eq!(env["albumList2"]["album"].as_array().unwrap().len(), 1);
+    let env = get_json(&ts.base, "getAlbumList2?type=recent").await;
+    assert_eq!(env["albumList2"]["album"][0]["name"], "Doble Vida");
+
     let env = get_json(&ts.base, "star?id=tr-1").await;
     assert_eq!(env["status"], "ok");
     assert!(ts.db.tracks().get(1).await.unwrap().unwrap().favorite);
