@@ -60,6 +60,7 @@ serde_urlencoded = "0.7"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
 
 libmpv2 = "6"
+libc = "0.2"
 
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 serde = { version = "1.0", features = ["derive"] }

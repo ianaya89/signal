@@ -72,6 +72,13 @@ pub(crate) fn spawn(
 }
 
 fn init_mpv() -> Result<Mpv, PlayerError> {
+    // libmpv refuses to init unless LC_NUMERIC is "C"; GTK overwrites it from
+    // the environment during Tauri startup on Linux.
+    #[cfg(unix)]
+    #[allow(unsafe_code)]
+    unsafe {
+        libc::setlocale(libc::LC_NUMERIC, c"C".as_ptr());
+    }
     Mpv::with_initializer(|init| {
         init.set_property("video", "no")?;
         init.set_property("audio-display", "no")?;
