@@ -3,7 +3,9 @@
 
 use serde_json::json;
 
-use crate::dto::{to_value, AlbumID3, ArtistID3, Child};
+use signal_subsonic_types::{AlbumID3, ArtistID3, Child};
+
+use crate::dto::{album_from_summary, artist_from_summary, child_from_track, to_value};
 use crate::envelope::{ApiError, HandlerResult};
 use crate::handlers::{durations_map, name_maps};
 use crate::params::Params;
@@ -42,7 +44,7 @@ pub(crate) async fn search3(ctx: &Ctx, params: &Params) -> HandlerResult {
         .await
         .map_err(|err| ApiError::generic(format!("search failed: {err}")))?;
     let maps = name_maps(ctx).await?;
-    let song: Vec<Child> = tracks.iter().map(|t| Child::from_track(t, &maps)).collect();
+    let song: Vec<Child> = tracks.iter().map(|t| child_from_track(t, &maps)).collect();
 
     let needle = query.to_lowercase();
     let artist: Vec<ArtistID3> = ctx
@@ -55,7 +57,7 @@ pub(crate) async fn search3(ctx: &Ctx, params: &Params) -> HandlerResult {
         .filter(|a| a.name.to_lowercase().contains(&needle))
         .skip(artist_offset)
         .take(artist_count)
-        .map(ArtistID3::from_summary)
+        .map(artist_from_summary)
         .collect();
 
     let durations = durations_map(ctx).await?;
@@ -69,7 +71,7 @@ pub(crate) async fn search3(ctx: &Ctx, params: &Params) -> HandlerResult {
         .filter(|a| a.name.to_lowercase().contains(&needle))
         .skip(album_offset)
         .take(album_count)
-        .map(|a| AlbumID3::from_summary(a, &durations))
+        .map(|a| album_from_summary(a, &durations))
         .collect();
 
     Ok(Some((

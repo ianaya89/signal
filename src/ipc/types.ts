@@ -338,3 +338,112 @@ export interface AnalysisReport {
   };
   flagged: AnalysisFlaggedTrack[];
 }
+
+// --- Remote OpenSubsonic sources (docs/11-subsonic-client.md) ---
+// These mirror the wire protocol, not signal-core: ids are opaque strings the
+// remote server assigns, and durations are seconds rather than milliseconds.
+
+export interface RemoteSource {
+  id: number;
+  name: string;
+  baseUrl: string;
+  username: string;
+  authMode: "token" | "legacy_p";
+  allowInsecureTls: boolean;
+  enabled: boolean;
+  lastPingAt: string | null;
+  lastPingOk: boolean | null;
+}
+
+/** Every field optional — omitted ones keep their stored value. */
+export interface RemoteSourcePatch {
+  name?: string;
+  baseUrl?: string;
+  username?: string;
+  password?: string;
+  authMode?: string;
+  allowInsecureTls?: boolean;
+  enabled?: boolean;
+}
+
+export interface ConnectionStatus {
+  ok: boolean;
+  authMode: string;
+  serverType: string | null;
+  serverVersion: string | null;
+  openSubsonic: boolean;
+  error: string | null;
+}
+
+export interface SubsonicChild {
+  id: string;
+  parent?: string;
+  isDir: boolean;
+  title: string;
+  album?: string;
+  artist?: string;
+  track?: number;
+  discNumber?: number;
+  year?: number;
+  genre?: string;
+  coverArt?: string;
+  size: number;
+  contentType: string;
+  suffix: string;
+  /** Seconds, per the Subsonic spec. */
+  duration: number;
+  bitRate: number;
+  path: string;
+  playCount: number;
+  created: string;
+  starred?: string;
+  albumId?: string;
+  artistId?: string;
+  userRating?: number;
+  type: string;
+  isVideo: boolean;
+}
+
+export interface SubsonicArtist {
+  id: string;
+  name: string;
+  albumCount: number;
+  coverArt?: string;
+}
+
+export interface SubsonicAlbum {
+  id: string;
+  name: string;
+  artist: string;
+  artistId: string;
+  coverArt?: string;
+  songCount: number;
+  duration: number;
+  created: string;
+  year?: number;
+}
+
+export interface SubsonicIndexBucket {
+  name: string;
+  artist: SubsonicArtist[];
+}
+
+export interface SubsonicArtistsIndex {
+  ignoredArticles: string;
+  index: SubsonicIndexBucket[];
+}
+
+// getArtist/getAlbum flatten the entity's own attrs alongside its children.
+export interface SubsonicArtistDetail extends SubsonicArtist {
+  album: SubsonicAlbum[];
+}
+
+export interface SubsonicAlbumDetail extends SubsonicAlbum {
+  song: SubsonicChild[];
+}
+
+export interface SubsonicSearchResult {
+  artist: SubsonicArtist[];
+  album: SubsonicAlbum[];
+  song: SubsonicChild[];
+}

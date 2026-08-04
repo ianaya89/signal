@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use signal_core::SignalError;
+use signal_core::{MediaSource, SignalError};
 use tauri::State;
 
 use crate::commands::DbResultExt;
@@ -46,7 +46,7 @@ pub async fn session_restore(
 
     state
         .player
-        .load_paused_at(resume.track_id, path, resume.position_ms)
+        .load_paused_at(resume.track_id, MediaSource::File(path), resume.position_ms)
         .map_err(|e| SignalError::Player(e.to_string()))?;
     Ok(Some(resume))
 }

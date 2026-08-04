@@ -1,5 +1,5 @@
 use serde::Serialize;
-use signal_core::{QueueItem, SignalError, SignalEvent, Track};
+use signal_core::{MediaSource, QueueItem, SignalError, SignalEvent, Track};
 use tauri::State;
 
 use crate::commands::DbResultExt;
@@ -100,7 +100,7 @@ pub(crate) async fn play_queue_head(state: &State<'_, AppState>) -> Result<bool,
     }
     state
         .player
-        .load_and_play(entry.track.id, path)
+        .load_and_play(entry.track.id, MediaSource::File(path))
         .map_err(|e| SignalError::Player(e.to_string()))?;
     Ok(true)
 }

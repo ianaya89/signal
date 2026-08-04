@@ -1,4 +1,4 @@
-use signal_core::{PlayerState, SignalError};
+use signal_core::{MediaSource, PlayerState, SignalError};
 use tauri::State;
 
 use crate::commands::DbResultExt;
@@ -71,6 +71,19 @@ pub(crate) async fn start_track(
     state: &State<'_, AppState>,
     track_id: i64,
 ) -> Result<(), SignalError> {
+    if crate::state::is_remote_id(track_id) {
+        let url = state
+            .remote_tracks
+            .lock()
+            .ok()
+            .and_then(|slab| slab.get(track_id).map(|t| t.url.clone()))
+            .ok_or_else(|| SignalError::Player(format!("remote track {track_id} not found")))?;
+        return state
+            .player
+            .load_and_play(track_id, MediaSource::Url(url))
+            .player_err();
+    }
+
     let track = state
         .db
         .tracks()
@@ -87,7 +100,10 @@ pub(crate) async fn start_track(
         )));
     }
 
-    state.player.load_and_play(track_id, path).player_err()
+    state
+        .player
+        .load_and_play(track_id, MediaSource::File(path))
+        .player_err()
 }
 
 #[tauri::command]

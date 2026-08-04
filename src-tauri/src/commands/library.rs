@@ -397,6 +397,10 @@ pub async fn library_get_track(
     state: State<'_, AppState>,
     track_id: i64,
 ) -> Result<TrackWithContext, SignalError> {
+    if crate::state::is_remote_id(track_id) {
+        return crate::commands::remote::now_playing(&state, track_id);
+    }
+
     let track = state
         .db
         .tracks()

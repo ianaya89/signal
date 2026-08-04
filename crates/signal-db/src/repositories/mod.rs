@@ -4,6 +4,7 @@ pub mod artists;
 pub mod health;
 pub mod playlists;
 pub mod queue;
+pub mod remote_sources;
 pub mod settings;
 pub mod stats;
 pub mod tracks;

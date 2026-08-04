@@ -9,6 +9,8 @@ members = [
     "crates/signal-player",
     "crates/signal-search",
     "crates/signal-plugins",
+    "crates/signal-subsonic-types",
+    "crates/signal-subsonic-client",
     "crates/signal-cli",
     "src-tauri",
 ]
@@ -29,6 +31,8 @@ signal-server = { path = "crates/signal-server" }
 signal-player = { path = "crates/signal-player" }
 signal-search = { path = "crates/signal-search" }
 signal-plugins = { path = "crates/signal-plugins" }
+signal-subsonic-types = { path = "crates/signal-subsonic-types" }
+signal-subsonic-client = { path = "crates/signal-subsonic-client" }
 
 tauri = { version = "2", features = ["macos-private-api"] }
 tauri-build = "2"

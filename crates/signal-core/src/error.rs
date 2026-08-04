@@ -19,6 +19,8 @@ pub enum SignalError {
     Search(String),
     #[error("plugin error: {0}")]
     Plugin(String),
+    #[error("remote server error: {0}")]
+    Remote(String),
     #[error("invalid query: {reason}")]
     InvalidQuery { reason: String },
     #[error("io error: {0}")]

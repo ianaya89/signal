@@ -1,0 +1,54 @@
+{
+  "subsonic-response": {
+    "status": "ok",
+    "version": "1.16.1",
+    "type": "airsonic-advanced",
+    "serverVersion": "11.0.0-SNAPSHOT",
+    "searchResult3": {
+      "artist": [{ "id": "8", "name": "Soda Stereo", "albumCount": 7 }],
+      "album": [
+        {
+          "id": "103",
+          "name": "Doble Vida",
+          "artist": "Soda Stereo",
+          "artistId": "8",
+          "coverArt": "al-103",
+          "songCount": 10,
+          "duration": 2431,
+          "created": "2023-04-19T11:22:03.000Z",
+          "year": 1988,
+          "genre": "Rock"
+        }
+      ],
+      "song": [
+        {
+          "id": "5521",
+          "parent": "103",
+          "isDir": false,
+          "title": "En la Ciudad de la Furia",
+          "album": "Doble Vida",
+          "artist": "Soda Stereo",
+          "track": 2,
+          "year": 1988,
+          "genre": "Rock",
+          "coverArt": "5521",
+          "size": 8912384,
+          "contentType": "audio/mpeg",
+          "suffix": "mp3",
+          "transcodedContentType": "audio/mpeg",
+          "transcodedSuffix": "mp3",
+          "duration": 243,
+          "bitRate": 320,
+          "path": "Soda Stereo/Doble Vida/02 - En la Ciudad de la Furia.mp3",
+          "isVideo": false,
+          "playCount": 3,
+          "discNumber": 1,
+          "created": "2023-04-19T11:22:03.000Z",
+          "albumId": "103",
+          "artistId": "8",
+          "type": "music"
+        }
+      ]
+    }
+  }
+}

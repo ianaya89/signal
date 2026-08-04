@@ -1,8 +1,7 @@
-use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
 
-use signal_core::{AudioDevice, EventBus, PlayerState, ReplayGainMode};
+use signal_core::{AudioDevice, EventBus, MediaSource, PlayerState, ReplayGainMode};
 
 use crate::engine;
 
@@ -18,18 +17,18 @@ pub enum PlayerError {
 pub(crate) enum Cmd {
     Load {
         track_id: i64,
-        path: PathBuf,
+        source: MediaSource,
     },
     /// Load paused at a position — session restore.
     LoadAt {
         track_id: i64,
-        path: PathBuf,
+        source: MediaSource,
         position_ms: u64,
     },
     /// Stage/replace the gapless next slot (mpv playlist index 1).
     SetNext {
         track_id: i64,
-        path: PathBuf,
+        source: MediaSource,
     },
     /// Drop the staged next slot, if any.
     ClearNext,
@@ -60,27 +59,27 @@ impl Player {
         Ok(Self { tx, state })
     }
 
-    pub fn load_and_play(&self, track_id: i64, path: PathBuf) -> Result<(), PlayerError> {
-        self.send(Cmd::Load { track_id, path })
+    pub fn load_and_play(&self, track_id: i64, source: MediaSource) -> Result<(), PlayerError> {
+        self.send(Cmd::Load { track_id, source })
     }
 
     /// Loads paused at `position_ms` (session restore).
     pub fn load_paused_at(
         &self,
         track_id: i64,
-        path: PathBuf,
+        source: MediaSource,
         position_ms: u64,
     ) -> Result<(), PlayerError> {
         self.send(Cmd::LoadAt {
             track_id,
-            path,
+            source,
             position_ms,
         })
     }
 
-    /// Prefetch `path` as the gapless next track (replaces any staged next).
-    pub fn set_next(&self, track_id: i64, path: PathBuf) -> Result<(), PlayerError> {
-        self.send(Cmd::SetNext { track_id, path })
+    /// Prefetch `source` as the gapless next track (replaces any staged next).
+    pub fn set_next(&self, track_id: i64, source: MediaSource) -> Result<(), PlayerError> {
+        self.send(Cmd::SetNext { track_id, source })
     }
 
     pub fn clear_next(&self) -> Result<(), PlayerError> {

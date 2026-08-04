@@ -12,6 +12,7 @@ use crate::repositories::artists::ArtistRepo;
 use crate::repositories::health::HealthRepo;
 use crate::repositories::playlists::PlaylistRepo;
 use crate::repositories::queue::QueueRepo;
+use crate::repositories::remote_sources::RemoteSourceRepo;
 use crate::repositories::settings::SettingsRepo;
 use crate::repositories::stats::StatsRepo;
 use crate::repositories::tracks::TrackRepo;
@@ -83,6 +84,11 @@ impl DbPool {
     #[must_use]
     pub fn stats(&self) -> StatsRepo {
         StatsRepo::new(self.pool.clone())
+    }
+
+    #[must_use]
+    pub fn remote_sources(&self) -> RemoteSourceRepo {
+        RemoteSourceRepo::new(self.pool.clone())
     }
 
     #[must_use]

@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
-import type { ReplayGainMode } from "@/ipc/types";
+import type { RemoteSource, ReplayGainMode } from "@/ipc/types";
 import { pickFolder, pickSavePath } from "@/lib/pickFolder";
 import { checkForUpdate, openUpdateDialog, setAutoCheck } from "@/lib/updater";
 import { cn, errText } from "@/lib/utils";
@@ -157,6 +157,8 @@ export function SettingsView() {
       <PluginsSection />
 
       <ServerSection />
+
+      <RemoteSourcesSection />
 
       <Section title="about">
         <Row label="version">
@@ -415,6 +417,216 @@ function ServerSection() {
     </Section>
   );
 }
+
+function RemoteSourcesSection() {
+  const queryClient = useQueryClient();
+  const [name, setName] = useState("");
+  const [baseUrl, setBaseUrl] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [insecure, setInsecure] = useState(false);
+  const [testing, setTesting] = useState<number | null>(null);
+
+  const { data: sources } = useQuery({
+    queryKey: ["remote-sources"],
+    queryFn: api.remoteSourceList,
+  });
+
+  const refresh = () =>
+    queryClient.invalidateQueries({ queryKey: ["remote-sources"] });
+
+  const add = async () => {
+    try {
+      const added = await api.remoteSourceAdd(
+        name || baseUrl,
+        baseUrl,
+        username,
+        password,
+        insecure,
+      );
+      setName("");
+      setBaseUrl("");
+      setUsername("");
+      setPassword("");
+      setInsecure(false);
+      await refresh();
+      // probe straight away — a typo'd host or password is worth knowing now
+      const status = await api.remoteTestConnection(added.id);
+      await refresh();
+      if (status.ok) {
+        toast.ok(
+          `${added.name} connected · ${status.serverType ?? "subsonic"} ${status.serverVersion ?? ""}`.trim(),
+        );
+      } else {
+        toast.error(`${added.name}: ${status.error ?? "unreachable"}`);
+      }
+    } catch (err) {
+      toast.error(errText(err));
+    }
+  };
+
+  const test = async (source: RemoteSource) => {
+    setTesting(source.id);
+    try {
+      const status = await api.remoteTestConnection(source.id);
+      await refresh();
+      if (status.ok) {
+        toast.ok(`${source.name} reachable · ${status.authMode} auth`);
+      } else {
+        toast.error(`${source.name}: ${status.error ?? "unreachable"}`);
+      }
+    } catch (err) {
+      toast.error(errText(err));
+    } finally {
+      setTesting(null);
+    }
+  };
+
+  const remove = async (source: RemoteSource) => {
+    try {
+      await api.remoteSourceRemove(source.id);
+      await refresh();
+      toast.ok(`${source.name} removed`);
+    } catch (err) {
+      toast.error(errText(err));
+    }
+  };
+
+  const toggleInsecure = async (source: RemoteSource) => {
+    try {
+      await api.remoteSourceUpdate(source.id, {
+        allowInsecureTls: !source.allowInsecureTls,
+      });
+      await refresh();
+    } catch (err) {
+      toast.error(errText(err));
+    }
+  };
+
+  return (
+    <Section title="remote servers">
+      {(sources ?? []).map((source) => (
+        <div key={source.id} className="flex flex-col gap-1">
+          <Row label={source.name}>
+            <span
+              className={cn(
+                "text-[11px]",
+                source.lastPingOk === true
+                  ? "text-ok"
+                  : source.lastPingOk === false
+                    ? "text-error"
+                    : "text-muted",
+              )}
+            >
+              {source.lastPingOk === true
+                ? "● connected"
+                : source.lastPingOk === false
+                  ? "● unreachable"
+                  : "○ untested"}
+            </span>
+            <button
+              type="button"
+              onClick={() => void test(source)}
+              disabled={testing === source.id}
+              className={cn(BTN, "disabled:opacity-50")}
+            >
+              {testing === source.id ? "testing…" : "test"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void remove(source)}
+              className={cn(BTN, "hover:border-error hover:text-error")}
+            >
+              remove
+            </button>
+          </Row>
+          <div className="flex items-center gap-3 pl-[7.75rem]">
+            <span className="min-w-0 flex-1 truncate text-[10px] text-muted">
+              {source.baseUrl} · {source.username} · {source.authMode} auth
+            </span>
+            <button
+              type="button"
+              onClick={() => void toggleInsecure(source)}
+              title="accept self-signed certificates from this server"
+              className={cn(
+                "px-1 text-[10px]",
+                source.allowInsecureTls
+                  ? "text-warn"
+                  : "text-muted hover:text-secondary",
+              )}
+            >
+              {source.allowInsecureTls ? "tls: unverified" : "tls: verified"}
+            </button>
+          </div>
+        </div>
+      ))}
+      {(sources ?? []).length === 0 && (
+        <p className="text-[11px] text-muted">no remote servers yet</p>
+      )}
+
+      <Row label="name">
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="optional — defaults to the url"
+          spellCheck={false}
+          className={INPUT}
+        />
+      </Row>
+      <Row label="url">
+        <input
+          value={baseUrl}
+          onChange={(e) => setBaseUrl(e.target.value)}
+          placeholder="https://music.example.com"
+          spellCheck={false}
+          className={INPUT}
+        />
+      </Row>
+      <Row label="username">
+        <input
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          spellCheck={false}
+          className={INPUT}
+        />
+      </Row>
+      <Row label="password">
+        <input
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          type="password"
+          spellCheck={false}
+          className={INPUT}
+        />
+        <button
+          type="button"
+          onClick={() => void add()}
+          disabled={!baseUrl || !username || !password}
+          className={cn(BTN, "disabled:cursor-not-allowed disabled:opacity-40")}
+        >
+          add
+        </button>
+      </Row>
+      <Row label="tls">
+        <button
+          type="button"
+          onClick={() => setInsecure(!insecure)}
+          className={cn(BTN, insecure ? "text-warn" : undefined)}
+        >
+          {insecure ? "accept self-signed" : "verify certificates"}
+        </button>
+      </Row>
+      <p className="text-[10px] text-muted">
+        browse and stream from navidrome/airsonic/gonic. nothing is copied into
+        the local library — remote tracks stream on demand and can't be staged
+        in the queue.
+      </p>
+    </Section>
+  );
+}
+
+const INPUT =
+  "w-72 border border-subtle bg-base/60 px-2 py-0.5 text-[11px] text-primary outline-none focus:border-focus";
 
 const BTN =
   "border border-subtle bg-raised px-2 py-0.5 text-[11px] text-secondary hover:border-focus hover:text-accent";

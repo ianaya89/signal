@@ -9,6 +9,7 @@ import type {
   ArtistDetail,
   ArtistSummary,
   AudioDevice,
+  ConnectionStatus,
   Discover,
   FolderListing,
   GenreSummary,
@@ -17,9 +18,16 @@ import type {
   PlaylistDetail,
   PlaylistSummary,
   QueueEntry,
+  RemoteSource,
+  RemoteSourcePatch,
   ReplayGainMode,
   ServerStatus,
   StatsOverview,
+  SubsonicAlbumDetail,
+  SubsonicArtistDetail,
+  SubsonicArtistsIndex,
+  SubsonicChild,
+  SubsonicSearchResult,
   Track,
   TrackMetaEdit,
   TrackWithContext,
@@ -110,7 +118,20 @@ export type IpcCommand =
   | "server_status"
   | "library_discover"
   | "library_backup"
-  | "open_config_file";
+  | "open_config_file"
+  | "remote_source_list"
+  | "remote_source_add"
+  | "remote_source_update"
+  | "remote_source_remove"
+  | "remote_source_test_connection"
+  | "remote_browse_artists"
+  | "remote_browse_artist"
+  | "remote_browse_album"
+  | "remote_search"
+  | "remote_play"
+  | "remote_play_context"
+  | "remote_stream_url"
+  | "remote_cover_art_url";
 
 export function ipc<T>(
   command: IpcCommand,
@@ -243,4 +264,44 @@ export const api = {
   libraryBackup: (destPath: string) =>
     ipc<void>("library_backup", { destPath }),
   openConfigFile: () => ipc<string>("open_config_file"),
+
+  remoteSourceList: () => ipc<RemoteSource[]>("remote_source_list"),
+  remoteSourceAdd: (
+    name: string,
+    baseUrl: string,
+    username: string,
+    password: string,
+    allowInsecureTls: boolean,
+  ) =>
+    ipc<RemoteSource>("remote_source_add", {
+      name,
+      baseUrl,
+      username,
+      password,
+      allowInsecureTls,
+    }),
+  remoteSourceUpdate: (id: number, patch: RemoteSourcePatch) =>
+    ipc<RemoteSource>("remote_source_update", { id, patch }),
+  remoteSourceRemove: (id: number) => ipc<void>("remote_source_remove", { id }),
+  remoteTestConnection: (id: number) =>
+    ipc<ConnectionStatus>("remote_source_test_connection", { id }),
+  remoteArtists: (sourceId: number) =>
+    ipc<SubsonicArtistsIndex>("remote_browse_artists", { sourceId }),
+  remoteArtist: (sourceId: number, artistId: string) =>
+    ipc<SubsonicArtistDetail>("remote_browse_artist", { sourceId, artistId }),
+  remoteAlbum: (sourceId: number, albumId: string) =>
+    ipc<SubsonicAlbumDetail>("remote_browse_album", { sourceId, albumId }),
+  remoteSearch: (sourceId: number, query: string) =>
+    ipc<SubsonicSearchResult>("remote_search", { sourceId, query }),
+  remotePlay: (sourceId: number, song: SubsonicChild) =>
+    ipc<void>("remote_play", { sourceId, song }),
+  remotePlayContext: (
+    sourceId: number,
+    songs: SubsonicChild[],
+    startIndex: number,
+  ) => ipc<void>("remote_play_context", { sourceId, songs, startIndex }),
+  remoteStreamUrl: (sourceId: number, remoteId: string) =>
+    ipc<string>("remote_stream_url", { sourceId, remoteId }),
+  remoteCoverArtUrl: (sourceId: number, remoteId: string, size?: number) =>
+    ipc<string>("remote_cover_art_url", { sourceId, remoteId, size }),
 };

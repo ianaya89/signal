@@ -6,7 +6,9 @@ use std::collections::BTreeMap;
 
 use serde_json::json;
 
-use crate::dto::{to_value, AlbumID3, ArtistID3, Child};
+use signal_subsonic_types::{AlbumID3, ArtistID3, Child};
+
+use crate::dto::{album_from_summary, artist_from_summary, child_from_track, to_value};
 use crate::envelope::{ApiError, HandlerResult};
 use crate::handlers::{durations_map, name_maps};
 use crate::ids::Sid;
@@ -37,7 +39,7 @@ pub(crate) async fn artists(ctx: &Ctx, key: &'static str) -> HandlerResult {
         buckets
             .entry(initial)
             .or_default()
-            .push(ArtistID3::from_summary(artist));
+            .push(artist_from_summary(artist));
     }
     let index: Vec<serde_json::Value> = buckets
         .into_iter()
@@ -72,11 +74,11 @@ pub(crate) async fn artist(ctx: &Ctx, params: &Params) -> HandlerResult {
         .map_err(ApiError::db)?;
     let durations = durations_map(ctx).await?;
 
-    let mut payload = to_value(ArtistID3::from_summary(&artist));
+    let mut payload = to_value(artist_from_summary(&artist));
     if let Some(obj) = payload.as_object_mut() {
         let albums: Vec<AlbumID3> = albums
             .iter()
-            .map(|a| AlbumID3::from_summary(a, &durations))
+            .map(|a| album_from_summary(a, &durations))
             .collect();
         obj.insert("album".into(), to_value(albums));
     }
@@ -98,9 +100,9 @@ pub(crate) async fn album(ctx: &Ctx, params: &Params) -> HandlerResult {
     let durations = durations_map(ctx).await?;
     let maps = name_maps(ctx).await?;
 
-    let mut payload = to_value(AlbumID3::from_summary(&album, &durations));
+    let mut payload = to_value(album_from_summary(&album, &durations));
     if let Some(obj) = payload.as_object_mut() {
-        let songs: Vec<Child> = tracks.iter().map(|t| Child::from_track(t, &maps)).collect();
+        let songs: Vec<Child> = tracks.iter().map(|t| child_from_track(t, &maps)).collect();
         obj.insert("song".into(), to_value(songs));
     }
     Ok(Some(("album", payload)))
@@ -118,7 +120,7 @@ pub(crate) async fn song(ctx: &Ctx, params: &Params) -> HandlerResult {
         .map_err(ApiError::db)?
         .ok_or_else(|| ApiError::not_found("no such song"))?;
     let maps = name_maps(ctx).await?;
-    Ok(Some(("song", to_value(Child::from_track(&track, &maps)))))
+    Ok(Some(("song", to_value(child_from_track(&track, &maps)))))
 }
 
 pub(crate) async fn genres(ctx: &Ctx) -> HandlerResult {

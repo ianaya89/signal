@@ -17,6 +17,10 @@ import { GenreDetailView, GenresView } from "@/components/library/GenresView";
 import { LogViewer } from "@/components/logs/LogViewer";
 import { PlaylistDetailView } from "@/components/playlists/PlaylistDetailView";
 import { PlaylistsView } from "@/components/playlists/PlaylistsView";
+import { RemoteAlbumDetailView } from "@/components/remote/RemoteAlbumDetailView";
+import { RemoteArtistDetailView } from "@/components/remote/RemoteArtistDetailView";
+import { RemoteArtistsView } from "@/components/remote/RemoteArtistsView";
+import { RemoteSourcesView } from "@/components/remote/RemoteSourcesView";
 import { SearchView } from "@/components/search/SearchView";
 import { SettingsView } from "@/components/settings/SettingsView";
 import { StatsView } from "@/components/stats/StatsView";
@@ -127,6 +131,30 @@ const playlistDetailRoute = createRoute({
   component: PlaylistDetailView,
 });
 
+const remoteRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/remote",
+  component: RemoteSourcesView,
+});
+
+const remoteSourceRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/remote/$sourceId",
+  component: RemoteArtistsView,
+});
+
+const remoteArtistRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/remote/$sourceId/artists/$artistId",
+  component: RemoteArtistDetailView,
+});
+
+const remoteAlbumRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/remote/$sourceId/albums/$albumId",
+  component: RemoteAlbumDetailView,
+});
+
 const routeTree = rootRoute.addChildren([
   albumsRoute,
   albumDetailRoute,
@@ -141,6 +169,10 @@ const routeTree = rootRoute.addChildren([
   genresRoute,
   genreDetailRoute,
   foldersRoute,
+  remoteRoute,
+  remoteSourceRoute,
+  remoteArtistRoute,
+  remoteAlbumRoute,
   settingsRoute,
   doctorRoute,
   discoverRoute,

@@ -1,0 +1,23 @@
+{
+  "subsonic-response": {
+    "status": "ok",
+    "version": "1.15.0",
+    "type": "gonic",
+    "serverVersion": "v0.16.4",
+    "artists": {
+      "index": [
+        {
+          "name": "S",
+          "artist": [
+            { "id": "12", "name": "Soda Stereo", "albumCount": 7 },
+            { "id": "31", "name": "Sumo", "albumCount": 4 }
+          ]
+        },
+        {
+          "name": "V",
+          "artist": [{ "id": "44", "name": "Virus" }]
+        }
+      ]
+    }
+  }
+}

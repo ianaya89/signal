@@ -64,8 +64,7 @@ struct StatusPayload {
 }
 
 pub fn socket_path(app: &AppHandle) -> Option<std::path::PathBuf> {
-    app.path()
-        .app_data_dir()
+    crate::startup::data_dir(app)
         .ok()
         .map(|d| d.join("signal.sock"))
 }

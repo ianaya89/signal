@@ -5,7 +5,9 @@ use std::collections::HashMap;
 
 use serde_json::json;
 
-use crate::dto::{to_value, Child};
+use signal_subsonic_types::Child;
+
+use crate::dto::{child_from_track, playlist_attrs, to_value};
 use crate::envelope::{ApiError, HandlerResult};
 use crate::handlers::name_maps;
 use crate::ids::Sid;
@@ -29,33 +31,10 @@ async fn stamps(ctx: &Ctx) -> Result<Stamps, ApiError> {
         .collect())
 }
 
-fn playlist_attrs(
-    id: &Sid,
-    name: &str,
-    song_count: usize,
-    duration_secs: u64,
-    stamp: Option<&(String, String)>,
-) -> serde_json::Value {
-    let (created, changed) = match stamp {
-        Some((created, changed)) => (created.as_str(), changed.as_str()),
-        None => ("", ""),
-    };
-    json!({
-        "id": id.to_string(),
-        "name": name,
-        "songCount": song_count,
-        "duration": duration_secs,
-        "public": false,
-        "owner": "signal",
-        "created": created,
-        "changed": changed,
-    })
-}
-
 pub(crate) async fn list(ctx: &Ctx) -> HandlerResult {
     let summaries = ctx.db.playlists().list().await.map_err(ApiError::db)?;
     let stamps = stamps(ctx).await?;
-    let playlist: Vec<serde_json::Value> = summaries
+    let playlist: Vec<signal_subsonic_types::Playlist> = summaries
         .iter()
         .map(|p| {
             let sid = if p.smart {
@@ -72,7 +51,10 @@ pub(crate) async fn list(ctx: &Ctx) -> HandlerResult {
             )
         })
         .collect();
-    Ok(Some(("playlists", json!({ "playlist": playlist }))))
+    Ok(Some((
+        "playlists",
+        json!({ "playlist": to_value(playlist) }),
+    )))
 }
 
 pub(crate) async fn get(ctx: &Ctx, params: &Params) -> HandlerResult {
@@ -103,7 +85,7 @@ pub(crate) async fn get(ctx: &Ctx, params: &Params) -> HandlerResult {
     let maps = name_maps(ctx).await?;
 
     let duration_secs = tracks.iter().map(|t| t.duration_ms / 1_000).sum();
-    let entry: Vec<Child> = tracks.iter().map(|t| Child::from_track(t, &maps)).collect();
+    let entry: Vec<Child> = tracks.iter().map(|t| child_from_track(t, &maps)).collect();
 
     let stamps = stamps(ctx).await?;
     let mut payload = playlist_attrs(
@@ -113,10 +95,8 @@ pub(crate) async fn get(ctx: &Ctx, params: &Params) -> HandlerResult {
         duration_secs,
         stamps.get(&(smart, id)),
     );
-    if let Some(obj) = payload.as_object_mut() {
-        obj.insert("entry".into(), to_value(entry));
-    }
-    Ok(Some(("playlist", payload)))
+    payload.entry = entry;
+    Ok(Some(("playlist", to_value(payload))))
 }
 
 pub(crate) async fn create(ctx: &Ctx, params: &Params) -> HandlerResult {

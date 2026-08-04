@@ -10,6 +10,7 @@ repository.workspace = true
 signal-core = { workspace = true }
 signal-db = { workspace = true }
 signal-search = { workspace = true }
+signal-subsonic-types = { workspace = true }
 
 axum = { workspace = true }
 tower = { workspace = true }

@@ -133,12 +133,12 @@ impl Engine {
 
     fn apply(&mut self, mpv: &Mpv, cmd: Cmd) {
         let result = match cmd {
-            Cmd::Load { track_id, path } => {
-                let path_str = path.to_string_lossy().into_owned();
+            Cmd::Load { track_id, source } => {
+                let target = source.as_mpv_target().into_owned();
                 self.window = vec![track_id];
                 self.duration_ms = 0;
                 let res = mpv
-                    .command("loadfile", &[&path_str, "replace"])
+                    .command("loadfile", &[&target, "replace"])
                     .and_then(|()| mpv.set_property("pause", false));
                 if res.is_ok() {
                     self.events.publish(SignalEvent::TrackChanged {
@@ -154,15 +154,15 @@ impl Engine {
             }
             Cmd::LoadAt {
                 track_id,
-                path,
+                source,
                 position_ms,
             } => {
-                let path_str = path.to_string_lossy().into_owned();
+                let target = source.as_mpv_target().into_owned();
                 self.window = vec![track_id];
                 self.duration_ms = 0;
                 // mpv >= 0.38: loadfile <url> <flags> <index> <options>
                 let options = format!("start={},pause=yes", ms_to_secs(position_ms));
-                let res = mpv.command("loadfile", &[&path_str, "replace", "-1", &options]);
+                let res = mpv.command("loadfile", &[&target, "replace", "-1", &options]);
                 if res.is_ok() {
                     self.events.publish(SignalEvent::TrackChanged {
                         track_id: Some(track_id),
@@ -175,12 +175,12 @@ impl Engine {
                 }
                 res
             }
-            Cmd::SetNext { track_id, path } => {
+            Cmd::SetNext { track_id, source } => {
                 if self.window.first() == Some(&track_id) || self.window.get(1) == Some(&track_id) {
                     Ok(()) // already current or already staged
                 } else {
                     let res = Self::drop_next_entries(mpv).and_then(|()| {
-                        mpv.command("loadfile", &[&path.to_string_lossy(), "append"])
+                        mpv.command("loadfile", &[&source.as_mpv_target(), "append"])
                     });
                     if res.is_ok() {
                         self.window.truncate(1);

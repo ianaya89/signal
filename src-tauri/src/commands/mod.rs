@@ -10,6 +10,7 @@ pub mod player;
 pub mod playlist;
 pub mod plugins;
 pub mod queue;
+pub mod remote;
 pub mod search;
 pub mod server;
 pub mod session;

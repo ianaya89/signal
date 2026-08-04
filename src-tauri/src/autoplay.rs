@@ -8,7 +8,7 @@
 //! - consume from the right source once mpv actually advances,
 //! - fall back to load+play on EOF when nothing was staged in time.
 
-use signal_core::{EventBus, PlaybackStatus, SignalEvent};
+use signal_core::{EventBus, MediaSource, PlaybackStatus, SignalEvent};
 use tauri::{AppHandle, Manager, State};
 
 use crate::state::AppState;
@@ -131,6 +131,21 @@ async fn restage(state: &State<'_, AppState>, current: Option<i64>) -> Option<i6
         return current; // already staged
     }
 
+    if crate::state::is_remote_id(next_id) {
+        let url = state
+            .remote_tracks
+            .lock()
+            .ok()
+            .and_then(|slab| slab.get(next_id).map(|t| t.url.clone()))?;
+        return match state.player.set_next(next_id, MediaSource::Url(url)) {
+            Ok(()) => Some(next_id),
+            Err(err) => {
+                tracing::error!("set_next failed: {err}");
+                None
+            }
+        };
+    }
+
     let track = match state.db.tracks().get(next_id).await {
         Ok(Some(track)) => track,
         Ok(None) => return None,
@@ -144,7 +159,7 @@ async fn restage(state: &State<'_, AppState>, current: Option<i64>) -> Option<i6
         tracing::warn!(path = %path.display(), "next track missing on disk, not staging");
         return None;
     }
-    match state.player.set_next(next_id, path) {
+    match state.player.set_next(next_id, MediaSource::File(path)) {
         Ok(()) => Some(next_id),
         Err(err) => {
             tracing::error!("set_next failed: {err}");

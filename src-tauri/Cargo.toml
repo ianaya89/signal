@@ -18,6 +18,7 @@ signal-server = { workspace = true }
 signal-player = { workspace = true }
 signal-search = { workspace = true }
 signal-plugins = { workspace = true }
+signal-subsonic-client = { workspace = true }
 
 chrono = { workspace = true }
 notify = { workspace = true }

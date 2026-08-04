@@ -14,6 +14,7 @@ Sizes are rough calendar effort for a single focused contributor, not story poin
 | M3 | Core UX | queue, gapless, keyboard layer, palette, `signal-search` | L |
 | M4 | Hi-Fi + polish | ReplayGain, exclusive mode, smart playlists, stats, logs, fs watcher | L |
 | M5 | Extensibility | `signal-plugins`, MPRIS, Last.fm, packaging | M |
+| M6 | Subsonic client (Phases 1–4 done) | `signal-subsonic-types`, `signal-subsonic-client`, `signal-player`, `signal-db`, `src-tauri` | L |
 
 Each milestone assumes every prior milestone's exit criteria still hold — this is a stack, not a set of parallel tracks. A given milestone should not start in earnest until the previous one's exit criteria can be demonstrated by actually using the app, not just by reading a diff.
 
@@ -135,13 +136,35 @@ Scope:
 
 ---
 
+## M6 — Subsonic Client
+
+**Goal:** Turn Signal into a Subsonic/OpenSubsonic client as well as a server — add one or more remote servers (another Signal instance, Navidrome, Airsonic, Gonic, or anything else speaking the same protocol), browse their libraries, and stream their tracks through the same `signal-player`/queue/now-playing UI used for the local library, without pretending those tracks are part of the local library. Full design in [11-subsonic-client.md](./11-subsonic-client.md).
+
+**Status:** In progress. Phases 1–4 (of 5) are implemented and passing all tests; Phase 5 (polish) has not started.
+
+Scope:
+- [ ] New crate `signal-subsonic-types`: shared OpenSubsonic wire DTOs (`Child`, `AlbumID3`, `ArtistID3`, `Playlist`) used by both `signal-server` (serialize) and the new client crate (deserialize) — **done**
+- [ ] New crate `signal-subsonic-client`: a `reqwest`-based client (`ping`, `get_artists`, `get_artist`, `get_album`, `search3`, plus non-network `stream_url`/`cover_art_url` builders) with salted-token and legacy-plaintext auth — **done**
+- [ ] `signal-core::MediaSource`/`PlaybackSource`: `signal-player`'s `Cmd::Load`/`LoadAt`/`SetNext` and `Player`'s methods take a `MediaSource` (file or URL) instead of a bare `PathBuf`, so mpv can play a remote stream with no engine-level special-casing — **done**
+- [ ] Migration `0007_remote_sources.sql` and `signal-db::RemoteSourceRepo`: CRUD plus connection-test bookkeeping for configured remote servers — **done**
+- [ ] `src-tauri` IPC surface: `remote_source_add/update/remove/list/test_connection`, `remote_browse_artists/artist/album`, `remote_search`, `remote_play`, `remote_stream_url`/`remote_cover_art_url` — twelve commands, per-source `SubsonicClient` cached in `AppState` — **done** (grew to thirteen in Phase 4: `remote_play` now takes the full song rather than an id, and a new `remote_play_context` command plays an album with follow-on order)
+- [ ] Settings UI: remote sources list, add/edit/remove forms, connection status, an "allow self-signed certificate" toggle — **done**
+- [ ] Remote browse UI: artist/album/track views parallel to the local library, scoped per source — **done** (routes under `/remote`, browsing artists/albums/songs); the queue badge for remote entries did not ship — `queue_items` can't reference a track with no `tracks` row, so remote albums play via the *play context* (auto-advance/gapless/shuffle/repeat) instead of the queue (see [11-subsonic-client.md](./11-subsonic-client.md) §3, Phase 4)
+- [ ] Failure-path polish: a specific "connection to `<source>` lost" toast on mid-playback network failure, verified gapless prefetch lead time over a real network hop, and scrobbling remote plays to the *remote* server's own endpoint rather than local `play_events`
+
+**Exit criteria:** You can add a remote Navidrome/Airsonic/Gonic/Signal server in settings, browse its artists and albums, queue and play one of its tracks gaplessly alongside local tracks, see it reflected correctly in the now-playing UI and queue, and have the remote server register the play in its own listening history.
+
+**Size:** L
+
+---
+
 ## Risk Register
 
 Top five technical risks, ranked roughly by combined likelihood and impact, with mitigations.
 
 | # | Risk | Impact | Mitigation |
 |---|------|--------|------------|
-| 1 | **libmpv static linking / bundling per OS.** macOS and Windows need libmpv and its ffmpeg dependencies bundled, signed, and notarized; Linux relies on a system-installed libmpv whose version and build flags vary by distro. | Playback simply doesn't work on a subset of user machines, or code-signing/notarization blocks releases. | Vendor a pinned libmpv build per platform through a CI build matrix rather than trusting `brew`/system packages; smoke-test actual audio playback on each OS in CI, not just compilation; document the minimum system libmpv version required on Linux and detect/warn on startup if it's too old. |
+| 1 | **libmpv static linking / bundling per OS.** macOS and Windows need libmpv and its ffmpeg dependencies bundled, signed, and notarized; Linux relies on a system-installed libmpv whose version and build flags vary by distro. A size-conscious vendored build can also drop network-capable protocols (`http`/`https`), which M6's Subsonic client is the first feature to actually exercise. | Playback simply doesn't work on a subset of user machines, or code-signing/notarization blocks releases. | Vendor a pinned libmpv build per platform through a CI build matrix rather than trusting `brew`/system packages; smoke-test actual audio playback on each OS in CI, not just compilation; document the minimum system libmpv version required on Linux and detect/warn on startup if it's too old. M6 has verified the vendored macOS dev build opens and plays `http://` loopback streams; `https://` — the case that matters for real remote servers — is still unverified pending a manual smoke test against a live third-party server (see [11-subsonic-client.md](./11-subsonic-client.md) §5, risk 5). |
 | 2 | **Exclusive-mode audio quirks per OS.** WASAPI exclusive mode, Core Audio hog mode, and ALSA/PipeWire direct access all have different failure modes, and behavior varies further by audio driver and hardware (USB DACs, Bluetooth, virtual devices). | Exclusive mode silently fails, glitches, or locks the device on some hardware, undermining the "Hi-Fi" pitch. | Treat exclusive mode as best-effort with an explicit, visible fallback to shared mode rather than a hard failure; build a real-hardware test matrix (at minimum: built-in output, one USB DAC, one Bluetooth device per OS) exercised before each M4-related release; surface the bit-perfect indicator so users can tell when fallback happened instead of assuming silence means success. |
 | 3 | **FTS5 ranking quality.** Naive SQLite FTS5 bm25 ranking handles exact substring matches fine but does poorly with typos, diacritics, "The" artist prefixes, and other real-world query noise users expect a Spotlight-like search to absorb. | Search feels broken even when the data is correct, which is especially damaging for a "keyboard-first, search-centric" product. | Use the `unicode61` tokenizer with diacritics removal from the start; maintain a small alias/normalization table for common patterns (leading "The", featuring artists, etc.); build a logged test set of real queries against a real library and tune ranking against it iteratively rather than shipping bm25 defaults untouched; keep the M3 query language as an escape hatch for users who want exact field matches. |
 | 4 | **Gapless playback + queue resync complexity.** mpv's playlist-window model for gapless playback assumes a relatively static internal playlist, but Signal's git-staging-style queue can be reordered or edited by the user mid-playback. Keeping mpv's internal playlist and Signal's queue state consistent without race conditions is genuinely hard. | Gapless breaks intermittently, or worse, playback order silently diverges from what the queue UI shows. | Make Signal's queue the single source of truth and treat mpv's internal playlist as a derived cache that gets rebuilt whenever it diverges, rather than trying to keep two independent state machines in lockstep; write integration tests specifically for "reorder queue while a gapless pair is mid-transition" scenarios before M3 is called done. |

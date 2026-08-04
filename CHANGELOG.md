@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Remote OpenSubsonic servers. Signal can now be configured with one or more
+  remote Subsonic/OpenSubsonic servers — another Signal instance, Navidrome,
+  Airsonic, Gonic, or anything else speaking the same protocol — browse their
+  artists, albums and songs, search them, and stream a track through the same
+  playback engine used for the local library, all without touching the local
+  database: remote content is never scanned or cached, every browse is a live
+  request and every play is a live stream. A new "remote" entry in the
+  library sidebar lists each configured server's artists, albums and songs;
+  settings gained a matching section to add, test and remove a server, with
+  a per-server connection badge and an "allow insecure TLS" toggle for
+  self-signed certificates. Playing a remote track drives the same transport
+  bar, mini player, chain view and inspector as a local one, and a remote
+  album auto-advances, plays gapless and honors shuffle/repeat through its
+  follow-on order — remote tracks can't yet be staged into the queue
+  alongside local ones, a limitation settings spells out. It's
+  read-and-stream only: no catalog sync, no offline cache, and no write-back
+  beyond a future scrobble to the remote server.
+
 ## [0.1.6] - 2026-08-03
 
 ### Fixed

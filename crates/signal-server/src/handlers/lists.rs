@@ -4,7 +4,9 @@ use std::collections::HashSet;
 
 use serde_json::json;
 
-use crate::dto::{to_value, AlbumID3, Child};
+use signal_subsonic_types::{AlbumID3, Child};
+
+use crate::dto::{album_from_summary, child_from_track, to_value};
 use crate::envelope::{ApiError, HandlerResult};
 use crate::handlers::{durations_map, name_maps};
 use crate::params::Params;
@@ -123,7 +125,7 @@ pub(crate) async fn album_list2(ctx: &Ctx, params: &Params) -> HandlerResult {
         .iter()
         .skip(offset)
         .take(size)
-        .map(|a| AlbumID3::from_summary(a, &durations))
+        .map(|a| album_from_summary(a, &durations))
         .collect();
     Ok(Some(("albumList2", json!({ "album": to_value(album) }))))
 }
@@ -132,7 +134,7 @@ pub(crate) async fn random_songs(ctx: &Ctx, params: &Params) -> HandlerResult {
     let size = params.get_u32("size").unwrap_or(DEFAULT_SIZE).min(MAX_SIZE);
     let tracks = ctx.db.tracks().random(size).await.map_err(ApiError::db)?;
     let maps = name_maps(ctx).await?;
-    let song: Vec<Child> = tracks.iter().map(|t| Child::from_track(t, &maps)).collect();
+    let song: Vec<Child> = tracks.iter().map(|t| child_from_track(t, &maps)).collect();
     Ok(Some(("randomSongs", json!({ "song": to_value(song) }))))
 }
 
@@ -161,7 +163,7 @@ pub(crate) async fn songs_by_genre(ctx: &Ctx, params: &Params) -> HandlerResult 
         .iter()
         .skip(offset)
         .take(size)
-        .map(|t| Child::from_track(t, &maps))
+        .map(|t| child_from_track(t, &maps))
         .collect();
     Ok(Some(("songsByGenre", json!({ "song": to_value(song) }))))
 }
@@ -174,7 +176,7 @@ pub(crate) async fn starred2(ctx: &Ctx) -> HandlerResult {
     let song: Vec<Child> = loved
         .iter()
         .filter(|t| t.favorite)
-        .map(|t| Child::from_track(t, &maps))
+        .map(|t| child_from_track(t, &maps))
         .collect();
     Ok(Some(("starred2", json!({ "song": to_value(song) }))))
 }

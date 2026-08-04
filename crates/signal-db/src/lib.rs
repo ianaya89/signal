@@ -19,6 +19,9 @@ pub use repositories::artists::ArtistRepo;
 pub use repositories::health::{HealthRepo, HealthReport};
 pub use repositories::playlists::{PlaylistRepo, PlaylistSummary};
 pub use repositories::queue::QueueRepo;
+pub use repositories::remote_sources::{
+    RemoteCredentials, RemoteSource, RemoteSourcePatch, RemoteSourceRepo,
+};
 pub use repositories::settings::SettingsRepo;
 pub use repositories::stats::{
     AlbumPlayCount, DayCount, Discover, NameCount, NewPlayEvent, StatsOverview, StatsRepo,

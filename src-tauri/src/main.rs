@@ -12,6 +12,7 @@ mod media_keys;
 mod recorder;
 #[cfg(unix)]
 mod socket;
+mod startup;
 mod state;
 
 use std::sync::atomic::AtomicBool;
@@ -23,6 +24,7 @@ use tauri::Manager;
 use tracing_subscriber::layer::SubscriberExt as _;
 use tracing_subscriber::util::SubscriberInitExt as _;
 
+use crate::startup::StartupError;
 use crate::state::AppState;
 
 // one linear registration block — length is boilerplate, not complexity
@@ -44,90 +46,10 @@ fn main() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(move |app| {
-            let data_dir = app.path().app_data_dir()?;
-            let cache_dir = app.path().app_cache_dir()?;
-            std::fs::create_dir_all(&data_dir)?;
-            std::fs::create_dir_all(&cache_dir)?;
-            let config = AppConfig::new(data_dir, cache_dir);
-
-            let db = tauri::async_runtime::block_on(DbPool::connect(&config.db_path))?;
-            bridge::spawn(app.handle().clone(), &events);
-            autoplay::spawn(app.handle().clone(), &events);
-            recorder::spawn(app.handle().clone(), &events);
-            let player = signal_player::Player::new(events.clone())?;
-
-            app.manage(AppState {
-                config,
-                events,
-                db,
-                player,
-                scanning: Arc::new(AtomicBool::new(false)),
-                artwork_cancel: Arc::new(AtomicBool::new(false)),
-                analyzing: Arc::new(AtomicBool::new(false)),
-                analysis_cancel: Arc::new(AtomicBool::new(false)),
-                watcher: Mutex::new(Vec::new()),
-                server: Mutex::new(None),
-                excludes: Arc::new(Mutex::new(Vec::new())),
-                write_tags: Arc::new(AtomicBool::new(false)),
-                play_context: Mutex::new(state::PlayContext::default()),
-                play_mode: Mutex::new(state::PlayMode::default()),
-                plugins: Arc::new(signal_plugins::PluginHost::default()),
-                play_history: Mutex::new(Vec::new()),
-            });
-
-            // watch the stored library root + restore play mode
-            let handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                let state = handle.state::<AppState>();
-                let roots = commands::library::read_roots(&state).await;
-                if !roots.is_empty() {
-                    state.start_watchers(
-                        &roots
-                            .iter()
-                            .map(std::path::PathBuf::from)
-                            .collect::<Vec<_>>(),
-                    );
-                }
-                if let Ok(Some(raw)) = state.db.settings().get("player.mode").await {
-                    if let Ok(mode) = serde_json::from_str::<state::PlayMode>(&raw) {
-                        if let Ok(mut guard) = state.play_mode.lock() {
-                            *guard = mode;
-                        }
-                    }
-                }
-                if let Ok(token) = state.db.settings().get("plugin.listenbrainz.token").await {
-                    state.plugins.set_listenbrainz_token(token);
-                }
-
-                // resume the opensubsonic server if it was on last session
-                if let Ok(Some(enabled)) = state.db.settings().get("server.enabled").await {
-                    if enabled == "true" {
-                        match commands::server::read_config(&state).await {
-                            Ok(config) if !config.password.is_empty() => {
-                                match signal_server::start(state.db.clone(), config).await {
-                                    Ok(handle) => {
-                                        if let Ok(mut guard) = state.server.lock() {
-                                            *guard = Some(handle);
-                                        }
-                                    }
-                                    Err(err) => {
-                                        tracing::warn!("opensubsonic autostart failed: {err}");
-                                    }
-                                }
-                            }
-                            Ok(_) => tracing::warn!("opensubsonic autostart skipped: no password"),
-                            Err(err) => tracing::warn!("opensubsonic autostart failed: {err}"),
-                        }
-                    }
-                }
-            });
-
-            media_keys::spawn(app.handle().clone());
-            config_file::init(app.handle().clone());
-            #[cfg(unix)]
-            socket::spawn(app.handle().clone());
-
-            tracing::info!("signal started");
+            // an Err here would abort the process with no message; see startup.rs
+            if let Err(err) = init(app, events) {
+                startup::report_fatal(app.handle(), &err);
+            }
             Ok(())
         })
         .register_asynchronous_uri_scheme_protocol(artwork::SCHEME, artwork::handle)
@@ -189,6 +111,19 @@ fn main() {
             commands::queue::queue_remove,
             commands::queue::queue_move,
             commands::queue::queue_clear,
+            commands::remote::remote_source_list,
+            commands::remote::remote_source_add,
+            commands::remote::remote_source_update,
+            commands::remote::remote_source_remove,
+            commands::remote::remote_source_test_connection,
+            commands::remote::remote_browse_artists,
+            commands::remote::remote_browse_artist,
+            commands::remote::remote_browse_album,
+            commands::remote::remote_search,
+            commands::remote::remote_play,
+            commands::remote::remote_play_context,
+            commands::remote::remote_stream_url,
+            commands::remote::remote_cover_art_url,
             commands::queue::queue_play_next,
             commands::search::search_query,
             commands::player::player_next,
@@ -224,4 +159,100 @@ fn main() {
         tracing::error!("fatal: {err}");
         std::process::exit(1);
     }
+}
+
+fn init(app: &mut tauri::App, events: EventBus) -> Result<(), StartupError> {
+    let data_dir = startup::data_dir(app.handle())?;
+    let cache_dir = startup::cache_dir(app.handle())?;
+    std::fs::create_dir_all(&data_dir).map_err(StartupError::Dirs)?;
+    std::fs::create_dir_all(&cache_dir).map_err(StartupError::Dirs)?;
+    let config = AppConfig::new(data_dir, cache_dir);
+
+    let db =
+        tauri::async_runtime::block_on(DbPool::connect(&config.db_path)).map_err(|source| {
+            StartupError::Db {
+                path: config.db_path.clone(),
+                source,
+            }
+        })?;
+    bridge::spawn(app.handle().clone(), &events);
+    autoplay::spawn(app.handle().clone(), &events);
+    recorder::spawn(app.handle().clone(), &events);
+    let player = signal_player::Player::new(events.clone()).map_err(StartupError::Player)?;
+
+    app.manage(AppState {
+        config,
+        events,
+        db,
+        player,
+        scanning: Arc::new(AtomicBool::new(false)),
+        artwork_cancel: Arc::new(AtomicBool::new(false)),
+        analyzing: Arc::new(AtomicBool::new(false)),
+        analysis_cancel: Arc::new(AtomicBool::new(false)),
+        watcher: Mutex::new(Vec::new()),
+        server: Mutex::new(None),
+        excludes: Arc::new(Mutex::new(Vec::new())),
+        write_tags: Arc::new(AtomicBool::new(false)),
+        play_context: Mutex::new(state::PlayContext::default()),
+        play_mode: Mutex::new(state::PlayMode::default()),
+        plugins: Arc::new(signal_plugins::PluginHost::default()),
+        play_history: Mutex::new(Vec::new()),
+        remote_clients: Mutex::new(std::collections::HashMap::new()),
+        remote_tracks: Mutex::new(state::RemoteSlab::default()),
+    });
+
+    // watch the stored library root + restore play mode
+    let handle = app.handle().clone();
+    tauri::async_runtime::spawn(async move {
+        let state = handle.state::<AppState>();
+        let roots = commands::library::read_roots(&state).await;
+        if !roots.is_empty() {
+            state.start_watchers(
+                &roots
+                    .iter()
+                    .map(std::path::PathBuf::from)
+                    .collect::<Vec<_>>(),
+            );
+        }
+        if let Ok(Some(raw)) = state.db.settings().get("player.mode").await {
+            if let Ok(mode) = serde_json::from_str::<state::PlayMode>(&raw) {
+                if let Ok(mut guard) = state.play_mode.lock() {
+                    *guard = mode;
+                }
+            }
+        }
+        if let Ok(token) = state.db.settings().get("plugin.listenbrainz.token").await {
+            state.plugins.set_listenbrainz_token(token);
+        }
+
+        // resume the opensubsonic server if it was on last session
+        if let Ok(Some(enabled)) = state.db.settings().get("server.enabled").await {
+            if enabled == "true" {
+                match commands::server::read_config(&state).await {
+                    Ok(config) if !config.password.is_empty() => {
+                        match signal_server::start(state.db.clone(), config).await {
+                            Ok(handle) => {
+                                if let Ok(mut guard) = state.server.lock() {
+                                    *guard = Some(handle);
+                                }
+                            }
+                            Err(err) => {
+                                tracing::warn!("opensubsonic autostart failed: {err}");
+                            }
+                        }
+                    }
+                    Ok(_) => tracing::warn!("opensubsonic autostart skipped: no password"),
+                    Err(err) => tracing::warn!("opensubsonic autostart failed: {err}"),
+                }
+            }
+        }
+    });
+
+    media_keys::spawn(app.handle().clone());
+    config_file::init(app.handle().clone());
+    #[cfg(unix)]
+    socket::spawn(app.handle().clone());
+
+    tracing::info!("signal started");
+    Ok(())
 }

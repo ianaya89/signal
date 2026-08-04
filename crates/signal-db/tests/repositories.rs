@@ -318,3 +318,66 @@ async fn remote_play_source_accepted() {
     let track = db.tracks().get(id).await.unwrap().unwrap();
     assert_eq!(track.play_count, 1);
 }
+
+#[tokio::test]
+async fn remote_sources_crud_and_ping_bookkeeping() {
+    let (db, _dir) = test_db().await;
+    let repo = db.remote_sources();
+
+    let id = repo
+        .create("nas", "http://nas:4533", "ian", "sesame", false)
+        .await
+        .unwrap();
+
+    let source = repo.get(id).await.unwrap().unwrap();
+    assert_eq!(source.name, "nas");
+    assert_eq!(source.auth_mode, "token");
+    assert!(source.enabled);
+    assert!(!source.allow_insecure_tls);
+    assert!(source.last_ping_at.is_none());
+    assert!(source.last_ping_ok.is_none());
+
+    let creds = repo.credentials(id).await.unwrap().unwrap();
+    assert_eq!(creds.password, "sesame");
+
+    // an empty patch must leave every field alone — that's how the settings UI
+    // edits a source without resending the password
+    repo.update(id, &signal_db::RemoteSourcePatch::default())
+        .await
+        .unwrap();
+    assert_eq!(
+        repo.credentials(id).await.unwrap().unwrap().password,
+        "sesame"
+    );
+
+    repo.update(
+        id,
+        &signal_db::RemoteSourcePatch {
+            name: Some("home nas".to_owned()),
+            allow_insecure_tls: Some(true),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+    let source = repo.get(id).await.unwrap().unwrap();
+    assert_eq!(source.name, "home nas");
+    assert!(source.allow_insecure_tls);
+    assert_eq!(source.username, "ian", "untouched field was overwritten");
+
+    repo.record_ping(id, true, "legacy_p").await.unwrap();
+    let source = repo.get(id).await.unwrap().unwrap();
+    assert_eq!(source.last_ping_ok, Some(true));
+    assert!(source.last_ping_at.is_some());
+    assert_eq!(source.auth_mode, "legacy_p");
+
+    // names key the sidebar; duplicates would be indistinguishable there
+    assert!(repo
+        .create("home nas", "http://other", "u", "p", false)
+        .await
+        .is_err());
+
+    repo.delete(id).await.unwrap();
+    assert!(repo.get(id).await.unwrap().is_none());
+    assert!(repo.list().await.unwrap().is_empty());
+}

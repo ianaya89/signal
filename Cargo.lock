@@ -4083,6 +4083,7 @@ dependencies = [
  "signal-scanner",
  "signal-search",
  "signal-server",
+ "signal-subsonic-client",
  "souvlaki",
  "sqlx",
  "tauri",
@@ -4200,6 +4201,7 @@ dependencies = [
  "signal-core",
  "signal-db",
  "signal-search",
+ "signal-subsonic-types",
  "sqlx",
  "tempfile",
  "thiserror 1.0.69",
@@ -4207,6 +4209,35 @@ dependencies = [
  "tower",
  "tower-http",
  "tracing",
+]
+
+[[package]]
+name = "signal-subsonic-client"
+version = "0.1.6"
+dependencies = [
+ "hex",
+ "md-5",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "signal-core",
+ "signal-db",
+ "signal-player",
+ "signal-server",
+ "signal-subsonic-types",
+ "tempfile",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "signal-subsonic-types"
+version = "0.1.6"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

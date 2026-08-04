@@ -12,7 +12,7 @@ pub use config::AppConfig;
 pub use error::SignalError;
 pub use events::{EventBus, SignalEvent};
 pub use models::{
-    Album, AlbumDetail, AlbumSummary, Artist, ArtistSummary, AudioDevice, Genre, PlayEvent,
-    PlaySource, PlaybackStatus, PlayerState, Playlist, QueueItem, ReplayGainMode, SmartOp,
-    SmartPlaylist, SmartRule, Track, TrackTechnical,
+    Album, AlbumDetail, AlbumSummary, Artist, ArtistSummary, AudioDevice, Genre, MediaSource,
+    PlayEvent, PlaySource, PlaybackSource, PlaybackStatus, PlayerState, Playlist, QueueItem,
+    RemoteTrackRef, ReplayGainMode, SmartOp, SmartPlaylist, SmartRule, Track, TrackTechnical,
 };

@@ -1,158 +1,115 @@
-//! Subsonic wire DTOs and the Track/Album/Artist mappers. Every struct
-//! serializes camelCase with optionals skipped so the XML walker never
-//! sees nulls.
+//! Mappers from Signal's domain types onto the shared Subsonic wire DTOs.
+//!
+//! The structs themselves live in `signal-subsonic-types` so the client half
+//! (`signal-subsonic-client`) parses exactly what this half emits. What stays
+//! here is everything that knows about *Signal*: the [`Sid`] id scheme and the
+//! `Track`/`AlbumSummary`/`ArtistSummary` lookups — a remote server's ids and
+//! row shapes are none of the shared crate's business. Free functions rather
+//! than inherent constructors, since the types are now foreign to this crate.
 
 use std::collections::HashMap;
 
 use chrono::SecondsFormat;
 use serde::Serialize;
 use signal_core::{AlbumSummary, ArtistSummary, Track};
+use signal_subsonic_types::{AlbumID3, ArtistID3, Child, Playlist};
 
 use crate::handlers::NameMaps;
 use crate::ids::Sid;
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct Child {
-    pub id: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub parent: Option<String>,
-    pub is_dir: bool,
-    pub title: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub album: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub artist: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub track: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub disc_number: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub year: Option<i32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub genre: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub cover_art: Option<String>,
-    pub size: u64,
-    pub content_type: String,
-    pub suffix: String,
-    pub duration: u64,
-    pub bit_rate: u32,
-    /// Synthesized virtual path — never the real filesystem location.
-    pub path: String,
-    pub play_count: u32,
-    pub created: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub starred: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub album_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub artist_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_rating: Option<u8>,
-    #[serde(rename = "type")]
-    pub kind: &'static str,
-    pub is_video: bool,
-}
-
-impl Child {
-    pub fn from_track(track: &Track, maps: &NameMaps) -> Self {
-        let artist = maps.artists.get(&track.artist_id).cloned();
-        let album = maps.albums.get(&track.album_id).cloned();
-        let has_album = track.album_id != 0;
-        let suffix = suffix_of(&track.technical.file_path);
-        let created = track.added_at.to_rfc3339_opts(SecondsFormat::Secs, true);
-        let path = format!(
-            "{}/{}/{:02}-{:02} {}.{}",
-            artist.as_deref().unwrap_or("Unknown Artist"),
-            album.as_deref().unwrap_or("Unknown Album"),
-            track.disc_no.unwrap_or(1),
-            track.track_no.unwrap_or(0),
-            track.title,
-            suffix,
-        );
-        Self {
-            id: Sid::Track(track.id).to_string(),
-            parent: has_album.then(|| Sid::Album(track.album_id).to_string()),
-            is_dir: false,
-            title: track.title.clone(),
-            album,
-            artist,
-            track: track.track_no,
-            disc_number: track.disc_no,
-            year: track.year,
-            genre: maps.genres.get(&track.id).cloned(),
-            cover_art: has_album.then(|| Sid::Album(track.album_id).to_string()),
-            size: track.technical.file_size_bytes,
-            content_type: content_type_of(&suffix).to_owned(),
-            suffix,
-            duration: track.duration_ms / 1_000,
-            bit_rate: track.technical.bitrate_kbps,
-            path,
-            play_count: track.play_count,
-            created: created.clone(),
-            starred: track.favorite.then_some(created),
-            album_id: has_album.then(|| Sid::Album(track.album_id).to_string()),
-            artist_id: Some(Sid::Artist(track.artist_id).to_string()),
-            user_rating: track.rating.filter(|r| *r > 0),
-            kind: "music",
-            is_video: false,
-        }
+pub(crate) fn child_from_track(track: &Track, maps: &NameMaps) -> Child {
+    let artist = maps.artists.get(&track.artist_id).cloned();
+    let album = maps.albums.get(&track.album_id).cloned();
+    let has_album = track.album_id != 0;
+    let suffix = suffix_of(&track.technical.file_path);
+    let created = track.added_at.to_rfc3339_opts(SecondsFormat::Secs, true);
+    let path = format!(
+        "{}/{}/{:02}-{:02} {}.{}",
+        artist.as_deref().unwrap_or("Unknown Artist"),
+        album.as_deref().unwrap_or("Unknown Album"),
+        track.disc_no.unwrap_or(1),
+        track.track_no.unwrap_or(0),
+        track.title,
+        suffix,
+    );
+    Child {
+        id: Sid::Track(track.id).to_string(),
+        parent: has_album.then(|| Sid::Album(track.album_id).to_string()),
+        is_dir: false,
+        title: track.title.clone(),
+        album,
+        artist,
+        track: track.track_no,
+        disc_number: track.disc_no,
+        year: track.year,
+        genre: maps.genres.get(&track.id).cloned(),
+        cover_art: has_album.then(|| Sid::Album(track.album_id).to_string()),
+        size: track.technical.file_size_bytes,
+        content_type: content_type_of(&suffix).to_owned(),
+        suffix,
+        duration: track.duration_ms / 1_000,
+        bit_rate: track.technical.bitrate_kbps,
+        path,
+        play_count: track.play_count,
+        created: created.clone(),
+        starred: track.favorite.then_some(created),
+        album_id: has_album.then(|| Sid::Album(track.album_id).to_string()),
+        artist_id: Some(Sid::Artist(track.artist_id).to_string()),
+        user_rating: track.rating.filter(|r| *r > 0),
+        kind: "music".to_owned(),
+        is_video: false,
     }
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct AlbumID3 {
-    pub id: String,
-    pub name: String,
-    pub artist: String,
-    pub artist_id: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub cover_art: Option<String>,
-    pub song_count: u32,
-    pub duration: u64,
-    pub created: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub year: Option<i32>,
-}
-
-impl AlbumID3 {
-    pub fn from_summary(album: &AlbumSummary, durations: &HashMap<i64, i64>) -> Self {
-        #[allow(clippy::cast_sign_loss)]
-        let duration_secs = durations.get(&album.id).copied().unwrap_or(0).max(0) as u64 / 1_000;
-        Self {
-            id: Sid::Album(album.id).to_string(),
-            name: album.name.clone(),
-            artist: album.artist_name.clone(),
-            artist_id: Sid::Artist(album.artist_id).to_string(),
-            cover_art: album
-                .artwork_path
-                .is_some()
-                .then(|| Sid::Album(album.id).to_string()),
-            song_count: album.track_count,
-            duration: duration_secs,
-            created: album.added_at.clone(),
-            year: album.year,
-        }
+pub(crate) fn album_from_summary(album: &AlbumSummary, durations: &HashMap<i64, i64>) -> AlbumID3 {
+    #[allow(clippy::cast_sign_loss)]
+    let duration_secs = durations.get(&album.id).copied().unwrap_or(0).max(0) as u64 / 1_000;
+    AlbumID3 {
+        id: Sid::Album(album.id).to_string(),
+        name: album.name.clone(),
+        artist: album.artist_name.clone(),
+        artist_id: Sid::Artist(album.artist_id).to_string(),
+        cover_art: album
+            .artwork_path
+            .is_some()
+            .then(|| Sid::Album(album.id).to_string()),
+        song_count: album.track_count,
+        duration: duration_secs,
+        created: album.added_at.clone(),
+        year: album.year,
     }
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct ArtistID3 {
-    pub id: String,
-    pub name: String,
-    pub album_count: u32,
+pub(crate) fn artist_from_summary(artist: &ArtistSummary) -> ArtistID3 {
+    ArtistID3 {
+        id: Sid::Artist(artist.id).to_string(),
+        name: artist.name.clone(),
+        album_count: artist.album_count,
+        cover_art: None,
+    }
 }
 
-impl ArtistID3 {
-    pub fn from_summary(artist: &ArtistSummary) -> Self {
-        Self {
-            id: Sid::Artist(artist.id).to_string(),
-            name: artist.name.clone(),
-            album_count: artist.album_count,
-        }
+pub(crate) fn playlist_attrs(
+    id: &Sid,
+    name: &str,
+    song_count: usize,
+    duration_secs: u64,
+    stamp: Option<&(String, String)>,
+) -> Playlist {
+    let (created, changed) = match stamp {
+        Some((created, changed)) => (created.clone(), changed.clone()),
+        None => (String::new(), String::new()),
+    };
+    Playlist {
+        id: id.to_string(),
+        name: name.to_owned(),
+        song_count,
+        duration: duration_secs,
+        public: false,
+        owner: "signal".to_owned(),
+        created,
+        changed,
+        entry: Vec::new(),
     }
 }
 
@@ -235,7 +192,7 @@ mod tests {
 
     #[test]
     fn child_mapping() {
-        let c = Child::from_track(&track(), &maps());
+        let c = child_from_track(&track(), &maps());
         assert_eq!(c.id, "tr-7");
         assert_eq!(c.album_id.as_deref(), Some("al-3"));
         assert_eq!(c.artist.as_deref(), Some("Soda Stereo"));
@@ -262,11 +219,25 @@ mod tests {
             albums: HashMap::new(),
             genres: HashMap::new(),
         };
-        let c = Child::from_track(&t, &empty);
+        let c = child_from_track(&t, &empty);
         assert!(c.album_id.is_none());
         assert!(c.cover_art.is_none());
         assert!(c.starred.is_none());
         assert!(c.genre.is_none());
         assert_eq!(c.artist.as_deref(), None);
+    }
+
+    #[test]
+    fn playlist_without_entries_serializes_no_entry_key() {
+        let p = playlist_attrs(&Sid::Playlist(2), "road trip", 3, 600, None);
+        let v = to_value(&p);
+        let obj = v.as_object().unwrap();
+        assert_eq!(obj["id"], "pl-2");
+        assert_eq!(obj["songCount"], 3);
+        assert!(
+            !obj.contains_key("entry"),
+            "empty entry list leaked into XML"
+        );
+        assert!(obj.values().all(|x| !x.is_null()));
     }
 }
