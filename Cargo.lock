@@ -4054,7 +4054,7 @@ checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
 
 [[package]]
 name = "signal-analysis"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "hound",
  "realfft",
@@ -4068,7 +4068,7 @@ dependencies = [
 
 [[package]]
 name = "signal-app"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "chrono",
  "notify",
@@ -4098,14 +4098,14 @@ dependencies = [
 
 [[package]]
 name = "signal-cli"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "serde_json",
 ]
 
 [[package]]
 name = "signal-core"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "chrono",
  "serde",
@@ -4117,7 +4117,7 @@ dependencies = [
 
 [[package]]
 name = "signal-db"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "chrono",
  "serde",
@@ -4132,7 +4132,7 @@ dependencies = [
 
 [[package]]
 name = "signal-player"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "libc",
  "libmpv2",
@@ -4144,7 +4144,7 @@ dependencies = [
 
 [[package]]
 name = "signal-plugins"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "chrono",
  "reqwest 0.12.28",
@@ -4159,7 +4159,7 @@ dependencies = [
 
 [[package]]
 name = "signal-scanner"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "lofty",
  "notify",
@@ -4176,7 +4176,7 @@ dependencies = [
 
 [[package]]
 name = "signal-search"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "signal-core",
  "signal-db",
@@ -4186,7 +4186,7 @@ dependencies = [
 
 [[package]]
 name = "signal-server"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "axum",
  "chrono",
