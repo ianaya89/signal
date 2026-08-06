@@ -19,19 +19,41 @@ const TAB_KEY = "settings.tab";
 /** Tab order is the order you meet these settings: what's in the library,
  *  how it sounds, how it looks, then the things that talk to the network. */
 const TABS = [
-  { key: "library", blurb: "where your music lives on disk" },
-  { key: "playback", blurb: "how audio reaches your speakers" },
-  { key: "appearance", blurb: "how signal looks" },
-  { key: "scrobbling", blurb: "report what you listen to" },
+  {
+    key: "library",
+    tone: "var(--sec-library)",
+    blurb: "where your music lives on disk",
+  },
+  {
+    key: "playback",
+    tone: "var(--sec-playback)",
+    blurb: "how audio reaches your speakers",
+  },
+  {
+    key: "appearance",
+    tone: "var(--sec-appearance)",
+    blurb: "how signal looks",
+  },
+  {
+    key: "scrobbling",
+    tone: "var(--sec-scrobbling)",
+    blurb: "report what you listen to",
+  },
   {
     key: "server",
+    tone: "var(--sec-server)",
     blurb: "serve this library over OpenSubsonic, to players on your network",
   },
   {
     key: "remote",
+    tone: "var(--sec-remote)",
     blurb: "stream from someone else's OpenSubsonic server",
   },
-  { key: "about", blurb: "version, updates, database" },
+  {
+    key: "about",
+    tone: "var(--sec-about)",
+    blurb: "version, updates, database",
+  },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -67,38 +89,53 @@ export function SettingsView() {
         role="tablist"
         aria-label="settings sections"
         onKeyDown={onTabKeyDown}
-        className="flex h-7 shrink-0 items-center gap-1 overflow-x-auto border-b border-subtle px-3 text-[10px]"
+        className="flex h-8 shrink-0 items-stretch gap-px overflow-x-auto border-b border-subtle bg-base/40 px-2 text-[10px]"
       >
-        {TABS.map(({ key }) => (
-          <button
-            key={key}
-            type="button"
-            role="tab"
-            id={`settings-tab-${key}`}
-            aria-selected={tab === key}
-            aria-controls={`settings-panel-${key}`}
-            tabIndex={tab === key ? 0 : -1}
-            onClick={() => select(key)}
-            className={cn(
-              "shrink-0 px-1.5 py-0.5",
-              tab === key
-                ? "bg-raised text-accent"
-                : "text-muted hover:text-secondary",
-            )}
-          >
-            {key}
-          </button>
-        ))}
+        {TABS.map(({ key, tone }) => {
+          const on = tab === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              id={`settings-tab-${key}`}
+              aria-selected={on}
+              aria-controls={`settings-panel-${key}`}
+              tabIndex={on ? 0 : -1}
+              onClick={() => select(key)}
+              style={{ "--tone": tone } as React.CSSProperties}
+              className={cn(
+                // the 2px cap is the channel colour; it dims rather than
+                // disappears when inactive, so the strip reads as a set
+                "shrink-0 border-t-2 px-2 transition-colors",
+                on
+                  ? "border-t-[color:var(--tone)] bg-raised text-[color:var(--tone)]"
+                  : "border-t-[color-mix(in_srgb,var(--tone)_25%,transparent)] text-muted hover:border-t-[color-mix(in_srgb,var(--tone)_65%,transparent)] hover:text-secondary",
+              )}
+            >
+              {key}
+            </button>
+          );
+        })}
       </div>
 
       <div
         role="tabpanel"
         id={`settings-panel-${tab}`}
         aria-labelledby={`settings-tab-${tab}`}
-        className="min-h-0 flex-1 overflow-auto"
+        style={{ "--section": active.tone } as React.CSSProperties}
+        className="min-h-0 flex-1 overflow-auto bg-[linear-gradient(to_bottom,color-mix(in_srgb,var(--section)_7%,transparent),transparent_12rem)]"
       >
         <div className="flex max-w-xl flex-col gap-5 p-4">
-          <p className="text-[11px] text-muted">{active.blurb}</p>
+          <header className="flex flex-col gap-1.5">
+            <h2 className="text-[13px] uppercase tracking-[0.2em] text-[color:var(--section)]">
+              {active.key}
+            </h2>
+            <p className="text-[11px] text-secondary">
+              {withProtocol(active.blurb)}
+            </p>
+            <div className="rule-fade mt-1" />
+          </header>
           {tab === "library" && <LibrarySection />}
           {tab === "playback" && <PlaybackSection />}
           {tab === "appearance" && <AppearanceSection />}
@@ -512,7 +549,7 @@ function ServerSection() {
   return (
     <Section
       title="opensubsonic"
-      hint="speaks the subsonic api (1.16.1) with the opensubsonic extensions, so any subsonic client works — symfonium, amperfy, feishin. point one at the address above: any username, this password. LAN only, no transcoding."
+      hint="speaks OpenSubsonic (the subsonic api, 1.16.1), so any subsonic client works — symfonium, amperfy, feishin. point one at the address above: any username, this password. LAN only, no transcoding."
     >
       <Row label="status">
         <StatusDot
@@ -636,7 +673,7 @@ function RemoteSourcesSection() {
   return (
     <Section
       title="servers"
-      hint="anything that speaks the subsonic api (1.16.1) works — navidrome, airsonic, gonic, or another copy of signal with its own server switched on. nothing is copied into the local library: remote tracks stream on demand, so they can't be staged in the queue."
+      hint="anything that speaks OpenSubsonic (the subsonic api, 1.16.1) works — navidrome, airsonic, gonic, or another copy of signal with its own server switched on. nothing is copied into the local library: remote tracks stream on demand, so they can't be staged in the queue."
     >
       <div className="flex flex-col gap-2">
         {(sources ?? []).map((source) => (
@@ -693,9 +730,17 @@ function ServerCard({
   onToggleTls: () => void;
 }) {
   const checked = fmtAgo(source.lastPingAt);
+  // the left edge carries reachability, so a row of servers scans without
+  // reading any of the labels
+  const edge =
+    source.lastPingOk === true
+      ? "border-l-ok"
+      : source.lastPingOk === false
+        ? "border-l-error"
+        : "border-l-subtle";
 
   return (
-    <div className="border border-subtle">
+    <div className={cn("border border-l-2 border-subtle bg-base/20", edge)}>
       <div className="flex items-center gap-2 border-b border-subtle px-2 py-1">
         <StatusDot
           state={
@@ -895,6 +940,28 @@ function AddServerForm({
   );
 }
 
+const PROTO = "opensubsonic";
+
+/** Picks the protocol name out of body copy. It is the one word that decides
+ *  which apps and which servers will interoperate, so it carries the channel
+ *  colour instead of reading as ordinary prose. */
+function withProtocol(text: string): React.ReactNode {
+  return text
+    .split(new RegExp(`(${PROTO})`, "gi"))
+    .map((part, i) =>
+      part.toLowerCase() === PROTO ? (
+        <span
+          key={i}
+          className="border-b border-[color-mix(in_srgb,var(--section)_50%,transparent)] font-semibold tracking-wide text-[color:var(--section)]"
+        >
+          {part}
+        </span>
+      ) : (
+        part
+      ),
+    );
+}
+
 /** Relative time for a stored ISO timestamp; null when never set. */
 function fmtAgo(iso: string | null): string | null {
   if (!iso) return null;
@@ -909,10 +976,10 @@ function fmtAgo(iso: string | null): string | null {
 }
 
 const INPUT =
-  "w-72 border border-subtle bg-base/60 px-2 py-0.5 text-[11px] text-primary outline-none focus:border-focus";
+  "w-72 border border-subtle bg-base/60 px-2 py-0.5 text-[11px] text-primary outline-none focus:border-[color:var(--section)]";
 
 const BTN =
-  "shrink-0 border border-subtle bg-raised px-2 py-0.5 text-[11px] text-secondary hover:border-focus hover:text-accent";
+  "shrink-0 border border-subtle bg-raised px-2 py-0.5 text-[11px] text-secondary transition-colors hover:border-[color:var(--section)] hover:text-[color:var(--section)]";
 
 // destructive actions read as destructive at rest, not only on hover
 const BTN_DANGER =
@@ -928,8 +995,17 @@ function StatusDot({
   const tone =
     state === "ok" ? "text-ok" : state === "error" ? "text-error" : "text-muted";
   return (
-    <span className={cn("flex shrink-0 items-center gap-1 text-[11px]", tone)}>
-      <span aria-hidden>{state === "off" ? "○" : "●"}</span>
+    <span className={cn("flex shrink-0 items-center gap-1.5 text-[11px]", tone)}>
+      <span
+        aria-hidden
+        className={cn(
+          state !== "off" && "led",
+          state === "ok" && "led-live",
+          "text-[8px] leading-none",
+        )}
+      >
+        ●
+      </span>
       {label}
     </span>
   );
@@ -982,11 +1058,19 @@ function Section({
 }) {
   return (
     <section>
-      <h3 className="mb-2 text-[10px] uppercase tracking-wider text-muted">
-        {title}
+      <h3 className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-secondary">
+        <span
+          aria-hidden
+          className="h-2.5 w-0.5 shrink-0 bg-[color:var(--section)]"
+        />
+        {withProtocol(title)}
       </h3>
       <div className="flex flex-col gap-2">{children}</div>
-      {hint && <p className="mt-2 text-[10px] text-muted">{hint}</p>}
+      {hint && (
+        <p className="mt-2 border-l border-subtle pl-2 text-[10px] leading-relaxed text-muted">
+          {withProtocol(hint)}
+        </p>
+      )}
     </section>
   );
 }

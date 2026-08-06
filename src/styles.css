@@ -33,6 +33,17 @@
   --lossy: #e0af68; /* amber — "a compromise, not wrong" */
   --hires: #bb9af7; /* violet — premium tier */
 
+  /* settings channel hues — one per pane, so colour is wayfinding rather
+     than decoration: you learn "amber is the server pane". Ordered as a
+     progression across the strip, like channels on a rack. */
+  --sec-library: #7aa2f7;
+  --sec-playback: #73daca;
+  --sec-appearance: #bb9af7;
+  --sec-scrobbling: #8286f5;
+  --sec-server: #e0af68;
+  --sec-remote: #9ece6a;
+  --sec-about: #7f83ad;
+
   --font-mono: ui-monospace, "JetBrains Mono", "SF Mono", "Cascadia Code",
     Menlo, Consolas, monospace;
 
@@ -71,6 +82,15 @@
   --bitperfect: #4a7c59;
   --lossy: #a97b23;
   --hires: #7c5eb0;
+
+  /* channel hues, restated in ink rather than neon */
+  --sec-library: #5a6fae;
+  --sec-playback: #2f7d6a;
+  --sec-appearance: #7c5eb0;
+  --sec-scrobbling: #bf5b3f;
+  --sec-server: #a97b23;
+  --sec-remote: #4a7c59;
+  --sec-about: #8f8163;
 }
 
 
@@ -245,6 +265,40 @@ body {
 
 button:not(:disabled) {
   cursor: pointer;
+}
+
+/* status indicators read as rack LEDs: the glyph glows in its own colour,
+   and a live connection breathes so "connected" is legible at a glance */
+.led {
+  text-shadow: 0 0 6px currentColor;
+}
+@keyframes led-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+.led-live {
+  animation: led-breathe 2.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .led-live {
+    animation: none;
+  }
+}
+
+/* hairline that fades out to the right — a rule that stops shouting */
+.rule-fade {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    var(--section, var(--border-subtle)),
+    transparent
+  );
+  opacity: 0.5;
 }
 
 /* square volume slider: block thumb, hairline track */
