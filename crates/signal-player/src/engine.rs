@@ -79,13 +79,23 @@ fn init_mpv() -> Result<Mpv, PlayerError> {
     unsafe {
         libc::setlocale(libc::LC_NUMERIC, c"C".as_ptr());
     }
-    Mpv::with_initializer(|init| {
+    // A machine with no sound card still initializes mpv fine, then crashes
+    // somewhere inside the audio backend once playback starts — see the ALSA
+    // and PipeWire failures preceding the SIGSEGV in headless CI. `ao=null`
+    // keeps decoding, timing and playlist advance intact while never opening a
+    // device, which is exactly what the player tests need.
+    let silent = std::env::var_os("SIGNAL_AO_NULL").is_some();
+
+    Mpv::with_initializer(move |init| {
         init.set_property("video", "no")?;
         init.set_property("audio-display", "no")?;
         init.set_property("gapless-audio", "yes")?;
         init.set_property("prefetch-playlist", "yes")?;
         init.set_property("idle", "yes")?;
         init.set_property("keep-open", "no")?;
+        if silent {
+            init.set_property("ao", "null")?;
+        }
         Ok(())
     })
     .map_err(|e| PlayerError::Init(e.to_string()))

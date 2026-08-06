@@ -24,7 +24,12 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --all -- --check
       - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
-      - run: cargo test --workspace
+      - name: cargo test
+        # the runner has no sound card; without this mpv opens ALSA/PipeWire,
+        # fails, and takes the player test binary down with SIGSEGV
+        env:
+          SIGNAL_AO_NULL: "1"
+        run: cargo test --workspace
 
   frontend:
     runs-on: ubuntu-latest

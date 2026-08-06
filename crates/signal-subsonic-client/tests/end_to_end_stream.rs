@@ -8,9 +8,9 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
-use signal_core::{EventBus, MediaSource, PlaybackStatus, TrackTechnical};
+use signal_core::{EventBus, MediaSource, SignalEvent, TrackTechnical};
 use signal_db::{DbPool, NewTrack};
 use signal_player::Player;
 use signal_server::{start, ServerConfig};
@@ -21,7 +21,9 @@ const FIXTURE: &str = "../../fixtures/flac/tone-44100-16.flac";
 
 #[tokio::test(flavor = "multi_thread")]
 async fn browse_a_remote_server_then_play_a_track_from_it() {
-    let Ok(player) = Player::new(EventBus::default()) else {
+    let events = EventBus::default();
+    let mut player_events = events.subscribe();
+    let Ok(player) = Player::new(events) else {
         eprintln!("SKIP browse_a_remote_server_then_play_a_track_from_it: libmpv unavailable");
         return;
     };
@@ -96,15 +98,26 @@ async fn browse_a_remote_server_then_play_a_track_from_it() {
         .load_and_play(-1, MediaSource::Url(client.stream_url(&song.id)))
         .unwrap();
 
-    let deadline = Instant::now() + Duration::from_secs(10);
-    while Instant::now() < deadline {
-        let state = player.state();
-        if state.status == PlaybackStatus::Playing && state.duration_ms > 0 {
-            player.stop().unwrap();
-            server.stop().await;
-            return;
+    // Asserted on the event stream rather than on a momentary state: the
+    // fixture is 0.3s, so "is it playing right now" is a race decided by how
+    // fast the audio backend drains. Reaching EOF proves the whole chain —
+    // browse, stream url, mpv opening it over http, decode.
+    let ended = tokio::time::timeout(Duration::from_secs(10), async {
+        while let Ok(event) = player_events.recv().await {
+            if matches!(event, SignalEvent::TrackEnded { track_id: -1 }) {
+                return true;
+            }
         }
-        tokio::time::sleep(Duration::from_millis(50)).await;
-    }
-    panic!("never started playing; last state: {:?}", player.state());
+        false
+    })
+    .await
+    .unwrap_or(false);
+
+    assert!(
+        ended,
+        "the streamed track never played through; last state: {:?}",
+        player.state()
+    );
+    player.stop().unwrap();
+    server.stop().await;
 }
