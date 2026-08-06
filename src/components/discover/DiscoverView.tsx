@@ -105,6 +105,7 @@ export function DiscoverView() {
     <div className="flex flex-col gap-5 p-3">
       <Shelf
         title="on repeat"
+        tone="var(--sec-playback)"
         hint="most played, last 30 days"
         tracks={data.onRepeat}
         indexOffset={offsets[0] ?? 0}
@@ -113,6 +114,7 @@ export function DiscoverView() {
       />
       <Shelf
         title="rediscover"
+        tone="var(--sec-appearance)"
         hint="loved but not heard lately"
         tracks={data.rediscover}
         indexOffset={offsets[1] ?? 0}
@@ -121,6 +123,7 @@ export function DiscoverView() {
       />
       <Shelf
         title="from your artists"
+        tone="var(--sec-library)"
         hint="unheard tracks by artists you play"
         tracks={data.fromYourArtists}
         indexOffset={offsets[2] ?? 0}
@@ -129,6 +132,7 @@ export function DiscoverView() {
       />
       <Shelf
         title="never played"
+        tone="var(--sec-remote)"
         hint="random unplayed corners"
         tracks={data.neverPlayed}
         indexOffset={offsets[3] ?? 0}
@@ -142,6 +146,7 @@ export function DiscoverView() {
 function Shelf({
   title,
   hint,
+  tone,
   tracks,
   indexOffset,
   cursor,
@@ -149,6 +154,8 @@ function Shelf({
 }: {
   title: string;
   hint: string;
+  /** Channel hue for this shelf, so four peer sections stop reading as one. */
+  tone: string;
   tracks: Track[];
   indexOffset: number;
   cursor: number;
@@ -157,13 +164,18 @@ function Shelf({
   if (tracks.length === 0) return null;
   const ids = tracks.map((t) => t.id);
   return (
-    <section>
+    <section style={{ "--section": tone } as React.CSSProperties}>
       <div className="mb-1 flex items-baseline gap-2">
-        <h2 className="text-[10px] uppercase tracking-wider text-accent">
+        <h2 className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[color:var(--section)]">
+          <span
+            aria-hidden
+            className="h-2.5 w-0.5 shrink-0 self-center bg-[color:var(--section)]"
+          />
           {title}
         </h2>
         <span className="text-[10px] text-muted">· {hint}</span>
       </div>
+      <div className="rule-fade mb-1.5" />
       <table className="w-full border-collapse">
         <tbody>
           {tracks.map((track, i) => {

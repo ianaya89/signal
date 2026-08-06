@@ -15,10 +15,10 @@ import { registerListHandler } from "@/lib/keyboard";
 import { cn, errText } from "@/lib/utils";
 import type { FavoritesFilter } from "@/router";
 
-const FILTERS: { key: FavoritesFilter; label: string }[] = [
-  { key: "all", label: "all" },
-  { key: "fav", label: "♥ favorites" },
-  { key: "liked", label: "✦ liked" },
+const FILTERS: { key: FavoritesFilter; label: string; tone: string }[] = [
+  { key: "all", label: "all", tone: "var(--sec-about)" },
+  { key: "fav", label: "♥ favorites", tone: "var(--error)" },
+  { key: "liked", label: "✦ liked", tone: "var(--sec-server)" },
 ];
 
 export function FavoritesView() {
@@ -143,24 +143,37 @@ export function FavoritesView() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-7 shrink-0 items-center gap-1 border-b border-subtle px-3 text-[11px]">
-        {FILTERS.map(({ key, label }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() =>
-              void navigate({ to: "/favorites", search: { filter: key } })
-            }
-            className={cn(
-              "px-1.5 text-[10px]",
-              filter === key
-                ? "bg-raised text-accent"
-                : "text-muted hover:text-secondary",
-            )}
-          >
-            {label} <span className="tabular-nums">{counts[key]}</span>
-          </button>
-        ))}
+      {/* same channel-strip treatment as the settings and system panes; these
+          were already tabs in everything but styling, routed via ?filter= */}
+      <div
+        role="tablist"
+        aria-label="favorites filter"
+        className="flex h-8 shrink-0 items-stretch gap-px border-b border-subtle bg-base/40 px-2 text-[11px]"
+      >
+        {FILTERS.map(({ key, label, tone }) => {
+          const on = filter === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={on}
+              onClick={() =>
+                void navigate({ to: "/favorites", search: { filter: key } })
+              }
+              style={{ "--tone": tone } as React.CSSProperties}
+              className={cn(
+                "shrink-0 border-t-2 px-2 text-[10px] transition-colors",
+                on
+                  ? "border-t-[color:var(--tone)] bg-raised text-[color:var(--tone)]"
+                  : "border-t-[color-mix(in_srgb,var(--tone)_25%,transparent)] text-muted hover:border-t-[color-mix(in_srgb,var(--tone)_65%,transparent)] hover:text-secondary",
+              )}
+            >
+              {label} <span className="tabular-nums">{counts[key]}</span>
+            </button>
+          );
+        })}
+        <span className="w-2 shrink-0" />
         <button
           type="button"
           onClick={() => playFrom(0)}
