@@ -6,7 +6,7 @@ import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { SubsonicArtist } from "@/ipc/types";
 import { registerListHandler } from "@/lib/keyboard";
-import { cn } from "@/lib/utils";
+import { cn, errText } from "@/lib/utils";
 
 export function RemoteArtistsView() {
   const { sourceId } = useParams({ from: "/remote/$sourceId" });
@@ -56,7 +56,7 @@ export function RemoteArtistsView() {
 
   if (isLoading) return <p className="p-3 text-muted">loading…</p>;
   if (error) {
-    return <p className="p-3 text-[11px] text-error">{String(error)}</p>;
+    return <p className="p-3 text-[11px] text-error">{errText(error)}</p>;
   }
   if (artists.length === 0) {
     return <p className="p-3 text-muted">no artists on this server</p>;

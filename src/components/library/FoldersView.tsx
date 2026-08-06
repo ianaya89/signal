@@ -6,7 +6,7 @@ import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { registerListHandler } from "@/lib/keyboard";
-import { cn } from "@/lib/utils";
+import { cn, errText } from "@/lib/utils";
 import { toast } from "@/stores/toastStore";
 
 export function FoldersView() {
@@ -64,7 +64,14 @@ export function FoldersView() {
 
   const goUp = () => {
     const s = stateRef.current;
-    if (!s.path || !s.root || s.path === s.root) return false;
+    if (!s.path || !s.root) return false;
+    // at a root's own top, up means the root list — with several roots that is
+    // a real level, and with one it just re-renders where you already are
+    if (s.path === s.root) {
+      setPath(null);
+      setCursor(0);
+      return true;
+    }
     const parent = s.path.slice(0, s.path.lastIndexOf("/"));
     setPath(parent === s.root ? null : parent);
     setCursor(0);
@@ -122,7 +129,7 @@ export function FoldersView() {
   if (error || !data) {
     return (
       <p className="p-3 text-[12px] text-error">
-        {error ? String(error) : "no library root — scan first"}
+        {error ? errText(error) : "no library folders yet — add one in settings"}
       </p>
     );
   }

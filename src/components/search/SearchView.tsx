@@ -6,7 +6,7 @@ import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { fmtDuration, fmtQuality, isHires, isLossy } from "@/lib/format";
 import { registerListHandler, useKeyboardStore } from "@/lib/keyboard";
-import { cn } from "@/lib/utils";
+import { cn, errText } from "@/lib/utils";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { usePlayerStore } from "@/stores/playerStore";
 
@@ -113,7 +113,7 @@ export function SearchView() {
       </div>
       <div className="min-h-0 flex-1 overflow-auto">
         {error ? (
-          <p className="p-3 text-[12px] text-error">{String(error)}</p>
+          <p className="p-3 text-[12px] text-error">{errText(error)}</p>
         ) : !results || results.length === 0 ? (
           <p className="p-3 text-[12px] text-muted">
             {debounced.trim() ? "no matches" : "type to search the library"}

@@ -14,7 +14,7 @@ import type {
 } from "@/ipc/types";
 import { artworkUrl } from "@/lib/artwork";
 import { isLossy } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { cn, errText } from "@/lib/utils";
 
 const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
@@ -29,7 +29,7 @@ export function StatsView() {
   if (isLoading || !data) {
     return (
       <p className="p-3 text-muted">
-        {error ? `stats unavailable — ${String(error)}` : "loading…"}
+        {error ? `stats unavailable — ${errText(error)}` : "loading…"}
       </p>
     );
   }

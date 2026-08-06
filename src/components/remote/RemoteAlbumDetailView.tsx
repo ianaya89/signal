@@ -66,7 +66,7 @@ export function RemoteAlbumDetailView() {
 
   if (isLoading) return <p className="p-3 text-muted">loading…</p>;
   if (error) {
-    return <p className="p-3 text-[11px] text-error">{String(error)}</p>;
+    return <p className="p-3 text-[11px] text-error">{errText(error)}</p>;
   }
   if (!data) return null;
 

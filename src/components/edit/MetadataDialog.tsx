@@ -6,6 +6,7 @@ import { artworkUrl } from "@/lib/artwork";
 import { pickImage } from "@/lib/pickFolder";
 import { useEditStore } from "@/stores/editStore";
 import { toast } from "@/stores/toastStore";
+import { errText } from "@/lib/utils";
 
 /** Modal metadata editor for tracks and albums. Database-only edits —
  *  file tags are never rewritten. enter saves, esc closes. */
@@ -59,7 +60,7 @@ function TrackForm({ trackId }: { trackId: number }) {
       close();
       await queryClient.invalidateQueries();
     } catch (err) {
-      toast.error(errMsg(err));
+      toast.error(errText(err));
     }
   };
 
@@ -99,7 +100,7 @@ function AlbumForm({ albumId }: { albumId: number }) {
       toast.ok("artwork updated");
       await queryClient.invalidateQueries();
     } catch (err) {
-      toast.error(errMsg(err));
+      toast.error(errText(err));
     }
   };
 
@@ -127,7 +128,7 @@ function AlbumForm({ albumId }: { albumId: number }) {
       close();
       await queryClient.invalidateQueries();
     } catch (err) {
-      toast.error(errMsg(err));
+      toast.error(errText(err));
     }
   };
 
@@ -273,8 +274,3 @@ function numOrNull(v: string | undefined): number | null {
   return v && Number.isFinite(n) ? n : null;
 }
 
-function errMsg(err: unknown): string {
-  return typeof err === "object" && err !== null && "message" in err
-    ? String((err as { message: unknown }).message)
-    : String(err);
-}

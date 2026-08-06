@@ -12,7 +12,7 @@ import { useVirtualWindow } from "@/hooks/useVirtualWindow";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { registerListHandler } from "@/lib/keyboard";
-import { cn } from "@/lib/utils";
+import { cn, errText } from "@/lib/utils";
 import type { FavoritesFilter } from "@/router";
 
 const FILTERS: { key: FavoritesFilter; label: string }[] = [
@@ -130,7 +130,7 @@ export function FavoritesView() {
   if (error) {
     return (
       <p className="p-3 text-[12px] text-error">
-        could not read favorites — {String(error)}
+        could not read favorites — {errText(error)}
       </p>
     );
   }

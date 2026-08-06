@@ -301,32 +301,57 @@ pub struct FolderListing {
 }
 
 /// Browses the library by directory structure. `path` empty = library root;
-/// anything outside the root is rejected.
+/// anything outside the configured roots is rejected.
+///
+/// Reads the same root list as everything else. It used to read the legacy
+/// single `library.root` key directly, which meant folder browsing broke
+/// outright on any install whose roots had only ever been written in the
+/// `library.roots` form — the key it was reading simply was not there.
 #[tauri::command]
 #[tracing::instrument(skip(state))]
 pub async fn library_browse_folder(
     state: State<'_, AppState>,
     path: Option<String>,
 ) -> Result<FolderListing, SignalError> {
-    let root = state
-        .db
-        .settings()
-        .get("library.root")
-        .await
-        .db_err()?
-        .ok_or_else(|| SignalError::Scanner("no library root — scan first".into()))?;
+    let roots = read_roots(&state).await;
+    let first = roots
+        .first()
+        .ok_or_else(|| SignalError::Scanner("no library folders yet — add one in settings".into()))?
+        .clone();
+
+    // with several roots there is no single top directory to open, so the top
+    // level lists the roots themselves and each one drills down from there
+    if roots.len() > 1 && path.as_ref().is_none_or(String::is_empty) {
+        let mut dirs = Vec::with_capacity(roots.len());
+        for root in &roots {
+            let track_count = state.db.tracks().count_under(root).await.db_err()?;
+            dirs.push(FolderEntry {
+                name: root.clone(),
+                path: root.clone(),
+                track_count: u32::try_from(track_count).unwrap_or_default(),
+            });
+        }
+        return Ok(FolderListing {
+            root: String::new(),
+            path: String::new(),
+            dirs,
+            tracks: Vec::new(),
+        });
+    }
 
     let dir = match &path {
         Some(p) if !p.is_empty() => p.clone(),
-        _ => root.clone(),
+        _ => first,
     };
-    // no escaping the library root via .. or absolute tricks
+    // no escaping the library roots via .. or absolute tricks
     let canonical = std::path::Path::new(&dir)
         .canonicalize()
         .map_err(|_| SignalError::Io(format!("folder not found: {dir}")))?;
-    if !canonical.starts_with(&root) {
-        return Err(SignalError::Io("path outside library root".into()));
-    }
+    let root = roots
+        .iter()
+        .find(|r| canonical.starts_with(r))
+        .ok_or_else(|| SignalError::Io("path outside library roots".into()))?
+        .clone();
 
     let mut dirs = Vec::new();
     let entries = std::fs::read_dir(&canonical).map_err(|e| SignalError::Io(e.to_string()))?;

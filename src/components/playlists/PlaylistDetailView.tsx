@@ -15,6 +15,7 @@ import { useVirtualWindow } from "@/hooks/useVirtualWindow";
 import { registerListHandler } from "@/lib/keyboard";
 import { pickSavePath } from "@/lib/pickFolder";
 import { toast } from "@/stores/toastStore";
+import { errText } from "@/lib/utils";
 
 export function PlaylistDetailView() {
   const { kind, playlistId } = useParams({
@@ -148,7 +149,7 @@ export function PlaylistDetailView() {
               if (!dest) return;
               const count = await api.exportM3u(id, smart, dest);
               toast.ok(`exported ${count} tracks`);
-            })().catch((e) => toast.error(String(e)));
+            })().catch((e) => toast.error(errText(e)));
           }}
           className="ml-auto border border-subtle bg-raised px-2 py-0.5 text-[11px] text-secondary hover:border-focus hover:text-accent"
         >

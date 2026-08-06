@@ -133,7 +133,7 @@ export function DoctorView() {
       );
       await queryClient.invalidateQueries();
     } catch (err) {
-      toast.error(String(err));
+      toast.error(errText(err));
       setArtLog((log) => [
         ...log,
         {
@@ -142,7 +142,7 @@ export function DoctorView() {
           album: "lookup failed",
           artist: "",
           outcome: "error",
-          detail: String(err),
+          detail: errText(err),
         },
       ]);
     } finally {

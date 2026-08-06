@@ -5,6 +5,7 @@ import { check } from "@tauri-apps/plugin-updater";
 import { api } from "@/ipc/invoke";
 import { toast } from "@/stores/toastStore";
 import { useUpdateStore } from "@/stores/updateStore";
+import { errText } from "@/lib/utils";
 
 const AUTO_CHECK_KEY = "updates.auto_check";
 
@@ -16,12 +17,6 @@ function inTauri(): boolean {
   return "__TAURI_INTERNALS__" in window;
 }
 
-function message(err: unknown): string {
-  if (typeof err === "object" && err !== null && "message" in err) {
-    return String((err as { message: unknown }).message);
-  }
-  return String(err);
-}
 
 /// False for .deb installs, where apt owns the upgrade and the plugin has
 /// nothing it can rewrite.
@@ -55,10 +50,10 @@ export async function checkForUpdate({ silent = false } = {}): Promise<boolean> 
     return true;
   } catch (err) {
     pending = null;
-    store.fail(message(err));
+    store.fail(errText(err));
     // A silent check runs on every launch: offline, no release yet, or a
     // half-published manifest must not greet the user with an error.
-    if (!silent) toast.error(`update check failed: ${message(err)}`);
+    if (!silent) toast.error(`update check failed: ${errText(err)}`);
     return false;
   }
 }
@@ -77,8 +72,8 @@ export async function installUpdate(): Promise<void> {
     try {
       pending = await check();
     } catch (err) {
-      store.fail(message(err));
-      toast.error(`update failed: ${message(err)}`);
+      store.fail(errText(err));
+      toast.error(`update failed: ${errText(err)}`);
       return;
     }
     if (!pending) {
@@ -106,8 +101,8 @@ export async function installUpdate(): Promise<void> {
     toast.ok("update installed — restarting");
   } catch (err) {
     pending = null;
-    store.fail(message(err));
-    toast.error(`update failed: ${message(err)}`);
+    store.fail(errText(err));
+    toast.error(`update failed: ${errText(err)}`);
     return;
   }
 
@@ -115,7 +110,7 @@ export async function installUpdate(): Promise<void> {
     await relaunch();
   } catch (err) {
     // installed on disk either way; the user just has to reopen it
-    store.fail(`installed, but the restart failed — quit and reopen signal (${message(err)})`);
+    store.fail(`installed, but the restart failed — quit and reopen signal (${errText(err)})`);
   }
 }
 
@@ -132,7 +127,7 @@ export async function restartNow(): Promise<void> {
   try {
     await relaunch();
   } catch (err) {
-    toast.error(`restart failed: ${message(err)}`);
+    toast.error(`restart failed: ${errText(err)}`);
   }
 }
 

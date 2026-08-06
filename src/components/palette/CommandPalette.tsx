@@ -309,11 +309,7 @@ export function CommandPalette() {
     try {
       await cmd.run(arg);
     } catch (err) {
-      const message =
-        typeof err === "object" && err !== null && "message" in err
-          ? String((err as { message: unknown }).message)
-          : String(err);
-      useScanStore.getState().fail(message);
+      useScanStore.getState().fail(errText(err));
     }
   };
 

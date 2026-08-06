@@ -7,7 +7,7 @@ import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { SubsonicAlbum } from "@/ipc/types";
 import { registerListHandler } from "@/lib/keyboard";
-import { cn } from "@/lib/utils";
+import { cn, errText } from "@/lib/utils";
 
 export function RemoteArtistDetailView() {
   const { sourceId, artistId } = useParams({
@@ -57,7 +57,7 @@ export function RemoteArtistDetailView() {
 
   if (isLoading) return <p className="p-3 text-muted">loading…</p>;
   if (error) {
-    return <p className="p-3 text-[11px] text-error">{String(error)}</p>;
+    return <p className="p-3 text-[11px] text-error">{errText(error)}</p>;
   }
   if (!data) return null;
 

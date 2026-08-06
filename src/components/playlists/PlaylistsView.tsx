@@ -9,7 +9,7 @@ import { api } from "@/ipc/invoke";
 import type { PlaylistSummary, SmartRules } from "@/ipc/types";
 import { registerListHandler } from "@/lib/keyboard";
 import { pickM3u } from "@/lib/pickFolder";
-import { cn } from "@/lib/utils";
+import { cn, errText } from "@/lib/utils";
 import { toast } from "@/stores/toastStore";
 
 export function PlaylistsView() {
@@ -83,7 +83,7 @@ export function PlaylistsView() {
       toast.ok(`smart playlist "${smartName}" created`);
       void queryClient.invalidateQueries({ queryKey: ["playlists"] });
     } catch (err) {
-      toast.error(String(err));
+      toast.error(errText(err));
     }
   };
 
@@ -133,7 +133,7 @@ export function PlaylistsView() {
                 );
                 void queryClient.invalidateQueries({ queryKey: ["playlists"] });
               } catch (err) {
-                toast.error(String(err));
+                toast.error(errText(err));
               }
             })();
           }}
