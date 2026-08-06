@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
+import { TabbedPane } from "@/components/ui/TabbedPane";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { RemoteSource, ReplayGainMode } from "@/ipc/types";
@@ -65,87 +66,28 @@ export function SettingsView() {
     return TABS.some((t) => t.key === saved) && saved ? saved : "library";
   });
 
-  const active = TABS.find((t) => t.key === tab) ?? TABS[0];
-
-  const select = (key: TabKey) => {
-    setTab(key);
-    localStorage.setItem(TAB_KEY, key);
-  };
-
-  // a tablist is expected to move with the arrow keys, not just Tab
-  const onTabKeyDown = (e: React.KeyboardEvent) => {
-    const delta = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
-    if (delta === 0) return;
-    e.preventDefault();
-    const index = TABS.findIndex((t) => t.key === tab);
-    const next = TABS[(index + delta + TABS.length) % TABS.length];
-    select(next.key);
-    document.getElementById(`settings-tab-${next.key}`)?.focus();
-  };
-
   return (
-    <div className="flex h-full flex-col">
-      <div
-        role="tablist"
-        aria-label="settings sections"
-        onKeyDown={onTabKeyDown}
-        className="flex h-8 shrink-0 items-stretch gap-px overflow-x-auto border-b border-subtle bg-base/40 px-2 text-[10px]"
-      >
-        {TABS.map(({ key, tone }) => {
-          const on = tab === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              role="tab"
-              id={`settings-tab-${key}`}
-              aria-selected={on}
-              aria-controls={`settings-panel-${key}`}
-              tabIndex={on ? 0 : -1}
-              onClick={() => select(key)}
-              style={{ "--tone": tone } as React.CSSProperties}
-              className={cn(
-                // the 2px cap is the channel colour; it dims rather than
-                // disappears when inactive, so the strip reads as a set
-                "shrink-0 border-t-2 px-2 transition-colors",
-                on
-                  ? "border-t-[color:var(--tone)] bg-raised text-[color:var(--tone)]"
-                  : "border-t-[color-mix(in_srgb,var(--tone)_25%,transparent)] text-muted hover:border-t-[color-mix(in_srgb,var(--tone)_65%,transparent)] hover:text-secondary",
-              )}
-            >
-              {key}
-            </button>
-          );
-        })}
+    <TabbedPane
+      tabs={TABS}
+      active={tab}
+      onSelect={(key) => {
+        setTab(key as TabKey);
+        localStorage.setItem(TAB_KEY, key);
+      }}
+      label="settings sections"
+      idPrefix="settings"
+      highlight={withProtocol}
+    >
+      <div className="flex max-w-xl flex-col gap-5 px-4 pb-6 pt-1">
+        {tab === "library" && <LibrarySection />}
+        {tab === "playback" && <PlaybackSection />}
+        {tab === "appearance" && <AppearanceSection />}
+        {tab === "scrobbling" && <PluginsSection />}
+        {tab === "server" && <ServerSection />}
+        {tab === "remote" && <RemoteSourcesSection />}
+        {tab === "about" && <AboutSection />}
       </div>
-
-      <div
-        role="tabpanel"
-        id={`settings-panel-${tab}`}
-        aria-labelledby={`settings-tab-${tab}`}
-        style={{ "--section": active.tone } as React.CSSProperties}
-        className="min-h-0 flex-1 overflow-auto bg-[linear-gradient(to_bottom,color-mix(in_srgb,var(--section)_7%,transparent),transparent_12rem)]"
-      >
-        <div className="flex max-w-xl flex-col gap-5 p-4">
-          <header className="flex flex-col gap-1.5">
-            <h2 className="text-[13px] uppercase tracking-[0.2em] text-[color:var(--section)]">
-              {active.key}
-            </h2>
-            <p className="text-[11px] text-secondary">
-              {withProtocol(active.blurb)}
-            </p>
-            <div className="rule-fade mt-1" />
-          </header>
-          {tab === "library" && <LibrarySection />}
-          {tab === "playback" && <PlaybackSection />}
-          {tab === "appearance" && <AppearanceSection />}
-          {tab === "scrobbling" && <PluginsSection />}
-          {tab === "server" && <ServerSection />}
-          {tab === "remote" && <RemoteSourcesSection />}
-          {tab === "about" && <AboutSection />}
-        </div>
-      </div>
-    </div>
+    </TabbedPane>
   );
 }
 

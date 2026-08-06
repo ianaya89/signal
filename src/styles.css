@@ -43,6 +43,9 @@
   --sec-server: #e0af68;
   --sec-remote: #9ece6a;
   --sec-about: #7f83ad;
+  --sec-stats: #bb9af7;
+  --sec-doctor: #e0af68;
+  --sec-logs: #7f83ad;
 
   --font-mono: ui-monospace, "JetBrains Mono", "SF Mono", "Cascadia Code",
     Menlo, Consolas, monospace;
@@ -91,6 +94,9 @@
   --sec-server: #a97b23;
   --sec-remote: #4a7c59;
   --sec-about: #8f8163;
+  --sec-stats: #7c5eb0;
+  --sec-doctor: #a97b23;
+  --sec-logs: #8f8163;
 }
 
 

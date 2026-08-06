@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 
+import { isSystemPath } from "@/components/system/SystemView";
 import { cn } from "@/lib/utils";
 
 const SECTIONS = [
@@ -11,9 +12,7 @@ const SECTIONS = [
   { label: "remote", to: "/remote", exact: false },
   { label: "playlists", to: "/playlists", exact: false },
   { label: "discover", to: "/discover", exact: false },
-  { label: "stats", to: "/stats", exact: false },
-  { label: "doctor", to: "/doctor", exact: false },
-  { label: "logs", to: "/logs", exact: false },
+  { label: "system", to: "/system", exact: false },
   { label: "settings", to: "/settings", exact: false },
 ] as const;
 
@@ -23,9 +22,14 @@ export function LibraryNav() {
   return (
     <nav className="flex flex-col gap-px p-1.5">
       {SECTIONS.map((s) => {
-        const active = s.exact
-          ? pathname === s.to || pathname.startsWith("/albums")
-          : pathname.startsWith(s.to);
+        // system owns three paths that don't share its prefix, so it can't
+        // rely on startsWith the way the others do
+        const active =
+          s.to === "/system"
+            ? isSystemPath(pathname)
+            : s.exact
+              ? pathname === s.to || pathname.startsWith("/albums")
+              : pathname.startsWith(s.to);
         return (
           <Link
             key={s.label}

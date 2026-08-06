@@ -10,11 +10,9 @@ import { AlbumsView } from "@/components/library/AlbumsView";
 import { ArtistDetailView } from "@/components/library/ArtistDetailView";
 import { ArtistsView } from "@/components/library/ArtistsView";
 import { DiscoverView } from "@/components/discover/DiscoverView";
-import { DoctorView } from "@/components/doctor/DoctorView";
 import { FavoritesView } from "@/components/library/FavoritesView";
 import { FoldersView } from "@/components/library/FoldersView";
 import { GenreDetailView, GenresView } from "@/components/library/GenresView";
-import { LogViewer } from "@/components/logs/LogViewer";
 import { PlaylistDetailView } from "@/components/playlists/PlaylistDetailView";
 import { PlaylistsView } from "@/components/playlists/PlaylistsView";
 import { RemoteAlbumDetailView } from "@/components/remote/RemoteAlbumDetailView";
@@ -23,7 +21,7 @@ import { RemoteArtistsView } from "@/components/remote/RemoteArtistsView";
 import { RemoteSourcesView } from "@/components/remote/RemoteSourcesView";
 import { SearchView } from "@/components/search/SearchView";
 import { SettingsView } from "@/components/settings/SettingsView";
-import { StatsView } from "@/components/stats/StatsView";
+import { SystemView } from "@/components/system/SystemView";
 
 const rootRoute = createRootRoute({ component: AppShell });
 
@@ -71,22 +69,30 @@ const searchRoute = createRoute({
   component: SearchView,
 });
 
+// stats / doctor / logs share one pane; each keeps its own path so the
+// command palette and keyboard shortcuts that point at them still resolve.
+const systemRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/system",
+  component: SystemView,
+});
+
 const statsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/stats",
-  component: StatsView,
+  component: SystemView,
 });
 
 const logsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/logs",
-  component: LogViewer,
+  component: SystemView,
 });
 
 const doctorRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/doctor",
-  component: DoctorView,
+  component: SystemView,
 });
 
 const discoverRoute = createRoute({
@@ -162,6 +168,7 @@ const routeTree = rootRoute.addChildren([
   artistDetailRoute,
   favoritesRoute,
   searchRoute,
+  systemRoute,
   statsRoute,
   logsRoute,
   playlistsRoute,
