@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-08-06
+
 ### Added
 
 - Remote OpenSubsonic servers. Signal can now be configured with one or more
@@ -26,6 +28,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   alongside local ones, a limitation settings spells out. It's
   read-and-stream only: no catalog sync, no offline cache, and no write-back
   beyond a future scrobble to the remote server.
+- Settings reorganised into tabs. Seven stacked sections in one long scroll
+  became a tab strip — library, playback, appearance, scrobbling, server,
+  remote, about — with the last-used tab remembered between visits. Each pane
+  opens with a line stating what it is for, and per-setting explanations
+  moved next to the control they describe instead of collecting at the end
+  of a section. The "reset + rescan" action now says plainly that it drops
+  ratings, play counts and playlists.
+- Stats, doctor and logs merged into one "system" entry. Three sidebar rows
+  became one tabbed pane, taking the sidebar from twelve rows to ten. Each
+  tab keeps its own URL, so existing keyboard shortcuts (S for stats, L for
+  logs) and command palette entries still work, along with any bookmarked
+  link.
+- Section headers in the library lists. Albums could already be sorted four
+  ways but the result was an unbroken run of covers, so the sort was
+  invisible once applied. Sorted lists now carry sticky section headers
+  describing the order they are already in: initials when sorted by name,
+  artist initials when sorted by artist, decades when sorted by year.
+  Sorting by "recent" gets none, since a continuum has no sections. Headers
+  only appear once a list is long enough to benefit — a list averaging
+  fewer than two rows per section shows none at all.
+- A sort for artists. The artists view had no sort and no sections: one flat
+  alphabetical run, fine for a small library and unusable for a large one.
+  It now sorts by name, album count or track count, with the same sort bar
+  the albums view has.
+- Colour as wayfinding. Each settings and system pane owns a hue, so the tab
+  strip reads as a set and the pane you are in is identifiable at a glance.
+  The sidebar tints the active row with the hue of the pane it opens, and
+  the discover shelves — on repeat, rediscover, from your artists, never
+  played — each take their own, so four peer sections stop reading as one
+  stack. Connection and server status indicators glow in their own colour,
+  and a live connection pulses. All of it respects `prefers-reduced-motion`.
+- A primary button weight. The interface had no way to say which action a
+  form was for. Submitting a new remote server, starting the server,
+  installing an update and playing a remote album now carry visible weight;
+  everything else stays secondary.
+
+### Changed
+
+- The dev server moved off port 1420. That is Tauri's default, so it
+  collided with any other Tauri app in development, and because Vite runs
+  with `strictPort` the second app to start simply failed to boot. Signal's
+  dev server is 1421. Development only — it does not affect installed
+  builds.
+
+### Fixed
+
+- Folder browsing was broken outright on some installs. The folders pane
+  read a legacy settings key for the library root while the rest of the app
+  had moved to a newer multi-root key. On any install whose roots had only
+  ever been written in the newer form the key was missing, so the pane
+  failed to open at all and showed an error instead of a listing. It now
+  reads the same root list as every other library command, validates paths
+  against all configured roots rather than one, and with several roots
+  configured the top level lists the roots themselves.
+- Errors displayed as `[object Object]`. Four separate copies of the same
+  error-formatting helper had grown up across the interface, and all of
+  them read a message field and stringified it — correct for most errors,
+  but not for the ones that carry a structured payload, which rendered as
+  `[object Object]` no matter which copy handled them. There is now one
+  helper, it handles every error shape the backend emits, and every place
+  that displays an error uses it.
+- The playlists toolbar's create, "+ smart" and "import m3u…" buttons sat at
+  identical weight, so nothing indicated which one the name field was for,
+  and they were the only buttons in the app rendered at a larger size than
+  everything else. Create now carries the primary weight and disables
+  itself on an empty name.
 
 ## [0.1.6] - 2026-08-03
 
@@ -204,7 +272,8 @@ First pre-release.
 - **Distribution** — macOS `.dmg` with libmpv bundled, Linux `.deb` and
   AppImage, an install script, and a GitHub Pages landing page.
 
-[Unreleased]: https://github.com/ianaya89/signal/compare/v0.1.6...HEAD
+[Unreleased]: https://github.com/ianaya89/signal/compare/v0.1.7...HEAD
+[0.1.7]: https://github.com/ianaya89/signal/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/ianaya89/signal/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/ianaya89/signal/compare/v0.1.3...v0.1.5
 [0.1.3]: https://github.com/ianaya89/signal/compare/v0.1.2...v0.1.3
