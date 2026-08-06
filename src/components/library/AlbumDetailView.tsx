@@ -196,7 +196,7 @@ function AlbumArt({
       type="button"
       onClick={() => void onPick()}
       title="change artwork"
-      className="group/art relative h-20 w-20 shrink-0 overflow-hidden rounded-[var(--radius-sm)] border border-subtle bg-raised hover:border-focus"
+      className="group/art relative h-20 w-20 shrink-0 overflow-hidden border border-subtle bg-raised hover:border-focus"
     >
       {(hasArt || version > 0) && !artError ? (
         <img

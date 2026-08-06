@@ -109,7 +109,7 @@ export function SearchView() {
           }}
           placeholder="search — artist:cerati year>1998 codec:flac sampleRate>48k"
           spellCheck={false}
-          className="w-full rounded-[var(--radius-sm)] border border-subtle bg-base/60 px-2 py-1 text-[12px] text-primary outline-none focus:border-focus"
+          className="w-full border border-subtle bg-base/60 px-2 py-1 text-[12px] text-primary outline-none focus:border-focus"
         />
       </div>
       <div className="min-h-0 flex-1 overflow-auto">

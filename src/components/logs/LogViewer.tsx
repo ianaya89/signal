@@ -38,7 +38,7 @@ export function LogViewer() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-8 shrink-0 items-center justify-between border-b border-subtle px-2">
-        <div className="flex gap-px overflow-hidden rounded-[var(--radius-sm)] border border-subtle">
+        <div className="flex gap-px overflow-hidden border border-subtle">
           {LEVELS.map((level) => (
             <button
               key={level}

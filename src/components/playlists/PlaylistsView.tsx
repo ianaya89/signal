@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { SmartEditor } from "@/components/playlists/SmartEditor";
 import { EditableText } from "@/components/ui/EditableText";
 import { Loading } from "@/components/ui/States";
+import { BTN, BTN_PRIMARY, INPUT } from "@/components/ui/controls";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { PlaylistSummary, SmartRules } from "@/ipc/types";
@@ -106,18 +107,19 @@ export function PlaylistsView() {
           onChange={(e) => setName(e.target.value)}
           placeholder="new playlist name…"
           spellCheck={false}
-          className="w-64 rounded-[var(--radius-sm)] border border-subtle bg-base/60 px-2 py-1 text-[12px] text-primary outline-none focus:border-focus"
+          className={cn("w-64", INPUT)}
         />
         <button
           type="submit"
-          className="rounded-[var(--radius-sm)] border border-subtle bg-raised px-3 py-1 text-[12px] text-secondary hover:border-focus hover:text-accent"
+          disabled={!name.trim()}
+          className={BTN_PRIMARY}
         >
           create
         </button>
         <button
           type="button"
           onClick={() => setSmartOpen((v) => !v)}
-          className="rounded-[var(--radius-sm)] border border-subtle bg-raised px-3 py-1 text-[12px] text-secondary hover:border-focus hover:text-hires"
+          className={cn(BTN, "hover:text-hires")}
         >
           + smart
         </button>
@@ -139,7 +141,7 @@ export function PlaylistsView() {
             })();
           }}
           title="import an .m3u/.m3u8 — lines match against library file paths"
-          className="rounded-[var(--radius-sm)] border border-subtle bg-raised px-3 py-1 text-[12px] text-secondary hover:border-focus hover:text-accent"
+          className={BTN}
         >
           import m3u…
         </button>

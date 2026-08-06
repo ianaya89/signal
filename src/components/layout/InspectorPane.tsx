@@ -48,7 +48,7 @@ function OutputSection() {
         <select
           value={deviceId ?? "auto"}
           onChange={(e) => void api.deviceSelect(e.target.value)}
-          className="w-36 truncate rounded-[var(--radius-sm)] border border-subtle bg-base/60 px-1 py-0.5 text-[11px] text-secondary outline-none focus:border-focus"
+          className="w-36 truncate border border-subtle bg-base/60 px-1 py-0.5 text-[11px] text-secondary outline-none focus:border-focus"
         >
           {!devices?.some((d) => d.id === (deviceId ?? "auto")) && (
             <option value={deviceId ?? "auto"}>auto</option>
@@ -63,7 +63,7 @@ function OutputSection() {
 
       <div className="mb-1 flex items-center justify-between">
         <span className="text-[11px] text-muted">replaygain</span>
-        <div className="flex gap-px overflow-hidden rounded-[var(--radius-sm)] border border-subtle">
+        <div className="flex gap-px overflow-hidden border border-subtle">
           {RG_MODES.map((mode) => (
             <button
               key={mode}
@@ -88,7 +88,7 @@ function OutputSection() {
           type="button"
           onClick={() => void api.setExclusive(!exclusive)}
           className={cn(
-            "rounded-[var(--radius-sm)] border border-subtle px-1.5 py-0.5 text-[10px]",
+            "border border-subtle px-1.5 py-0.5 text-[10px]",
             exclusive ? "bg-raised text-accent" : "text-muted hover:text-secondary",
           )}
         >

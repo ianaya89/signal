@@ -136,7 +136,7 @@ export function PlaylistDetailView() {
           )}
         </h1>
         {data.smart && (
-          <span className="rounded-[var(--radius-sm)] bg-raised px-1.5 py-0.5 text-[10px] text-hires">
+          <span className="bg-raised px-1.5 py-0.5 text-[10px] text-hires">
             smart
           </span>
         )}
