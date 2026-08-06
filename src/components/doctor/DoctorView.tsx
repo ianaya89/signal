@@ -13,6 +13,7 @@ import type {
 } from "@/ipc/types";
 import { cn, errText } from "@/lib/utils";
 import { toast } from "@/stores/toastStore";
+import { BTN } from "@/components/ui/controls";
 
 export function DoctorView() {
   useMainTitle("doctor");
@@ -181,7 +182,7 @@ export function DoctorView() {
           <button
             type="button"
             onClick={() => void refetch()}
-            className="mt-1 w-fit border border-subtle bg-raised px-2 py-0.5 text-[11px] text-secondary hover:border-focus hover:text-accent"
+            className={cn("mt-1 w-fit", BTN)}
           >
             {isFetching ? "examining…" : "re-examine"}
           </button>

@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
 import { EditableText } from "@/components/ui/EditableText";
+import { Loading } from "@/components/ui/States";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { ArtistSummary } from "@/ipc/types";
@@ -56,7 +57,7 @@ export function ArtistsView() {
   }, [navigate]);
 
   if (isLoading) {
-    return <p className="p-3 text-muted">loading…</p>;
+    return <Loading />;
   }
   if (!artists || artists.length === 0) {
     return <p className="p-3 text-muted">no artists yet — scan your library first</p>;

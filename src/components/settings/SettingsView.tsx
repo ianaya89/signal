@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { TabbedPane } from "@/components/ui/TabbedPane";
+import { BTN, BTN_DANGER, BTN_PRIMARY, INPUT } from "@/components/ui/controls";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { RemoteSource, ReplayGainMode } from "@/ipc/types";
@@ -356,7 +357,7 @@ function UpdateRows({ updatable }: { updatable: boolean }) {
           <button
             type="button"
             onClick={openUpdateDialog}
-            className={cn(BTN, "text-accent")}
+            className={BTN_PRIMARY}
           >
             {status === "ready" ? "restart to apply" : "review + install"}
           </button>
@@ -511,7 +512,12 @@ function ServerSection() {
               ? "set a password below first — subsonic clients require one"
               : undefined
           }
-          className={cn(BTN, "disabled:cursor-not-allowed disabled:opacity-40")}
+          // starting is what this pane is for; stopping is not a primary act
+          className={cn(
+            status?.running
+              ? cn(BTN, "disabled:cursor-not-allowed disabled:opacity-40")
+              : BTN_PRIMARY,
+          )}
         >
           {status?.running ? "stop" : "start"}
         </button>
@@ -862,10 +868,7 @@ function AddServerForm({
           <button
             type="submit"
             disabled={busy || !baseUrl || !username || !password}
-            className={cn(
-              BTN,
-              "disabled:cursor-not-allowed disabled:opacity-40",
-            )}
+            className={BTN_PRIMARY}
           >
             {busy ? "connecting…" : "add + test"}
           </button>
@@ -917,15 +920,8 @@ function fmtAgo(iso: string | null): string | null {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-const INPUT =
-  "w-72 border border-subtle bg-base/60 px-2 py-0.5 text-[11px] text-primary outline-none focus:border-[color:var(--section)]";
 
-const BTN =
-  "shrink-0 border border-subtle bg-raised px-2 py-0.5 text-[11px] text-secondary transition-colors hover:border-[color:var(--section)] hover:text-[color:var(--section)]";
 
-// destructive actions read as destructive at rest, not only on hover
-const BTN_DANGER =
-  "shrink-0 border border-subtle bg-raised px-2 py-0.5 text-[11px] text-error/80 hover:border-error hover:text-error";
 
 function StatusDot({
   state,

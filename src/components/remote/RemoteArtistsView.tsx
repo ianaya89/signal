@@ -2,11 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
+import { Failed, Loading } from "@/components/ui/States";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { SubsonicArtist } from "@/ipc/types";
 import { registerListHandler } from "@/lib/keyboard";
-import { cn, errText } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 export function RemoteArtistsView() {
   const { sourceId } = useParams({ from: "/remote/$sourceId" });
@@ -54,9 +55,9 @@ export function RemoteArtistsView() {
     });
   }, [navigate, id]);
 
-  if (isLoading) return <p className="p-3 text-muted">loading…</p>;
+  if (isLoading) return <Loading />;
   if (error) {
-    return <p className="p-3 text-[11px] text-error">{errText(error)}</p>;
+    return <Failed error={error} />;
   }
   if (artists.length === 0) {
     return <p className="p-3 text-muted">no artists on this server</p>;

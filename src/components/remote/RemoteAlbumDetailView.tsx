@@ -3,6 +3,8 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
 import { RemoteCover } from "@/components/remote/RemoteCover";
+import { Failed, Loading } from "@/components/ui/States";
+import { BTN_PRIMARY } from "@/components/ui/controls";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { SubsonicChild } from "@/ipc/types";
@@ -64,9 +66,9 @@ export function RemoteAlbumDetailView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
-  if (isLoading) return <p className="p-3 text-muted">loading…</p>;
+  if (isLoading) return <Loading />;
   if (error) {
-    return <p className="p-3 text-[11px] text-error">{errText(error)}</p>;
+    return <Failed error={error} />;
   }
   if (!data) return null;
 
@@ -89,7 +91,7 @@ export function RemoteAlbumDetailView() {
         <button
           type="button"
           onClick={() => playFrom(0)}
-          className="ml-auto border border-subtle bg-raised px-2 py-0.5 text-[11px] text-secondary hover:border-focus hover:text-accent"
+          className={cn("ml-auto", BTN_PRIMARY)}
         >
           play album
         </button>

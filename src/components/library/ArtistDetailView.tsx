@@ -5,10 +5,11 @@ import { useEffect, useRef, useState } from "react";
 import { TrackRow } from "@/components/library/TrackRow";
 import { CoverPlaceholder } from "@/components/ui/CoverPlaceholder";
 import { EditableText } from "@/components/ui/EditableText";
+import { Loading } from "@/components/ui/States";
+import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { artworkUrl } from "@/lib/artwork";
-import { useMainTitle } from "@/hooks/useMainTitle";
 import { registerListHandler } from "@/lib/keyboard";
 
 function AlbumThumb({
@@ -109,7 +110,7 @@ export function ArtistDetailView() {
   }, [navigate]);
 
   if (isLoading || !data) {
-    return <p className="p-3 text-muted">loading…</p>;
+    return <Loading />;
   }
 
   let flatIndex = -1;

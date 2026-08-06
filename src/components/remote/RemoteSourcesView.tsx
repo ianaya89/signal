@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 
+import { Loading } from "@/components/ui/States";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import { cn } from "@/lib/utils";
@@ -12,7 +13,7 @@ export function RemoteSourcesView() {
     queryFn: api.remoteSourceList,
   });
 
-  if (isLoading) return <p className="p-3 text-muted">loading…</p>;
+  if (isLoading) return <Loading />;
 
   if (!sources || sources.length === 0) {
     return (

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { SelectionBar } from "@/components/library/SelectionBar";
 import { TrackRow } from "@/components/library/TrackRow";
 import { TrackTableHeader } from "@/components/library/TrackTableHeader";
+import { Failed, Loading } from "@/components/ui/States";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { useMultiSelect } from "@/hooks/useMultiSelect";
 import { useTrackSort } from "@/hooks/useTrackSort";
@@ -12,7 +13,7 @@ import { useVirtualWindow } from "@/hooks/useVirtualWindow";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { registerListHandler } from "@/lib/keyboard";
-import { cn, errText } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { FavoritesFilter } from "@/router";
 
 const FILTERS: { key: FavoritesFilter; label: string; tone: string }[] = [
@@ -125,13 +126,11 @@ export function FavoritesView() {
   }, []);
 
   if (isLoading) {
-    return <p className="p-3 text-muted">loading…</p>;
+    return <Loading />;
   }
   if (error) {
     return (
-      <p className="p-3 text-[12px] text-error">
-        could not read favorites — {errText(error)}
-      </p>
+      <Failed error={error} prefix="could not read favorites" />
     );
   }
 

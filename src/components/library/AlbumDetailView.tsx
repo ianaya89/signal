@@ -7,15 +7,16 @@ import { TrackRow } from "@/components/library/TrackRow";
 import { TrackTableHeader } from "@/components/library/TrackTableHeader";
 import { CoverPlaceholder } from "@/components/ui/CoverPlaceholder";
 import { EditableText } from "@/components/ui/EditableText";
+import { Loading } from "@/components/ui/States";
+import { useMainTitle } from "@/hooks/useMainTitle";
+import { useMultiSelect } from "@/hooks/useMultiSelect";
+import { useTrackSort } from "@/hooks/useTrackSort";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { artworkUrl } from "@/lib/artwork";
-import { useMainTitle } from "@/hooks/useMainTitle";
-import { useEditStore } from "@/stores/editStore";
-import { useMultiSelect } from "@/hooks/useMultiSelect";
-import { useTrackSort } from "@/hooks/useTrackSort";
 import { registerListHandler } from "@/lib/keyboard";
 import { pickImage } from "@/lib/pickFolder";
+import { useEditStore } from "@/stores/editStore";
 
 export function AlbumDetailView() {
   const { albumId } = useParams({ from: "/albums/$albumId" });
@@ -89,7 +90,7 @@ export function AlbumDetailView() {
   }, [navigate]);
 
   if (isLoading || !data) {
-    return <p className="p-3 text-muted">loading…</p>;
+    return <Loading />;
   }
 
   const { album } = data;

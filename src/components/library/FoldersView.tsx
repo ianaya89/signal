@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 
 import { TrackRow } from "@/components/library/TrackRow";
+import { Loading } from "@/components/ui/States";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
@@ -124,7 +125,7 @@ export function FoldersView() {
   }, []);
 
   if (isLoading) {
-    return <p className="p-3 text-muted">loading…</p>;
+    return <Loading />;
   }
   if (error || !data) {
     return (

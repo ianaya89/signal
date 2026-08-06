@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { ChainView } from "@/components/layout/ChainView";
+import { Loading } from "@/components/ui/States";
 import { api } from "@/ipc/invoke";
 import type { ReplayGainMode } from "@/ipc/types";
 import { fmtSampleRate } from "@/lib/format";
@@ -129,7 +130,7 @@ function TrackInspector({ trackId }: { trackId: number }) {
   });
 
   if (!data) {
-    return <p className="p-3 text-[11px] text-muted">loading…</p>;
+    return <Loading />;
   }
 
   const t = data.track.technical;

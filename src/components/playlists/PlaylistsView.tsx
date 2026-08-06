@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { SmartEditor } from "@/components/playlists/SmartEditor";
 import { EditableText } from "@/components/ui/EditableText";
+import { Loading } from "@/components/ui/States";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { PlaylistSummary, SmartRules } from "@/ipc/types";
@@ -88,7 +89,7 @@ export function PlaylistsView() {
   };
 
   if (isLoading) {
-    return <p className="p-3 text-muted">loading…</p>;
+    return <Loading />;
   }
 
   return (

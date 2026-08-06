@@ -22,6 +22,12 @@
   --accent: #8286f5; /* playing state, focus, links */
   --accent-dim: #4c4f96; /* low-emphasis accent */
 
+  /* filled primary buttons: the fill and the label that stays legible on it.
+     Split from --accent because the light theme needs a deeper fill to clear
+     4.5:1 — periwinkle is light enough that near-black sits at 5.9:1 here. */
+  --accent-fill: #8286f5;
+  --on-accent: #12121c;
+
   /* semantic */
   --ok: #73daca; /* teal */
   --warn: #e0af68; /* amber */
@@ -74,6 +80,11 @@
   /* accent — sealing wax */
   --accent: #bf5b3f;
   --accent-dim: #d9a08c;
+
+  /* deeper wax for filled buttons: #bf5b3f under near-white is only 3.3:1,
+     this clears AA at 4.9:1 while reading as the same colour */
+  --accent-fill: #b5512f;
+  --on-accent: #fffdf8;
 
   /* semantic — stamp-pad inks */
   --ok: #4a7c59;

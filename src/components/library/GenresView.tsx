@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { SelectionBar } from "@/components/library/SelectionBar";
 import { TrackRow } from "@/components/library/TrackRow";
+import { Loading } from "@/components/ui/States";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { useMultiSelect } from "@/hooks/useMultiSelect";
 import { useVirtualWindow } from "@/hooks/useVirtualWindow";
@@ -57,7 +58,7 @@ export function GenresView() {
   }, [navigate]);
 
   if (isLoading) {
-    return <p className="p-3 text-muted">loading…</p>;
+    return <Loading />;
   }
   if (!genres || genres.length === 0) {
     return <p className="p-3 text-muted">no genres yet — scan your library first</p>;
@@ -181,7 +182,7 @@ export function GenreDetailView() {
   }, [navigate]);
 
   if (isLoading) {
-    return <p className="p-3 text-muted">loading…</p>;
+    return <Loading />;
   }
 
   return (

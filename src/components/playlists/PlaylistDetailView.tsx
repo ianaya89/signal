@@ -6,16 +6,18 @@ import { SelectionBar } from "@/components/library/SelectionBar";
 import { TrackRow } from "@/components/library/TrackRow";
 import { TrackTableHeader } from "@/components/library/TrackTableHeader";
 import { EditableText } from "@/components/ui/EditableText";
-import { api } from "@/ipc/invoke";
-import type { Track } from "@/ipc/types";
+import { Loading } from "@/components/ui/States";
+import { BTN } from "@/components/ui/controls";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { useMultiSelect } from "@/hooks/useMultiSelect";
 import { useTrackSort } from "@/hooks/useTrackSort";
 import { useVirtualWindow } from "@/hooks/useVirtualWindow";
+import { api } from "@/ipc/invoke";
+import type { Track } from "@/ipc/types";
 import { registerListHandler } from "@/lib/keyboard";
 import { pickSavePath } from "@/lib/pickFolder";
+import { cn, errText } from "@/lib/utils";
 import { toast } from "@/stores/toastStore";
-import { errText } from "@/lib/utils";
 
 export function PlaylistDetailView() {
   const { kind, playlistId } = useParams({
@@ -113,7 +115,7 @@ export function PlaylistDetailView() {
   }, [navigate, smart, id]);
 
   if (isLoading || !data) {
-    return <p className="p-3 text-muted">loading…</p>;
+    return <Loading />;
   }
 
   return (
@@ -151,7 +153,7 @@ export function PlaylistDetailView() {
               toast.ok(`exported ${count} tracks`);
             })().catch((e) => toast.error(errText(e)));
           }}
-          className="ml-auto border border-subtle bg-raised px-2 py-0.5 text-[11px] text-secondary hover:border-focus hover:text-accent"
+          className={cn("ml-auto", BTN)}
         >
           export m3u
         </button>

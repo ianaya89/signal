@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 
 import { TrackRow } from "@/components/library/TrackRow";
+import { Loading } from "@/components/ui/States";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
@@ -82,7 +83,7 @@ export function DiscoverView() {
   }, [queryClient]);
 
   if (isLoading || !data) {
-    return <p className="p-3 text-muted">reading your signal…</p>;
+    return <Loading label="reading your signal…" />;
   }
 
   const empty = flat.length === 0;

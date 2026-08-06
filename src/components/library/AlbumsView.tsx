@@ -6,12 +6,13 @@ import { ScanForm } from "@/components/library/ScanForm";
 import { CoverPlaceholder } from "@/components/ui/CoverPlaceholder";
 import { EditableText } from "@/components/ui/EditableText";
 import { EqBars } from "@/components/ui/HeartEqualizer";
+import { Loading } from "@/components/ui/States";
+import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { AlbumSummary } from "@/ipc/types";
 import { artworkUrl } from "@/lib/artwork";
 import { registerListHandler } from "@/lib/keyboard";
 import { cn } from "@/lib/utils";
-import { useMainTitle } from "@/hooks/useMainTitle";
 import { usePlayerStore } from "@/stores/playerStore";
 import { useScanStore } from "@/stores/scanStore";
 
@@ -119,7 +120,7 @@ export function AlbumsView() {
   }, [navigate]);
 
   if (isLoading) {
-    return <p className="p-3 text-muted">loading…</p>;
+    return <Loading />;
   }
   if (!albums || albums.length === 0) {
     return scanning ? (

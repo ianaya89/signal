@@ -2,12 +2,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 
 import { EditableText } from "@/components/ui/EditableText";
+import { Failed } from "@/components/ui/States";
+import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { fmtDuration, fmtQuality, isHires, isLossy } from "@/lib/format";
 import { registerListHandler, useKeyboardStore } from "@/lib/keyboard";
-import { cn, errText } from "@/lib/utils";
-import { useMainTitle } from "@/hooks/useMainTitle";
+import { cn } from "@/lib/utils";
 import { usePlayerStore } from "@/stores/playerStore";
 
 export function SearchView() {
@@ -113,7 +114,7 @@ export function SearchView() {
       </div>
       <div className="min-h-0 flex-1 overflow-auto">
         {error ? (
-          <p className="p-3 text-[12px] text-error">{errText(error)}</p>
+          <Failed error={error} />
         ) : !results || results.length === 0 ? (
           <p className="p-3 text-[12px] text-muted">
             {debounced.trim() ? "no matches" : "type to search the library"}
