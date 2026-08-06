@@ -499,6 +499,18 @@ impl QueueRepo {
     pub async fn reorder(&self, ordered_ids: &[i64]) -> sqlx::Result<()>;
     pub async fn clear(&self) -> sqlx::Result<()>;
 }
+
+pub struct RemoteSourceRepo { pool: SqlitePool }
+
+impl RemoteSourceRepo {
+    pub async fn list(&self) -> sqlx::Result<Vec<RemoteSource>>;
+    pub async fn get(&self, id: i64) -> sqlx::Result<Option<RemoteSource>>;
+    pub async fn credentials(&self, id: i64) -> sqlx::Result<Option<RemoteCredentials>>;
+    pub async fn create(&self, name: &str, base_url: &str, username: &str, password: &str, allow_insecure_tls: bool) -> sqlx::Result<i64>;
+    pub async fn update(&self, id: i64, patch: &RemoteSourcePatch) -> sqlx::Result<()>;
+    pub async fn delete(&self, id: i64) -> sqlx::Result<()>;
+    pub async fn record_ping(&self, id: i64, ok: bool, auth_mode: &str) -> sqlx::Result<()>;
+}
 ```
 
 `StatsRepo::log_play_event` is the one method that always runs as a transaction internally: it inserts into `play_events` and, in the same `tx`, bumps `tracks.play_count`/`skip_count` and sets `tracks.last_played_at`, so the denormalized counters on `tracks` can never drift from the append-only event log.
@@ -568,7 +580,38 @@ Migration `0005_remote_play_source.sql` rebuilds `play_events` to widen the `sou
 
 Migration `0006_alac_codec_backfill.sql` relabels existing ALAC rows the scanner had stored as `AAC` (rescans skip known paths, so new-scan sniffing alone can't fix them); `bit_depth IS NOT NULL` is the discriminator since lofty only reports bit depth for lossless codecs.
 
-## 9. Migration strategy
+## 9. Remote sources — `remote_sources`
+
+Added in `migrations/0007_remote_sources.sql`; written and read by `RemoteSourceRepo` in `crates/signal-db/src/repositories/remote_sources.rs`.
+
+```sql
+CREATE TABLE remote_sources (
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+    name               TEXT NOT NULL,
+    base_url           TEXT NOT NULL,
+    username           TEXT NOT NULL,
+    password           TEXT NOT NULL,
+    auth_mode          TEXT NOT NULL DEFAULT 'token' CHECK (auth_mode IN ('token', 'legacy_p')),
+    allow_insecure_tls INTEGER NOT NULL DEFAULT 0 CHECK (allow_insecure_tls IN (0, 1)),
+    enabled            INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
+    last_ping_at       TEXT,
+    last_ping_ok       INTEGER CHECK (last_ping_ok IN (0, 1)),
+    created_at         TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    updated_at         TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+CREATE UNIQUE INDEX idx_remote_sources_name ON remote_sources(name);
+```
+
+This table is deliberately standalone: a remote track gets no row in `tracks`, `albums`, or `artists`. `tracks.file_path` is `NOT NULL UNIQUE` (§2) and every consumer of that column relies on it naming a real file on disk, so a track that lives on someone else's server cannot be represented there — `remote_sources` only ever describes the *server*, never its tracks. This is the single most important fact about this table, and everything else about how remote playback is wired follows from it.
+
+The direct consequence is that a remote track also cannot be staged in `queue_items`, whose `track_id` column is `INTEGER NOT NULL REFERENCES tracks(id)` — there is no `tracks.id` to reference. Remote albums instead play through the in-memory play context rather than the persisted queue, which still gives auto-advance, gapless playback, and shuffle/repeat, just no `queue_items` rows.
+
+`password` is stored as plaintext, matching the existing `settings('server.password')` precedent — it doesn't introduce a second, inconsistent secrets story for one table. `auth_mode` records which credential form the server actually accepted (`token` for salted-token auth, `legacy_p` for a plaintext `p=` query parameter), so steady-state requests don't have to re-probe token-then-plaintext on every call; it's written by the connection test, not chosen up front. `last_ping_at`/`last_ping_ok` are connection-test bookkeeping, surfaced in the settings UI as a per-server badge with a relative timestamp. The unique index on `name` exists because sidebar entries are keyed by name — two sources sharing a label would be unusable.
+
+The repository, `RemoteSourceRepo`, exposes three distinct row shapes on purpose. `RemoteSource` omits `password` entirely — this is the shape listing returns over IPC, so the password has no path by which it could leak to the frontend. `RemoteCredentials` includes the password, and is read only when building a client. `RemoteSourcePatch` makes every field `Option`, applied via `COALESCE(?, col)` in a single `update()` statement rather than a read-modify-write, so an edit can't race another edit of the same row.
+
+## 10. Migration strategy
 
 Every schema change is a new, forward-only `.sql` file in `migrations/` at the repo root — no `.down.sql` files. A desktop app with a single embedded database can't meaningfully "roll back" a user's local schema mid-session anyway; a bad migration is fixed by shipping a corrective forward migration, not a revert.
 

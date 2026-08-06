@@ -57,6 +57,34 @@ All commands are `snake_case` and domain-prefixed. They are invoked from the fro
 
 Settings keys (settings table): `server.enabled`, `server.port` (default 4040), `server.password`. The server itself is `signal-server` — Subsonic 1.16.1 REST + OpenSubsonic envelope on `/rest/*`, LAN only, GET only, no transcoding.
 
+### Remote sources (OpenSubsonic client)
+
+Where `Mobile server` above serves Signal's own library out to other apps, this is the mirror: Signal acting as an OpenSubsonic *client* of other servers it can browse and stream from. Same protocol, opposite direction — worth having both ends documented side by side.
+
+| Command | Args | Returns |
+|---|---|---|
+| `remote_source_list` | `{}` | `Result<Vec<RemoteSource>, IpcError>` — password deliberately omitted from the row |
+| `remote_source_add` | `{ name, baseUrl, username, password, allowInsecureTls }` | `Result<RemoteSource, IpcError>` — validates the URL before inserting, so a row that can never connect is never stored |
+| `remote_source_update` | `{ id, patch: RemoteSourcePatch }` | `Result<RemoteSource, IpcError>` — every patch field optional; omitted fields keep their stored value, which is how the settings UI edits a source without re-sending the password |
+| `remote_source_remove` | `{ id }` | `Result<(), IpcError>` |
+| `remote_source_test_connection` | `{ id }` | `Result<ConnectionStatus, IpcError>` — pings, falls back to plaintext auth if the server rejects tokens, and persists only a mode that actually worked |
+| `remote_browse_artists` | `{ sourceId }` | `Result<ArtistsIndex, IpcError>` |
+| `remote_browse_artist` | `{ sourceId, artistId: String }` | `Result<ArtistWithAlbums, IpcError>` |
+| `remote_browse_album` | `{ sourceId, albumId: String }` | `Result<AlbumWithSongs, IpcError>` |
+| `remote_search` | `{ sourceId, query }` | `Result<SearchResult3, IpcError>` |
+| `remote_play` | `{ sourceId, song: Child }` | `Result<(), IpcError>` — one song, nothing to follow |
+| `remote_play_context` | `{ sourceId, songs: Vec<Child>, startIndex }` | `Result<(), IpcError>` — plays `songs[startIndex]` with the rest as follow-on order |
+| `remote_stream_url` | `{ sourceId, remoteId: String }` | `Result<String, IpcError>` |
+| `remote_cover_art_url` | `{ sourceId, remoteId: String, size?: u32 }` | `Result<String, IpcError>` |
+
+**Remote ids are opaque strings**, assigned by the remote server — Signal's own server emits `tr-7`/`al-3`, Navidrome uses something else. Neither side may assume the other's scheme, which is why these commands take `String` ids where every local command takes `i64`.
+
+**The play commands take whole `Child` song objects rather than ids.** There is no `tracks` row to recover a remote song's title, artist, or duration from later, so the caller passes back the metadata it already fetched.
+
+**`remote_cover_art_url` and `remote_stream_url` make no network call.** They build a signed URL (the auth token is embedded in the query string), which is why cover art has to be resolved through IPC rather than derived in the frontend the way local `artworkUrl` is.
+
+**Negative track ids.** Remote songs are registered under ids drawn from a negative range, since they have no `tracks` row. The rest of the player — play context, history, next-candidate resolution — speaks plain `i64` and never asks what an id means, so remote songs ride that machinery unchanged. Only three places branch on it: `player::start_track`, `autoplay::restage`, and `library_get_track`, which returns a synthetic `TrackWithContext` assembled from the registry so the whole now-playing surface (transport bar, mini player, chain view, inspector) works on remote tracks with no frontend change. Real ids come from SQLite `AUTOINCREMENT` starting at 1, so the two ranges can't collide.
+
 ### Search
 
 | Command | Args | Returns |

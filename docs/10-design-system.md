@@ -1,79 +1,141 @@
 # Design System
 
-Signal has one visual theme, tuned for one purpose: a dense, dark, monospace, terminal-adjacent interface that reads more like LazyGit or Ghostty than a consumer media player. This document defines the color tokens, typography, spacing, component specs, motion budget, and voice rules that every screen is built from, plus a full ASCII mockup of the three-pane layout so the whole system can be seen in one place. Everything here targets React/TS/Tailwind/shadcn — tokens are plain CSS custom properties consumed through Tailwind's arbitrary-value syntax so there is exactly one source of truth per value.
+Signal has two themes — dark and light — tuned for one purpose: a dense, monospace, terminal-adjacent interface that reads more like LazyGit or Ghostty than a consumer media player. This document defines the color tokens, typography, spacing, component specs, motion budget, and voice rules that every screen is built from, plus a full ASCII mockup of the three-pane layout so the whole system can be seen in one place. Everything here targets React/TS/Tailwind 4/shadcn — tokens are plain CSS custom properties, bridged into Tailwind's utility classes through a single `@theme inline` block, so there is exactly one source of truth per value.
 
 ## Design principles distilled
 
 - **Density over whitespace.** Screen space is spent on information, not on breathing room. Row heights, paddings, and gaps are the minimum that keeps text legible and click/tap targets usable — not the minimum that looks "airy."
 - **Information over decoration.** Every pixel either conveys a fact (codec, sample rate, rating, queue position) or supports scanning that fact (a border, a hint, an alignment). Nothing is drawn purely to look nice.
-- **Instant over animated.** State changes appear immediately. Animation is reserved for the handful of cases in the Motion section where it prevents disorientation (focus moving, an overlay appearing) — never for delight on its own.
-- **One theme done perfectly.** There is no light mode and no theme picker. All design effort goes into a single, carefully tuned dark palette instead of being spread thin across a matrix of variants that would each be worse for it.
+- **Instant over animated.** State changes appear immediately. Animation is reserved for the handful of cases in the Motion section where it prevents disorientation or communicates a live process — never for delight on its own.
+- **Two themes, one grammar.** Dark is the primary theme, but light is a full peer, not a filter over dark: its own hand-tuned "manila paper" palette sharing the same token names, the same weights, the same density. Every component in this document is expected to hold up unchanged in both.
 
 ## Color palette
 
-GitHub-Dark-adjacent: muted, low-saturation surfaces with a single restrained cyan accent. All tokens are defined once in `:root` and consumed everywhere via `var(--token)` — no component hardcodes a hex value.
+Two palettes, switched by stamping `data-theme` on the root element. Dark (`:root`) is a near-black indigo — deep blue-violet surfaces with a periwinkle accent. Light (`:root[data-theme="light"]`) is a warm "manila paper" theme — ink text on paper surfaces with a sealing-wax accent. All tokens are defined once for dark in `:root` and re-declared for light in `:root[data-theme="light"]`, consumed everywhere via `var(--token)` — no component hardcodes a hex value, and no component branches on which theme is active.
 
 ```css
 :root {
-  /* ---- surfaces ---- */
-  --bg-base: #0d1117;      /* app chrome background: window frame, gaps between panes */
-  --bg-surface: #161b22;   /* pane bodies: default background for table rows, list items, panels */
-  --bg-raised: #1c2128;    /* elevated content above bg-surface: selected rows, palette overlay, kbd chips, popovers */
+  /* ---- surfaces: near-black indigo ---- */
+  --bg-base: #12121c;      /* window chrome background: window frame, gaps between panes */
+  --bg-surface: #181826;   /* pane bodies: default background for table rows, list items, panels */
+  --bg-raised: #232338;    /* elevated content above bg-surface: selected rows, popovers, kbd chips */
 
   /* ---- borders ---- */
-  --border-subtle: #30363d; /* every structural 1px border: pane frames (unfocused), row dividers, input outlines at rest */
-  --border-focus: #3fb9c9;  /* focused pane frame, focused input outline — equal to --accent by design, focus IS the accent's job */
+  --border-subtle: #2e2e4a; /* every structural 1px border: pane frames (unfocused), row dividers, input outlines at rest */
+  --border-focus: #8286f5;  /* focused pane frame, focused input outline — equal to --accent by design, focus IS the accent's job */
 
   /* ---- text ---- */
-  --text-primary: #e6edf3;  /* primary content: track titles, headings, values the user came to read */
-  --text-secondary: #9198a1; /* secondary content: artist/album lines, field labels, palette descriptions */
-  --text-muted: #6e7681;    /* tertiary: timestamps, placeholder text, disabled state, axis labels, log level TRACE/DEBUG */
+  --text-primary: #d8daf0;   /* primary content: track titles, headings, values the user came to read */
+  --text-secondary: #a5a8cc; /* secondary content: artist/album lines, field labels */
+  --text-muted: #63678f;     /* tertiary: timestamps, placeholders, hints */
 
-  /* ---- accent ---- */
-  --accent: #3fb9c9;      /* the one accent: active/playing state, focus rings, links, primary chart series */
-  --accent-dim: #1f6b73;  /* low-emphasis accent: inactive glyph tint, subtle hover backgrounds mixed at low alpha */
+  /* ---- accent: periwinkle blue-violet ---- */
+  --accent: #8286f5;      /* the one accent: playing state, focus, links, primary chart series */
+  --accent-dim: #4c4f96;  /* low-emphasis accent: inactive glyph tint, subtle hover backgrounds */
 
   /* ---- semantic ---- */
-  --ok: #3fb950;    /* success toasts, connected/healthy states */
-  --warn: #d29922;  /* warning toasts, degraded states (e.g. device fallback) */
-  --error: #f85149; /* error toasts, failed states, ERROR log lines */
-  --info: #58a6ff;  /* informational toasts, INFO log lines, neutral notices */
+  --ok: #73daca;    /* teal — success toasts, connected/healthy states */
+  --warn: #e0af68;  /* amber — warning toasts, degraded states */
+  --error: #f7768e; /* rose — error toasts, failed states, ERROR log lines */
+  --info: #7aa2f7;  /* blue — informational toasts, INFO log lines */
 
   /* ---- audio-specific ---- */
-  --bitperfect: #3fb950; /* bit-perfect output indicator (green — "this is correct") */
-  --lossy: #d29922;      /* lossy codec badge (amber — "this is a compromise, not wrong") */
-  --hires: #39c5cf;      /* hi-res badge (24-bit and/or >48kHz) — intentionally near --accent; hi-res audio and Signal's own brand cyan share the same "premium" cyan family */
+  --bitperfect: #73daca; /* teal — "this is correct" */
+  --lossy: #e0af68;      /* amber — "this is a compromise, not wrong" */
+  --hires: #bb9af7;      /* violet — hi-res badge (24-bit and/or >48kHz), the premium tier */
 }
 ```
 
-Because Signal is dark-only, there is no `prefers-color-scheme: light` branch and no `data-theme="light"` override anywhere in the app — every component is written and tested against exactly this palette.
+```css
+:root[data-theme="light"] {
+  /* ---- surfaces: manila paper ---- */
+  --bg-base: #e8dec7;
+  --bg-surface: #f2ead8;
+  --bg-raised: #e0d3b4;
+
+  /* ---- borders ---- */
+  --border-subtle: #c9b995;
+  --border-focus: #bf5b3f;
+
+  /* ---- text: warm ink ---- */
+  --text-primary: #3d3427;
+  --text-secondary: #5f5340;
+  --text-muted: #8f8163;
+
+  /* ---- accent: sealing wax ---- */
+  --accent: #bf5b3f;
+  --accent-dim: #d9a08c;
+
+  /* ---- semantic: stamp-pad inks ---- */
+  --ok: #4a7c59;
+  --warn: #a97b23;
+  --error: #b3402e;
+  --info: #5a6fae;
+
+  /* ---- audio-specific ---- */
+  --bitperfect: #4a7c59;
+  --lossy: #a97b23;
+  --hires: #7c5eb0;
+}
+```
+
+Every component in the rest of this document is written and reviewed against both palettes; nothing in Signal assumes dark is the only option, even where it's the default.
 
 ### Tailwind mapping
 
-The CSS custom properties above are the source of truth; `tailwind.config.ts` maps each one to a semantic color name so components write `bg-surface`/`text-muted`/`border-focus` instead of arbitrary-value `var(...)` calls everywhere:
+The CSS custom properties above are the source of truth. There is no `tailwind.config.ts` — this is Tailwind 4, and the bridge is an `@theme inline` block inside `src/styles.css` itself, which is what makes `bg-surface`, `text-muted`, and `border-focus` exist as utility classes at all:
 
-```ts
-// tailwind.config.ts (excerpt)
-colors: {
-  base: "var(--bg-base)",
-  surface: "var(--bg-surface)",
-  raised: "var(--bg-raised)",
-  border: {
-    subtle: "var(--border-subtle)",
-    focus: "var(--border-focus)",
-  },
-  fg: {
-    primary: "var(--text-primary)",
-    secondary: "var(--text-secondary)",
-    muted: "var(--text-muted)",
-  },
-  accent: { DEFAULT: "var(--accent)", dim: "var(--accent-dim)" },
-  ok: "var(--ok)", warn: "var(--warn)", error: "var(--error)", info: "var(--info)",
-  bitperfect: "var(--bitperfect)", lossy: "var(--lossy)", hires: "var(--hires)",
+```css
+@theme inline {
+  --color-base: var(--bg-base);
+  --color-surface: var(--bg-surface);
+  --color-raised: var(--bg-raised);
+  --color-subtle: var(--border-subtle);
+  --color-focus: var(--border-focus);
+  --color-primary: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-dim: var(--accent-dim);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-error: var(--error);
+  --color-info: var(--info);
+  --color-bitperfect: var(--bitperfect);
+  --color-lossy: var(--lossy);
+  --color-hires: var(--hires);
+  --font-mono: var(--font-mono);
+  --radius-pane: var(--radius);
+  --radius-row: var(--radius-sm);
 }
 ```
 
-Component sketches in this document use the raw `var(--token)` arbitrary-value form for clarity and copy-paste independence from the Tailwind config, but the actual codebase should prefer the mapped names (`bg-surface` over `bg-[var(--bg-surface)]`) once this config exists — one token still backs both.
+Component sketches in this document use the mapped Tailwind names (`bg-surface`, `border-focus`) rather than raw `bg-[var(--bg-surface)]` arbitrary values, since the mapping exists precisely so components don't have to spell out `var(...)` everywhere.
+
+Two gotchas worth knowing before touching this file:
+
+- **Tailwind extracts class names by scanning source text, so it cannot see through a template literal.** Building a class string from interpolated fragments — `` `bg-[color:${ACCENT}]` `` — compiles to no CSS at all, silently, and the build still succeeds. Shared class constants (see Control vocabulary, below) are written out in full, every time, for exactly this reason.
+- **A space inside an arbitrary value ends the class.** A `var()` fallback must be written `var(--section,var(--accent))` with no space after the comma — `var(--section, var(--accent))` reads as two tokens to the scanner and silently breaks.
+
+### Channel hues
+
+Settings and the system pane are both split into channels — library, playback, appearance, scrobbling, server, remote, about, stats, doctor, logs — and each owns a hue, so color carries wayfinding rather than decoration: you learn "amber is the server pane" the same way you'd learn a rack strip's channel colors. Ten tokens, one per channel, restated for each theme:
+
+```css
+/* dark */
+--sec-library: #7aa2f7;    --sec-playback: #73daca;   --sec-appearance: #bb9af7;
+--sec-scrobbling: #8286f5; --sec-server: #e0af68;     --sec-remote: #9ece6a;
+--sec-about: #7f83ad;      --sec-stats: #bb9af7;      --sec-doctor: #e0af68;
+--sec-logs: #7f83ad;
+
+/* light — the same hues restated in ink rather than neon */
+--sec-library: #5a6fae;    --sec-playback: #2f7d6a;   --sec-appearance: #7c5eb0;
+--sec-scrobbling: #bf5b3f; --sec-server: #a97b23;     --sec-remote: #4a7c59;
+--sec-about: #8f8163;      --sec-stats: #7c5eb0;      --sec-doctor: #a97b23;
+--sec-logs: #8f8163;
+```
+
+The active channel publishes its hue as `--section` on the pane root (see `TabbedPane`, below), so anything rendered inside — focus rings, section ticks, hover states — picks it up without being told which pane it's in. The sidebar tints its active row with the hue of the pane that row opens, and the discover shelves each take one too.
 
 ## Typography
 
@@ -112,11 +174,69 @@ Type scale (six sizes, no more):
 | `--space-8` | 32px |
 
 - **Track table row height:** 28px default (`h-7` in Tailwind's 4px scale), 24px in compact density mode (`h-6`) — a user-facing density toggle, not two different designs.
-- **Border radius:** 4px is the hard maximum, used only for the command palette overlay and toasts. Everything else — buttons, inputs, badges, kbd chips, pane containers — uses 2px, or no radius at all for full-bleed pane frames.
+- **Border radius is zero.** Both `--radius` and `--radius-sm` are `0px` — square corners everywhere, described in the stylesheet itself as "TUI, not toy." There is no 2px/4px radius scale to reach for; a `rounded-*` utility applied to a Signal component doesn't earn its keep, since the tokens it would round through (`--radius-pane`, `--radius-row`) resolve to nothing.
 - **Borders are 1px only**, everywhere, always `--border-subtle` at rest. Nothing in Signal uses a 2px+ structural border; where extra emphasis is needed (the playing-track left bar, described below) that's a distinct decorative element, not a thicker border.
 - **No shadows**, with one exception: the command palette overlay gets a shadow to visually lift it off the dimmed backdrop, since it's the one surface that floats above the rest of the UI rather than sitting flush in the pane grid.
 
 ## Component specs
+
+### Control vocabulary (`src/components/ui/controls.ts`)
+
+Three button weights and two input sizes, defined once because these class strings had been hand-copied — byte-identical in some places, drifted by a padding step in others — across settings, doctor, playlists and remote:
+
+```ts
+// src/components/ui/controls.ts (excerpt)
+
+// The default weight. Most buttons are this — if everything is emphasised,
+// nothing is. Secondary text on bg-raised; hover resolves to --section where
+// the control sits inside a channel pane, and the global accent otherwise.
+export const BTN =
+  "shrink-0 border border-subtle bg-raised px-2 py-0.5 text-[11px] text-secondary " +
+  "transition-colors hover:border-[color:var(--section,var(--border-focus))] " +
+  "hover:text-[color:var(--section,var(--accent))]";
+
+// The one action a view exists for: submit the form, start the server, play
+// the album. Filled rather than outlined — in a flat, square-cornered UI,
+// weight is the only hierarchy available, since there are no shadows or radii
+// to lean on. At most one per context.
+export const BTN_PRIMARY =
+  "shrink-0 border border-[color:var(--accent-fill)] bg-[color:var(--accent-fill)] " +
+  "px-2 py-0.5 text-[11px] font-semibold text-[color:var(--on-accent)] " +
+  "transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40";
+
+// Destructive actions carry the error color at rest, not only on hover.
+export const BTN_DANGER =
+  "shrink-0 border border-subtle bg-raised px-2 py-0.5 text-[11px] text-error/80 " +
+  "transition-colors hover:border-error hover:text-error";
+
+export const INPUT =
+  "border border-subtle bg-base/60 px-2 py-0.5 text-[11px] text-primary outline-none " +
+  "focus:border-[color:var(--section,var(--border-focus))]";
+
+export const INPUT_LG = /* same as INPUT, at the larger step used by dialogs/editors */
+  "border border-subtle bg-base/60 px-2 py-1 text-[12px] text-primary outline-none " +
+  "focus:border-[color:var(--section,var(--border-focus))]";
+```
+
+`BTN`, `BTN_DANGER`, `INPUT`, and `INPUT_LG` all resolve their emphasis color to `--section` first, so a control looks native to whichever channel pane it lands in without being told which one that is.
+
+`BTN_PRIMARY` deliberately breaks that pattern and does **not** pick up `--section`. Two reasons that agree: a primary tinted like its pane would blend into the pane instead of standing out from it, and half the channel hues can't carry a label at 4.5:1 on the manila theme (amber measures 3.7:1). Its fill and label are their own tokens instead, `--accent-fill` and `--on-accent`:
+
+```css
+/* dark */
+--accent-fill: #8286f5;
+--on-accent: #12121c;   /* → 5.9:1 */
+
+/* light */
+--accent-fill: #b5512f; /* a deeper wax than --accent, on purpose */
+--on-accent: #fffdf8;   /* → 4.9:1 */
+```
+
+The light fill has to be deeper than `--accent`: `--accent: #bf5b3f` under a near-white label measures only 3.3:1, under AA.
+
+### Known accessibility gap
+
+Worth recording honestly rather than glossing over: secondary button hover text (`BTN`'s hover state) on the manila theme measures about 2.6:1 against `--bg-raised` — it was around 3.0:1 before the channel hues shifted the hover color, and both figures are under AA. The dark theme's equivalent hover improves to 7.7:1 from 4.9:1 over the same change. This is a light-palette weakness, not a regression introduced by any one change, and it is currently unfixed.
 
 ### Track table row
 
@@ -130,11 +250,11 @@ Anatomy: index/artwork thumbnail, title, artist, album, duration, codec badge, r
 | Playing | 2px `--accent` left bar + `--accent` title text color, on top of whatever selected/hover state also applies |
 
 ```html
-<tr class="h-7 border-b border-[var(--border-subtle)]
-           hover:bg-[var(--bg-raised)]/60
-           data-[selected=true]:bg-[var(--bg-raised)]
-           data-[playing=true]:border-l-2 data-[playing=true]:border-l-[var(--accent)]
-           data-[playing=true]:[&_td.title]:text-[var(--accent)]">
+<tr class="h-7 border-b border-subtle
+           hover:bg-raised/60
+           data-[selected=true]:bg-raised
+           data-[playing=true]:border-l-2 data-[playing=true]:border-l-accent
+           data-[playing=true]:[&_td.title]:text-accent">
 ```
 
 ### Pane container with title bar
@@ -142,14 +262,14 @@ Anatomy: index/artwork thumbnail, title, artist, album, duration, codec badge, r
 Anatomy: a 24px title bar (pane name, optional count, contextual hint) over a scrollable body. Focused pane gets a full 1px `--border-focus` frame, the same visual language LazyGit uses to show which panel has keyboard focus.
 
 ```html
-<div class="flex flex-col border border-[var(--border-subtle)]
-            data-[focused=true]:border-[var(--border-focus)]
+<div class="flex flex-col border border-subtle
+            data-[focused=true]:border-focus
             transition-[border-color] duration-[120ms]">
   <div class="h-6 px-2 flex items-center justify-between
-              text-xs text-[var(--text-secondary)]
-              border-b border-[var(--border-subtle)]">
+              text-xs text-secondary
+              border-b border-subtle">
     <span>library</span>
-    <span class="text-[var(--text-muted)]">1</span>
+    <span class="text-muted">1</span>
   </div>
   <div class="flex-1 overflow-y-auto">…</div>
 </div>
@@ -161,12 +281,12 @@ Bracketed, terminal-style chips — `[FLAC]` `[24/96]` — colored by what they 
 
 ```html
 <span class="inline-flex items-center h-4 px-1 text-[11px] leading-none
-             font-mono border border-[var(--border-subtle)] rounded-sm
-             bg-[var(--bg-surface)] text-[var(--hires)]">24/96</span>
+             font-mono border border-subtle
+             bg-surface text-hires">24/96</span>
 
 <span class="inline-flex items-center h-4 px-1 text-[11px] leading-none
-             font-mono border border-[var(--border-subtle)] rounded-sm
-             bg-[var(--bg-surface)] text-[var(--lossy)]">MP3</span>
+             font-mono border border-subtle
+             bg-surface text-lossy">MP3</span>
 ```
 
 Color rule: `--hires` when the track is 24-bit and/or above 48kHz, `--bitperfect` when the current output path is confirmed bit-perfect for that track, `--lossy` for any lossy codec (MP3/AAC/Ogg), `--text-secondary` (no special color) for standard lossless (16-bit/44.1–48kHz FLAC/ALAC) — the neutral case doesn't need a warning or a celebration color.
@@ -176,8 +296,8 @@ Color rule: `--hires` when the track is 24-bit and/or above 48kHz, `--bitperfect
 ```html
 <kbd class="inline-flex items-center justify-center h-4 min-w-4 px-1
             text-[10px] leading-none font-mono
-            text-[var(--text-secondary)] bg-[var(--bg-raised)]
-            border border-[var(--border-subtle)] rounded-sm">j</kbd>
+            text-secondary bg-raised
+            border border-subtle">j</kbd>
 ```
 
 Multi-key hints (`gg`, `r 1-5`) render as two adjacent `kbd` elements with a 2px gap, never as one chip with a literal space inside it — this keeps each physical keypress visually distinct.
@@ -188,8 +308,8 @@ Bottom bar, three zones: mode/hints on the left, transport in the center, device
 
 ```html
 <div class="h-6 flex items-center gap-3 px-2
-            text-xs text-[var(--text-secondary)]
-            bg-[var(--bg-surface)] border-t border-[var(--border-subtle)]">
+            text-xs text-secondary
+            bg-surface border-t border-subtle">
 ```
 
 ### Command palette overlay
@@ -198,18 +318,17 @@ Centered, fixed 560px width, capped-height result list.
 
 ```html
 <div class="fixed inset-0 bg-black/60 flex items-start justify-center pt-24">
-  <div class="w-[560px] bg-[var(--bg-raised)] border border-[var(--border-subtle)]
-              rounded shadow-lg">
+  <div class="w-[560px] bg-raised border border-subtle shadow-lg">
     <input class="w-full h-9 px-3 bg-transparent text-sm
-                  text-[var(--text-primary)] border-b border-[var(--border-subtle)]
-                  outline-none placeholder:text-[var(--text-muted)]"
+                  text-primary border-b border-subtle
+                  outline-none placeholder:text-muted"
            placeholder="type a command…" />
     <ul class="max-h-80 overflow-y-auto py-1">
       <li class="flex items-center justify-between px-3 h-7 text-sm
-                 text-[var(--text-primary)]
-                 data-[active=true]:bg-[var(--bg-surface)]">
+                 text-primary
+                 data-[active=true]:bg-surface">
         <span>queue: clear</span>
-        <kbd class="text-[var(--text-muted)]">c</kbd>
+        <kbd class="text-muted">c</kbd>
       </li>
     </ul>
   </div>
@@ -220,9 +339,9 @@ Centered, fixed 560px width, capped-height result list.
 
 ```html
 <div class="flex items-center gap-2 h-8 px-3
-            bg-[var(--bg-raised)] border border-[var(--border-subtle)]
-            border-l-2 border-l-[var(--error)] rounded
-            text-xs text-[var(--text-primary)]">
+            bg-raised border border-subtle
+            border-l-2 border-l-error
+            text-xs text-primary">
   playback failed: unsupported codec — see logs (L)
 </div>
 ```
@@ -231,13 +350,13 @@ The left border color is the only thing that changes per level: `--error`, `--wa
 
 ### Progress/seek bar
 
-2px line at rest, no thumb until hover.
+2px line at rest, no thumb until hover. The thumb is a square block, not a circle — corners are square everywhere in Signal, including on hover affordances.
 
 ```html
-<div class="relative h-[2px] bg-[var(--border-subtle)] group cursor-pointer">
-  <div class="absolute inset-y-0 left-0 bg-[var(--accent)]" style="width: 32%"></div>
-  <div class="absolute top-1/2 -translate-y-1/2 h-2 w-2 rounded-full
-              bg-[var(--accent)] opacity-0 group-hover:opacity-100"
+<div class="relative h-[2px] bg-subtle group cursor-pointer">
+  <div class="absolute inset-y-0 left-0 bg-accent" style="width: 32%"></div>
+  <div class="absolute top-1/2 -translate-y-1/2 h-2 w-2
+              bg-accent opacity-0 group-hover:opacity-100"
        style="left: 32%"></div>
 </div>
 ```
@@ -247,9 +366,9 @@ The left border color is the only thing that changes per level: `--error`, `--wa
 A short (48px) version of the same seek-bar visual language, plus a tabular-nums percentage — never a slider widget with a visible track/thumb at rest, to match the seek bar's restraint:
 
 ```html
-<div class="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
-  <div class="relative w-12 h-[2px] bg-[var(--border-subtle)]">
-    <div class="absolute inset-y-0 left-0 bg-[var(--accent)]" style="width: 72%"></div>
+<div class="flex items-center gap-2 text-xs text-secondary">
+  <div class="relative w-12 h-[2px] bg-subtle">
+    <div class="absolute inset-y-0 left-0 bg-accent" style="width: 72%"></div>
   </div>
   <span class="tabular-nums">72%</span>
 </div>
@@ -259,39 +378,48 @@ A short (48px) version of the same seek-bar visual language, plus a tabular-nums
 
 ```html
 <div class="font-mono text-xs leading-relaxed flex gap-2">
-  <span class="text-[var(--text-muted)] tabular-nums">12:03:41</span>
-  <span class="text-[var(--error)]">ERROR</span>
-  <span class="text-[var(--text-secondary)]">signal_scanner</span>
-  <span class="text-[var(--text-primary)]">failed to probe file: unsupported container</span>
+  <span class="text-muted tabular-nums">12:03:41</span>
+  <span class="text-error">ERROR</span>
+  <span class="text-secondary">signal_scanner</span>
+  <span class="text-primary">failed to probe file: unsupported container</span>
 </div>
 ```
 
 Level-to-color mapping: `TRACE`/`DEBUG` → `--text-muted`, `INFO` → `--info`, `WARN` → `--warn`, `ERROR` → `--error`. Only the level token itself is colored; the message stays `--text-primary` so colored noise doesn't fight legibility on a busy log stream.
 
+### Two utility classes
+
+- **`.led`** — `text-shadow: 0 0 6px currentColor`. Status indicators read as rack LEDs, glowing in whatever status color they inherit rather than just sitting flat. Paired with `.led-live`, a 2.6s `led-breathe` opacity pulse (1 → 0.55 → 1) for a live connection, behind a `prefers-reduced-motion` guard.
+- **`.rule-fade`** — a 1px rule that fades out to the right: `linear-gradient(to right, var(--section, var(--border-subtle)), transparent)` at 50% opacity. A divider that stops shouting partway across the pane instead of running the full width at full strength.
+
+### Two shared components
+
+- **`TabbedPane`** (`src/components/ui/TabbedPane.tsx`) — a pane split into channels, styled like a rack strip. The active tab wears its hue as a 2px top cap; inactive tabs keep theirs at 25% opacity rather than losing it entirely, so the strip reads as a set of channels rather than one accent among greys. It publishes `--section` on the pane root and owns no selection state — the caller decides what's active (settings persists it, the system pane derives it from the route). Used by both the settings window and the system pane.
+- **`GroupHeader`** (`src/components/ui/GroupHeader.tsx`) — a section label inside a browse list: a tick, a label, and a count, in the same 10px uppercase used for section headings elsewhere. Sticky, so a long scroll always shows where you are, and opaque rather than blurred — this is a terminal, not a frosted panel.
+
+### Empty states (`src/components/ui/States.tsx`)
+
+`Loading`, `Empty`, and `Failed` — the three things every list view says when it has nothing to show, all rendering at `p-3 text-[12px]`. These had been hand-written in roughly three dozen places and had drifted across five different size/color combinations, so "loading" looked like a different kind of message depending on which pane you were in. `Failed` always routes its error through `errText` rather than interpolating it directly, since a raw IPC error renders as `[object Object]` otherwise.
+
 ## Motion
 
-Signal's default animation duration is **0ms**. Two exceptions exist, and nothing else:
+Signal is not a 0ms-by-default, two-exceptions app: `src/styles.css` defines seven keyframe animations, most tied to a specific, purposeful bit of feedback rather than to hover/focus micro-interactions:
 
-| Transition | Duration | Easing |
+| Animation | What it drives | Notes |
 |---|---|---|
-| Command palette open (opacity) | 80ms | ease-out |
-| Pane focus border-color change | 120ms | ease-out |
+| `eq-pulse` | Equalizer bars (mini player) oscillating while a track plays | Per-bar duration is staggered inline (`0.55s + i·0.14s`), not fixed in CSS |
+| `eq-pulse-soft` | The heart mark's gentler breathing variant | Smaller amplitude (scaleY 1 → 0.8) so the heart silhouette still reads mid-animation; duration also staggered per instance |
+| `marquee-x` | Overflowing one-line labels in the mini player | 9s, ease-in-out, infinite alternate |
+| `panel-settle` | Stats panels settling in on mount (`opacity`/`translateY`) | 260ms ease-out, staggered by `calc(var(--i, 0) * 45ms)` |
+| `meter-sweep-x` | Horizontal meters sweeping from zero once on mount | 520ms, `cubic-bezier(0.2, 0.9, 0.2, 1)`, staggered by `var(--i) * 22ms` |
+| `meter-sweep-y` | Vertical meters sweeping from zero once on mount | Same easing/duration as `meter-sweep-x`, staggered by `var(--i) * 18ms` |
+| `led-breathe` | `.led-live` — a live connection's LED pulsing | 2.6s ease-in-out infinite, opacity 1 → 0.55 → 1 |
 
-`ease-out` is the single easing curve used anywhere in the app — nothing gets a spring, a bounce, or a custom cubic-bezier. `prefers-reduced-motion: reduce` disables both of these listed transitions entirely (the palette appears instantly, the focus border changes color instantly) rather than just shortening them — reduced motion means no motion, not less motion.
+`ease-out` (or the shared `cubic-bezier(0.2, 0.9, 0.2, 1)` used by the meter sweeps) covers everything — nothing gets a spring or a bounce. There are four separate `prefers-reduced-motion: reduce` blocks in the stylesheet, one per animation family (`.eq-bar`/`.eq-bar-soft`, `.marquee > span`, `.panel-settle`/`.meter-x`/`.meter-y`, `.led-live`), and each sets `animation: none` rather than shortening the duration — reduced motion means no motion, not less motion, the same principle the original single-transition version of this section stated, just implemented across a much larger surface than "two exceptions."
 
 ## Iconography
 
-Minimal by default: text glyphs are preferred over icon components wherever a glyph is unambiguous — `▶` `⏸` `⏭` `⏮` `♥` `⚡` (bit-perfect) cover most transport and status needs and render for free in the monospace font with zero extra asset weight. Lucide icons are used only where no glyph reads clearly at a glance:
-
-| Case | Icon | Why not a glyph |
-|---|---|---|
-| Settings | `lucide:settings` | No universally-read gear glyph exists in standard fonts |
-| Folder / reveal-in-file-manager | `lucide:folder-open` | Emoji folder glyphs render inconsistently across platforms |
-| Drag handle (queue reorder, fallback for non-keyboard use) | `lucide:grip-vertical` | No monospace glyph reads as "draggable" |
-| Playlist | `lucide:list-music` | Distinguishes from the plain queue/list glyph used elsewhere |
-| Device/output picker | `lucide:speaker` | Needed to distinguish output device from volume level at a glance |
-
-All are rendered at 14px, stroke-only (never filled), colored via `currentColor` so they inherit whichever text token they're placed against rather than carrying their own color.
+Glyph-only. Lucide is not a dependency of this app — every icon need is met with a text glyph rendered for free in the monospace font: `▶` `⏸` `⏭` `⏮` `♥` `⚡` (bit-perfect) and similar cover transport and status needs, colored via `currentColor` so they inherit whichever text token they're placed against rather than carrying their own color. Where a case doesn't have an obvious glyph (settings, folder, drag handle, playlist, device), Signal still reaches for a glyph rather than pulling in an icon library — there is no icon-component escape hatch in the current implementation.
 
 ## Data-viz style (uPlot)
 
