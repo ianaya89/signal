@@ -1,9 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 
 import { ScanForm } from "@/components/library/ScanForm";
 import { CoverPlaceholder } from "@/components/ui/CoverPlaceholder";
+import { GroupHeader } from "@/components/ui/GroupHeader";
 import { EditableText } from "@/components/ui/EditableText";
 import { EqBars } from "@/components/ui/HeartEqualizer";
 import { Loading } from "@/components/ui/States";
@@ -11,6 +12,13 @@ import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { AlbumSummary } from "@/ipc/types";
 import { artworkUrl } from "@/lib/artwork";
+import {
+  decadeOf,
+  groupRuns,
+  headerAt,
+  initialOf,
+  worthGrouping,
+} from "@/lib/grouping";
 import { registerListHandler } from "@/lib/keyboard";
 import { cn } from "@/lib/utils";
 import { usePlayerStore } from "@/stores/playerStore";
@@ -31,6 +39,26 @@ function gridColumns(el: HTMLElement | null): number {
   if (!el) return 1;
   const template = getComputedStyle(el).gridTemplateColumns;
   return Math.max(template.split(" ").filter(Boolean).length, 1);
+}
+
+/** The label each sort groups by — null where a sort has no natural sections
+ *  (recent is a continuum, and dated headers would be one row each).
+ *
+ *  The artist sort groups by initial rather than by artist name: on a real
+ *  library most artists have a single album, so naming each one produced 26
+ *  headers for 59 covers — a header per card, and redundant besides, since
+ *  every card already prints its artist underneath. */
+function grouperFor(sort: AlbumSort): ((a: AlbumSummary) => string) | null {
+  switch (sort) {
+    case "artist":
+      return (a) => initialOf(a.artistName || "unknown artist");
+    case "name":
+      return (a) => initialOf(a.name);
+    case "year":
+      return (a) => decadeOf(a.year);
+    default:
+      return null;
+  }
 }
 
 function sortAlbums(albums: AlbumSummary[], sort: AlbumSort): AlbumSummary[] {
@@ -76,6 +104,7 @@ export function AlbumsView() {
     status !== "stopped" ? nowPlaying?.track.albumId : undefined;
 
   const sorted = sortAlbums(albums ?? [], sort);
+  const groups = worthGrouping(groupRuns(sorted, grouperFor(sort)), sorted);
   const sortedRef = useRef<AlbumSummary[]>(sorted);
   sortedRef.current = sorted;
   const cursorRef = useRef(cursor);
@@ -89,7 +118,9 @@ export function AlbumsView() {
           Math.max(c + delta * size, 0),
           Math.max(sortedRef.current.length - 1, 0),
         );
-        gridRef.current?.children[next]?.scrollIntoView({ block: "nearest" });
+        gridRef.current
+          ?.querySelector(`[data-idx="${next}"]`)
+          ?.scrollIntoView({ block: "nearest" });
         return next;
       });
 
@@ -124,7 +155,7 @@ export function AlbumsView() {
   }
   if (!albums || albums.length === 0) {
     return scanning ? (
-      <p className="p-3 text-muted">scanning…</p>
+      <Loading label="scanning…" />
     ) : (
       <ScanForm />
     );
@@ -157,26 +188,40 @@ export function AlbumsView() {
         ref={gridRef}
         className="grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3 overflow-auto p-3"
       >
-        {sorted.map((album, i) => (
-          <AlbumCard
-            key={album.id}
-            album={album}
-            playing={album.id === playingAlbumId}
-            animate={status === "playing"}
-            focused={i === cursor}
-          />
-        ))}
+        {sorted.map((album, i) => {
+          const header = headerAt(groups, i);
+          return (
+            <Fragment key={album.id}>
+              {header && (
+                <GroupHeader
+                  label={header.label}
+                  count={header.count}
+                  className="col-span-full -mx-3"
+                />
+              )}
+              <AlbumCard
+                index={i}
+                album={album}
+                playing={album.id === playingAlbumId}
+                animate={status === "playing"}
+                focused={i === cursor}
+              />
+            </Fragment>
+          );
+        })}
       </div>
     </div>
   );
 }
 
 function AlbumCard({
+  index,
   album,
   playing,
   animate,
   focused,
 }: {
+  index: number;
   album: AlbumSummary;
   playing: boolean;
   animate: boolean;
@@ -193,7 +238,11 @@ function AlbumCard({
     });
 
   return (
-    <div className="group flex cursor-pointer flex-col gap-1" onClick={open}>
+    <div
+      data-idx={index}
+      className="group flex cursor-pointer flex-col gap-1"
+      onClick={open}
+    >
       <div
         className={cn(
           "relative aspect-square overflow-hidden border bg-raised",
