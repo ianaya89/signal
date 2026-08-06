@@ -114,6 +114,23 @@ pnpm tauri dev
 If `cargo` is not found, either activate mise in your shell
 (`eval "$(mise activate zsh)"` in `~/.zshrc`) or run `mise exec -- pnpm tauri dev`.
 
+The dev server listens on **1421**, not Tauri's default 1420, so signal can run
+beside another Tauri app. The port lives in two places that must agree —
+`server.port` in `vite.config.ts` and `build.devUrl` in
+`src-tauri/tauri.conf.json` — because vite runs with `strictPort`, which fails
+loudly instead of drifting to a free port the webview would never load. To run
+more than one copy at once, override both:
+
+```sh
+VITE_DEV_PORT=1431 pnpm tauri dev \
+  --config '{"build":{"devUrl":"http://localhost:1431"}}'
+```
+
+Two copies of *signal* itself still share one dev database and one control
+socket (`signal.sock`, rebound by whichever starts last, so the `signal` CLI
+talks to that one). Running two different apps side by side is what the port
+change is for.
+
 ```sh
 pnpm typecheck                       # tsc --noEmit
 cargo clippy --workspace -- -D warnings
