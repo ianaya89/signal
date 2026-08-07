@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Jump to what is playing, with `.`. In a long list the playing track was
+  findable only by scrolling for the ▶ marker, and after browsing away there
+  was no way back at all. `.` now puts the cursor on the playing row — the
+  playing record in the album grid — and in a list that does not contain it,
+  opens its album instead, so the key always lands somewhere.
+- Reveal a track's file in the file manager, with `o`. The action existed in
+  the right-click menu and the keyboard reference promised the shortcut;
+  nothing was listening for it. Both now go through the same path.
+- Row counts beside the pane title. `[ albums ] 59`, dim and outside the
+  brackets, on every list view — how much is in front of you was previously
+  only knowable by scrolling to the end.
+
+### Changed
+
+- View controls moved into the pane title bar. Sorts, filters and the one or
+  two actions a view exists for used to render in a strip of their own
+  directly under `[ albums ]` — repeating that bar's job one line lower and
+  costing a row of height in every list. They now sit on the right of the
+  title bar itself, and that is the rule going forward: a view gets no
+  toolbar of its own. Favorites' "play all" and "queue all" moved with it and
+  picked up a weight difference on the way, having previously been two
+  identical outlines welded to the filter tabs with no gap between them.
+- Lists remember where you were. Routing away from a list and back reset both
+  the cursor and the scroll position, so albums → artists → back dropped you
+  at the top on row one. Position is now kept for the session, per list, and
+  the favorites view keeps one per filter.
+- Keyboard focus is visible. Every control styled its hover state and none
+  styled focus, so tabbing through the interface moved an invisible cursor.
+  There is now one focus ring, applied everywhere, and only for keyboard
+  focus — clicking a button does not draw it.
+- Search results use the same track row as every other list. They had their
+  own copy, which meant search alone had no favorite toggle, no rating, no
+  right-click menu and no add-to-playlist.
+
+### Fixed
+
+- Scrolling the albums grid left a band of covers above the stuck section
+  header. A sticky header cannot rise past its scroll container's padding, so
+  the grid's top padding held it a row's edge below the title bar and the
+  covers scrolled through the gap. The padding is gone where headers are
+  shown, and the header sits flush.
+
 ## [0.1.7] - 2026-08-06
 
 ### Added
