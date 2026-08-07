@@ -6,6 +6,7 @@ import { EditableText } from "@/components/ui/EditableText";
 import { GroupHeader } from "@/components/ui/GroupHeader";
 import { PaneActions, PaneSort } from "@/components/ui/PaneActions";
 import { Loading } from "@/components/ui/States";
+import { useListCursor, useScrollMemory } from "@/hooks/useListMemory";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { ArtistSummary } from "@/ipc/types";
@@ -34,10 +35,9 @@ function sortArtists(artists: ArtistSummary[], sort: ArtistSort) {
 }
 
 export function ArtistsView() {
-  useMainTitle("artists");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [cursor, setCursor] = useState(0);
+  const [cursor, setCursor] = useListCursor("artists");
   const [sort, setSort] = useState<ArtistSort>(
     () => (localStorage.getItem(SORT_KEY) as ArtistSort) || "name",
   );
@@ -46,6 +46,9 @@ export function ArtistsView() {
     queryKey: ["artists"],
     queryFn: api.listArtists,
   });
+
+  useMainTitle("artists", data?.length);
+  useScrollMemory("artists", listRef, (data?.length ?? 0) > 0);
 
   const artists = sortArtists(data ?? [], sort);
   // only the name sort has contiguous initials; counting sorts get no headers

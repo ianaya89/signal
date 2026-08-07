@@ -35,6 +35,7 @@ export function AppShell() {
   const cycleFocus = useUiStore((s) => s.cycleFocus);
   const windowMode = useUiStore((s) => s.windowMode);
   const mainTitle = useUiStore((s) => s.mainTitle);
+  const mainCount = useUiStore((s) => s.mainCount);
   const libraryVisible = useUiStore((s) => s.libraryVisible);
   const inspectorVisible = useUiStore((s) => s.inspectorVisible);
   const libraryWidth = useUiStore((s) => s.libraryWidth);
@@ -149,6 +150,21 @@ export function AppShell() {
             currentListHandler()?.top?.();
           }
           break;
+        // reveal what is playing: inside the list if it holds the track, else
+        // by opening its album — the list you are on rarely is the right one
+        case ".": {
+          if (currentListHandler()?.jump?.()) break;
+          const playingId = usePlayerStore.getState().trackId;
+          if (playingId !== null) {
+            void api.getTrack(playingId).then((detail) =>
+              navigate({
+                to: "/albums/$albumId",
+                params: { albumId: String(detail.track.albumId) },
+              }),
+            );
+          }
+          break;
+        }
         case "G":
           currentListHandler()?.bottom?.();
           break;
@@ -286,7 +302,12 @@ export function AppShell() {
             <Resizer pane="library" />
           </>
         )}
-        <Pane id="main" title={mainTitle} className="min-w-0 flex-1">
+        <Pane
+          id="main"
+          title={mainTitle}
+          count={mainCount}
+          className="min-w-0 flex-1"
+        >
           <Outlet />
         </Pane>
         {inspectorVisible && (

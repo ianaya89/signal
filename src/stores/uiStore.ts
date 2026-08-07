@@ -43,6 +43,8 @@ interface UiState extends LayoutState {
   theme: Theme;
   windowMode: WindowMode;
   mainTitle: string;
+  /** Rows the main view is showing, printed next to its title. */
+  mainCount: number | null;
   /** Where `PaneActions` portals a view's controls — the main pane's title bar. */
   mainHeaderSlot: HTMLElement | null;
   focusPane: (pane: PaneId) => void;
@@ -53,7 +55,7 @@ interface UiState extends LayoutState {
   setPaneWidth: (pane: "library" | "inspector", width: number) => void;
   restoreLayout: (layout: Partial<LayoutState>) => void;
   setWindowMode: (mode: WindowMode) => void;
-  setMainTitle: (title: string) => void;
+  setMainTitle: (title: string, count?: number) => void;
   setMainHeaderSlot: (el: HTMLElement | null) => void;
 }
 
@@ -62,10 +64,12 @@ export const useUiStore = create<UiState>((set, get) => ({
   theme: "dark",
   windowMode: "full",
   mainTitle: "albums",
+  mainCount: null,
   mainHeaderSlot: null,
   ...LAYOUT_DEFAULTS,
   setWindowMode: (mode) => set({ windowMode: mode }),
-  setMainTitle: (title) => set({ mainTitle: title }),
+  setMainTitle: (title, count) =>
+    set({ mainTitle: title, mainCount: count ?? null }),
   setMainHeaderSlot: (el) => set({ mainHeaderSlot: el }),
   focusPane: (pane) => set({ focusedPane: pane }),
   cycleFocus: (direction) =>

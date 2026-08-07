@@ -29,6 +29,9 @@ export interface ListHandler {
   back?: () => void; // Esc
   fav?: () => void; // 'f' — toggle favorite
   rate?: (rating: number) => void; // 'r' then 0-5
+  /** '.' — put the cursor on what is playing, returning whether the list held
+   *  it. A false answer (or no handler) falls back to opening its album. */
+  jump?: () => boolean;
 }
 
 let listHandler: ListHandler | null = null;

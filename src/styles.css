@@ -284,6 +284,14 @@ button:not(:disabled) {
   cursor: pointer;
 }
 
+/* Keyboard focus is visible everywhere, always. Controls style their hover
+   state by hand and none of them styled focus, so tabbing through the app
+   moved an invisible cursor. Pointer users never see this ring. */
+:focus-visible {
+  outline: 1px solid var(--border-focus);
+  outline-offset: 1px;
+}
+
 /* status indicators read as rack LEDs: the glyph glows in its own colour,
    and a live connection breathes so "connected" is legible at a glance */
 .led {

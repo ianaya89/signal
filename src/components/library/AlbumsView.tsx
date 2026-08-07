@@ -9,6 +9,7 @@ import { EditableText } from "@/components/ui/EditableText";
 import { EqBars } from "@/components/ui/HeartEqualizer";
 import { PaneActions, PaneSort } from "@/components/ui/PaneActions";
 import { Loading } from "@/components/ui/States";
+import { useListCursor, useScrollMemory } from "@/hooks/useListMemory";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { AlbumSummary } from "@/ipc/types";
@@ -81,12 +82,11 @@ function sortAlbums(albums: AlbumSummary[], sort: AlbumSort): AlbumSummary[] {
 }
 
 export function AlbumsView() {
-  useMainTitle("albums");
   const scanning = useScanStore((s) => s.scanning);
   const status = usePlayerStore((s) => s.status);
   const trackId = usePlayerStore((s) => s.trackId);
   const navigate = useNavigate();
-  const [cursor, setCursor] = useState(0);
+  const [cursor, setCursor] = useListCursor("albums");
   const gridRef = useRef<HTMLDivElement>(null);
   const [sort, setSort] = useState<AlbumSort>(
     () => (localStorage.getItem(SORT_KEY) as AlbumSort) || "artist",
@@ -104,12 +104,17 @@ export function AlbumsView() {
   const playingAlbumId =
     status !== "stopped" ? nowPlaying?.track.albumId : undefined;
 
+  useMainTitle("albums", albums?.length);
+  useScrollMemory("albums", gridRef, (albums?.length ?? 0) > 0);
+
   const sorted = sortAlbums(albums ?? [], sort);
   const groups = worthGrouping(groupRuns(sorted, grouperFor(sort)), sorted);
   const sortedRef = useRef<AlbumSummary[]>(sorted);
   sortedRef.current = sorted;
   const cursorRef = useRef(cursor);
   cursorRef.current = cursor;
+  const playingAlbumRef = useRef(playingAlbumId);
+  playingAlbumRef.current = playingAlbumId;
 
   useEffect(() => {
     const step = (delta: number, byRow: boolean) =>
@@ -130,6 +135,16 @@ export function AlbumsView() {
       moveCol: (delta) => step(delta, false),
       top: () => setCursor(0),
       bottom: () => setCursor(Math.max(sortedRef.current.length - 1, 0)),
+      jump: () => {
+        const albumId = playingAlbumRef.current;
+        const index = sortedRef.current.findIndex((a) => a.id === albumId);
+        if (index < 0) return false;
+        setCursor(index);
+        gridRef.current
+          ?.querySelector(`[data-idx="${index}"]`)
+          ?.scrollIntoView({ block: "center" });
+        return true;
+      },
       open: () => {
         const album = sortedRef.current[cursorRef.current];
         if (album) {

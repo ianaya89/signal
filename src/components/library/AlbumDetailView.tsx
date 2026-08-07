@@ -18,6 +18,7 @@ import { artworkUrl } from "@/lib/artwork";
 import { registerListHandler } from "@/lib/keyboard";
 import { pickImage } from "@/lib/pickFolder";
 import { useEditStore } from "@/stores/editStore";
+import { usePlayerStore } from "@/stores/playerStore";
 
 export function AlbumDetailView() {
   const { albumId } = useParams({ from: "/albums/$albumId" });
@@ -31,7 +32,7 @@ export function AlbumDetailView() {
     queryFn: () => api.getAlbum(id),
   });
 
-  useMainTitle(data ? `album · ${data.album.name}` : undefined);
+  useMainTitle(data ? `album · ${data.album.name}` : undefined, data?.tracks.length);
   const sort = useTrackSort(data?.tracks ?? []);
   const tracks = sort.sorted;
   const tracksRef = useRef<Track[]>(tracks);
@@ -57,6 +58,15 @@ export function AlbumDetailView() {
         ),
       top: () => setCursor(0),
       bottom: () => setCursor(tracksRef.current.length - 1),
+      // TrackRow scrolls itself into view when it becomes the cursor row
+      jump: () => {
+        const index = tracksRef.current.findIndex(
+          (t) => t.id === usePlayerStore.getState().trackId,
+        );
+        if (index < 0) return false;
+        setCursor(index);
+        return true;
+      },
       open: () => playFrom(cursorRef.current),
       stage: () => {
         const track = tracksRef.current[cursorRef.current];

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { SelectionBar } from "@/components/library/SelectionBar";
 import { TrackRow } from "@/components/library/TrackRow";
 import { Loading } from "@/components/ui/States";
+import { useListCursor } from "@/hooks/useListMemory";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { useMultiSelect } from "@/hooks/useMultiSelect";
 import { useVirtualWindow } from "@/hooks/useVirtualWindow";
@@ -12,16 +13,18 @@ import { api } from "@/ipc/invoke";
 import type { GenreSummary, Track } from "@/ipc/types";
 import { registerListHandler } from "@/lib/keyboard";
 import { cn } from "@/lib/utils";
+import { usePlayerStore } from "@/stores/playerStore";
 
 export function GenresView() {
-  useMainTitle("genres");
   const navigate = useNavigate();
-  const [cursor, setCursor] = useState(0);
+  const [cursor, setCursor] = useListCursor("genres");
   const listRef = useRef<HTMLDivElement>(null);
   const { data: genres, isLoading } = useQuery({
     queryKey: ["genres"],
     queryFn: api.listGenres,
   });
+
+  useMainTitle("genres", genres?.length);
 
   const genresRef = useRef<GenreSummary[]>(genres ?? []);
   genresRef.current = genres ?? [];
@@ -108,12 +111,13 @@ export function GenreDetailView() {
 
   const { data: genres } = useQuery({ queryKey: ["genres"], queryFn: api.listGenres });
   const genreName = genres?.find((g) => g.id === id)?.name;
-  useMainTitle(genreName ? `genre · ${genreName}` : undefined);
 
   const { data: tracks, isLoading } = useQuery({
     queryKey: ["genre-tracks", id],
     queryFn: () => api.genreTracks(id),
   });
+
+  useMainTitle(genreName ? `genre · ${genreName}` : undefined, tracks?.length);
 
   const list = tracks ?? [];
   const tracksRef = useRef<Track[]>(list);
@@ -148,6 +152,15 @@ export function GenreDetailView() {
         }),
       top: () => setCursor(0),
       bottom: () => setCursor(tracksRef.current.length - 1),
+      jump: () => {
+        const index = tracksRef.current.findIndex(
+          (t) => t.id === usePlayerStore.getState().trackId,
+        );
+        if (index < 0) return false;
+        setCursor(index);
+        virtualRef.current.ensureVisible(index);
+        return true;
+      },
       open: () => playFrom(cursorRef.current),
       stage: () => {
         const track = tracksRef.current[cursorRef.current];

@@ -17,6 +17,7 @@ import type { Track } from "@/ipc/types";
 import { registerListHandler } from "@/lib/keyboard";
 import { pickSavePath } from "@/lib/pickFolder";
 import { cn, errText } from "@/lib/utils";
+import { usePlayerStore } from "@/stores/playerStore";
 import { toast } from "@/stores/toastStore";
 
 export function PlaylistDetailView() {
@@ -34,7 +35,7 @@ export function PlaylistDetailView() {
     queryFn: () => api.playlistGet(id, smart),
   });
 
-  useMainTitle(data ? `playlist · ${data.name}` : undefined);
+  useMainTitle(data ? `playlist · ${data.name}` : undefined, data?.tracks.length);
   const sort = useTrackSort(data?.tracks ?? []);
   const tracks = sort.sorted;
   const tracksRef = useRef<Track[]>(tracks);
@@ -80,6 +81,15 @@ export function PlaylistDetailView() {
         }),
       top: () => setCursor(0),
       bottom: () => setCursor(tracksRef.current.length - 1),
+      jump: () => {
+        const index = tracksRef.current.findIndex(
+          (t) => t.id === usePlayerStore.getState().trackId,
+        );
+        if (index < 0) return false;
+        setCursor(index);
+        virtualRef.current.ensureVisible(index);
+        return true;
+      },
       open: () => playFrom(cursorRef.current),
       stage: () => {
         const track = tracksRef.current[cursorRef.current];

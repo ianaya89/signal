@@ -51,7 +51,7 @@ export function ArtistDetailView() {
     queryFn: () => api.getArtist(id),
   });
 
-  useMainTitle(data ? `artist · ${data.artist.name}` : undefined);
+  useMainTitle(data ? `artist · ${data.artist.name}` : undefined, data?.albums.length);
   const albumQueries = useQueries({
     queries: (data?.albums ?? []).map((album) => ({
       queryKey: ["album", album.id],

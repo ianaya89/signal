@@ -1,18 +1,15 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 
-import { EditableText } from "@/components/ui/EditableText";
+import { TrackRow } from "@/components/library/TrackRow";
 import { Failed } from "@/components/ui/States";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
-import { fmtDuration, fmtQuality, isHires, isLossy } from "@/lib/format";
 import { registerListHandler, useKeyboardStore } from "@/lib/keyboard";
-import { cn } from "@/lib/utils";
 import { usePlayerStore } from "@/stores/playerStore";
 
 export function SearchView() {
-  useMainTitle("search");
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
   const [cursor, setCursor] = useState(0);
@@ -43,6 +40,8 @@ export function SearchView() {
     placeholderData: (prev) => prev,
   });
 
+  useMainTitle("search", debounced.trim() ? (results?.length ?? 0) : undefined);
+
   const resultsRef = useRef<Track[]>(results ?? []);
   resultsRef.current = results ?? [];
   const cursorRef = useRef(cursor);
@@ -67,6 +66,14 @@ export function SearchView() {
         ),
       top: () => setCursor(0),
       bottom: () => setCursor(Math.max(resultsRef.current.length - 1, 0)),
+      jump: () => {
+        const index = resultsRef.current.findIndex(
+          (t) => t.id === usePlayerStore.getState().trackId,
+        );
+        if (index < 0) return false;
+        setCursor(index);
+        return true;
+      },
       open: () => playFrom(cursorRef.current),
       stage: () => {
         const track = resultsRef.current[cursorRef.current];
@@ -123,7 +130,7 @@ export function SearchView() {
           <table className="w-full border-collapse">
             <tbody>
               {results.map((track, i) => (
-                <ResultRow
+                <TrackRow
                   key={track.id}
                   track={track}
                   selected={i === cursor}
@@ -144,91 +151,3 @@ export function SearchView() {
   );
 }
 
-function ResultRow({
-  track,
-  selected,
-  onSelect,
-  onPlay,
-}: {
-  track: Track;
-  selected: boolean;
-  onSelect: () => void;
-  onPlay: () => void;
-}) {
-  const t = track.technical;
-  const playing = usePlayerStore((s) => s.trackId === track.id);
-  const queryClient = useQueryClient();
-  const ref = useRef<HTMLTableRowElement>(null);
-
-  useEffect(() => {
-    if (selected) ref.current?.scrollIntoView({ block: "nearest" });
-  }, [selected]);
-
-  return (
-    <tr
-      ref={ref}
-      onClick={onSelect}
-      onDoubleClick={onPlay}
-      className={cn(
-        "h-7 cursor-default",
-        selected ? "bg-raised" : playing ? "bg-raised" : "hover:bg-raised/50",
-      )}
-    >
-      <td
-        className={cn(
-          "w-6 border-l-2 pl-2 text-[11px]",
-          playing
-            ? "border-accent text-accent"
-            : selected
-              ? "border-focus text-secondary"
-              : "border-transparent text-muted",
-        )}
-      >
-        {playing ? "▶" : ""}
-      </td>
-      <td
-        className={cn(
-          "max-w-0 truncate pr-2 text-[12px]",
-          playing ? "text-accent" : "text-primary",
-        )}
-      >
-        <EditableText
-          value={track.title}
-          className="max-w-full"
-          inputClassName="w-full text-[12px] text-primary"
-          onSave={async (title) => {
-            await api.renameTrack(track.id, title);
-            await queryClient.invalidateQueries();
-          }}
-        />
-      </td>
-      <td className="w-28 pr-2">
-        <span
-          className={cn(
-            "text-[11px]",
-            isLossy(t.codec)
-              ? "text-lossy"
-              : isHires(t.bitDepth, t.sampleRateHz)
-                ? "text-hires"
-                : "text-secondary",
-          )}
-        >
-          [{t.codec}] [{fmtQuality(t.bitDepth, t.sampleRateHz)}]
-        </span>
-      </td>
-      <td className="w-12 pr-3 text-right text-[11px] text-muted">
-        {fmtDuration(track.durationMs)}
-      </td>
-      <td className="w-8 pr-2 text-right">
-        <button
-          type="button"
-          onClick={() => void api.queueAdd(track.id)}
-          title="add to queue (a)"
-          className="text-[11px] text-muted hover:text-accent"
-        >
-          +
-        </button>
-      </td>
-    </tr>
-  );
-}

@@ -87,6 +87,7 @@ Applies to Library nav, the track table, playlist lists, search results, and the
 | `gg` | Jump to top (sequence, see below) |
 | `G` | Jump to bottom |
 | `Home` / `End` | Jump to top / bottom |
+| `.` | Jump to what is playing — moves the cursor onto the playing row (or the playing record in the album grid). Lists that do not hold it fall through to opening its album, so `.` always lands somewhere |
 | `Ctrl+d` / `Ctrl+u` | Half-page down / up |
 | `Enter` | Open / play — expands a tree node in Library, plays a track in a track table, jump-plays in the queue |
 | `o` | Open containing folder in the OS file manager |

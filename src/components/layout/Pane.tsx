@@ -6,12 +6,14 @@ import { useUiStore, type PaneId } from "@/stores/uiStore";
 interface PaneProps {
   id: PaneId;
   title: string;
+  /** Rows in the pane, printed dim beside the title. */
+  count?: number | null;
   className?: string;
   style?: React.CSSProperties;
   children: ReactNode;
 }
 
-export function Pane({ id, title, className, style, children }: PaneProps) {
+export function Pane({ id, title, count, className, style, children }: PaneProps) {
   const focused = useUiStore((s) => s.focusedPane === id);
   const focusPane = useUiStore((s) => s.focusPane);
   const togglePane = useUiStore((s) => s.togglePane);
@@ -36,6 +38,11 @@ export function Pane({ id, title, className, style, children }: PaneProps) {
         >
           [ {title} ]
         </span>
+        {count !== null && count !== undefined && (
+          <span className="shrink-0 text-[10px] tabular-nums text-muted">
+            {count}
+          </span>
+        )}
         {/* the routed view fills this with its sort / filters / actions */}
         {id === "main" && (
           <span

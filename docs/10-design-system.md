@@ -275,6 +275,18 @@ Anatomy: a 24px title bar (pane name, optional count, contextual hint) over a sc
 </div>
 ```
 
+The title bar also carries the row count of whatever the view is showing (`useMainTitle("albums", albums.length)` → `[ albums ] 59`), dim and outside the brackets. It is status, not a label, so it never joins the `·` chain a detail title uses (`album · Kid A`).
+
+### Keyboard focus
+
+One global rule in `styles.css`:
+
+```css
+:focus-visible { outline: 1px solid var(--border-focus); outline-offset: 1px; }
+```
+
+Controls style `hover:` by hand and none of them styled focus, so tabbing moved an invisible cursor. `:focus-visible` (not `:focus`) keeps the ring off pointer clicks. Inputs still override it with their `focus:border-focus` treatment — a border reads better on a field than a ring.
+
 ### Pane title bar actions (`src/components/ui/PaneActions.tsx`)
 
 **Rule: a view gets no toolbar of its own.** Sorts, filters and the one or two actions a view exists for render on the right of the main pane's title bar, opposite `[ albums ]`. Views publish them with `<PaneActions>`, which portals into a slot the pane header exposes (`uiStore.mainHeaderSlot`).

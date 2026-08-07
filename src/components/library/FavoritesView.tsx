@@ -1,12 +1,13 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 import { SelectionBar } from "@/components/library/SelectionBar";
 import { TrackRow } from "@/components/library/TrackRow";
 import { TrackTableHeader } from "@/components/library/TrackTableHeader";
 import { PaneAction, PaneActions } from "@/components/ui/PaneActions";
 import { Failed, Loading } from "@/components/ui/States";
+import { useListCursor, useScrollMemory } from "@/hooks/useListMemory";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { useMultiSelect } from "@/hooks/useMultiSelect";
 import { useTrackSort } from "@/hooks/useTrackSort";
@@ -16,6 +17,7 @@ import type { Track } from "@/ipc/types";
 import { registerListHandler } from "@/lib/keyboard";
 import { cn } from "@/lib/utils";
 import type { FavoritesFilter } from "@/router";
+import { usePlayerStore } from "@/stores/playerStore";
 
 const FILTERS: { key: FavoritesFilter; label: string; tone: string }[] = [
   { key: "all", label: "all", tone: "var(--sec-about)" },
@@ -24,11 +26,10 @@ const FILTERS: { key: FavoritesFilter; label: string; tone: string }[] = [
 ];
 
 export function FavoritesView() {
-  useMainTitle("favorites");
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { filter = "all" } = useSearch({ from: "/favorites" });
-  const [cursor, setCursor] = useState(0);
+  const [cursor, setCursor] = useListCursor(`favorites:${filter}`);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["loved"],
@@ -59,6 +60,9 @@ export function FavoritesView() {
   );
   const virtualRef = useRef(virtual);
   virtualRef.current = virtual;
+
+  useMainTitle("favorites", tracks.length);
+  useScrollMemory(`favorites:${filter}`, containerRef, tracks.length > 0);
 
   const playFrom = (index: number) => {
     const ids = tracksRef.current.map((t) => t.id);
@@ -103,6 +107,15 @@ export function FavoritesView() {
         }),
       top: () => setCursor(0),
       bottom: () => setCursor(tracksRef.current.length - 1),
+      jump: () => {
+        const index = tracksRef.current.findIndex(
+          (t) => t.id === usePlayerStore.getState().trackId,
+        );
+        if (index < 0) return false;
+        setCursor(index);
+        virtualRef.current.ensureVisible(index);
+        return true;
+      },
       open: () => playFrom(cursorRef.current),
       stage: () => {
         const track = tracksRef.current[cursorRef.current];
