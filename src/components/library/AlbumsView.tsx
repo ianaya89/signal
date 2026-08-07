@@ -7,6 +7,7 @@ import { CoverPlaceholder } from "@/components/ui/CoverPlaceholder";
 import { GroupHeader } from "@/components/ui/GroupHeader";
 import { EditableText } from "@/components/ui/EditableText";
 import { EqBars } from "@/components/ui/HeartEqualizer";
+import { PaneActions, PaneSort } from "@/components/ui/PaneActions";
 import { Loading } from "@/components/ui/States";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
@@ -163,30 +164,25 @@ export function AlbumsView() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-7 shrink-0 items-center gap-1 border-b border-subtle px-3 text-[10px]">
-        <span className="text-muted">sort:</span>
-        {SORTS.map(({ key, label }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => {
-              setSort(key);
-              localStorage.setItem(SORT_KEY, key);
-            }}
-            className={cn(
-              "px-1.5 py-0.5",
-              sort === key
-                ? "bg-raised text-accent"
-                : "text-muted hover:text-secondary",
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <PaneActions>
+        <PaneSort
+          value={sort}
+          options={SORTS}
+          onChange={(key) => {
+            setSort(key);
+            localStorage.setItem(SORT_KEY, key);
+          }}
+        />
+      </PaneActions>
+      {/* no padding above the first row: a sticky group header cannot rise past
+          its scroll container's padding, and the band it left behind showed a
+          slice of the covers scrolling under it */}
       <div
         ref={gridRef}
-        className="grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3 overflow-auto p-3"
+        className={cn(
+          "grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3 overflow-auto px-3 pb-3",
+          groups.length === 0 && "pt-3",
+        )}
       >
         {sorted.map((album, i) => {
           const header = headerAt(groups, i);

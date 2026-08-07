@@ -275,6 +275,29 @@ Anatomy: a 24px title bar (pane name, optional count, contextual hint) over a sc
 </div>
 ```
 
+### Pane title bar actions (`src/components/ui/PaneActions.tsx`)
+
+**Rule: a view gets no toolbar of its own.** Sorts, filters and the one or two actions a view exists for render on the right of the main pane's title bar, opposite `[ albums ]`. Views publish them with `<PaneActions>`, which portals into a slot the pane header exposes (`uiStore.mainHeaderSlot`).
+
+Why it is a rule and not a preference:
+
+- A second strip under the title bar repeated the bar's job one line lower and cost a row of vertical space in every list.
+- A sticky `GroupHeader` cannot rise past its scroll container's padding box, so a padded list under a toolbar showed a band of scrolled content above the stuck header. Removing the strip removed the seam.
+- One place to look for "what can I do here", per view, at a fixed screen position.
+
+```tsx
+<PaneActions>
+  <PaneSort value={sort} options={SORTS} onChange={setSort} />
+  <PaneActionsDivider />
+  <PaneAction tone="primary" onClick={playAll}>▶ play all</PaneAction>
+  <PaneAction onClick={queueAll}>+ queue all</PaneAction>
+</PaneActions>
+```
+
+`PaneAction` comes in two weights, and the difference is fill, not size: `tone="primary"` is tinted at rest (`--accent-dim` wash, accent label) for the action that starts playback; everything else is an outline on `--bg-raised`. At most one primary per view. Buttons are separated by `gap-1` — the header lays them out, so a view never hand-spaces them.
+
+Content headers (album art + title on a detail view) stay in the body; they are the record, not the controls. Breadcrumbs stay in the body too — they are where you are, not what you can do.
+
 ### Codec/bit-depth/sample-rate badge
 
 Bracketed, terminal-style chips — `[FLAC]` `[24/96]` — colored by what they signal, not by fixed per-codec color:

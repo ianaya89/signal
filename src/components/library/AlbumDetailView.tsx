@@ -7,6 +7,7 @@ import { TrackRow } from "@/components/library/TrackRow";
 import { TrackTableHeader } from "@/components/library/TrackTableHeader";
 import { CoverPlaceholder } from "@/components/ui/CoverPlaceholder";
 import { EditableText } from "@/components/ui/EditableText";
+import { PaneAction, PaneActions } from "@/components/ui/PaneActions";
 import { Loading } from "@/components/ui/States";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { useMultiSelect } from "@/hooks/useMultiSelect";
@@ -144,15 +145,15 @@ export function AlbumDetailView() {
             )}
           </p>
         </div>
-        <button
-          type="button"
+      </header>
+      <PaneActions>
+        <PaneAction
           onClick={() => useEditStore.getState().openAlbum(album.id)}
           title="edit album metadata"
-          className="ml-auto shrink-0 border border-subtle px-2 py-0.5 text-[11px] text-muted hover:border-focus hover:text-accent"
         >
           edit
-        </button>
-      </header>
+        </PaneAction>
+      </PaneActions>
       <div className="relative min-h-0 flex-1 overflow-auto">
         <table className="w-full border-collapse">
           <TrackTableHeader sort={sort} />

@@ -15,6 +15,7 @@ export function Pane({ id, title, className, style, children }: PaneProps) {
   const focused = useUiStore((s) => s.focusedPane === id);
   const focusPane = useUiStore((s) => s.focusPane);
   const togglePane = useUiStore((s) => s.togglePane);
+  const setMainHeaderSlot = useUiStore((s) => s.setMainHeaderSlot);
 
   return (
     <section
@@ -26,11 +27,26 @@ export function Pane({ id, title, className, style, children }: PaneProps) {
         className,
       )}
     >
-      <header className="flex h-6 shrink-0 items-center justify-between border-b border-subtle px-2">
-        <span className={cn("text-[11px]", focused ? "text-accent" : "text-muted")}>
+      <header className="flex h-6 shrink-0 items-center gap-2 border-b border-subtle px-2">
+        <span
+          className={cn(
+            "shrink-0 text-[11px]",
+            focused ? "text-accent" : "text-muted",
+          )}
+        >
           [ {title} ]
         </span>
-        <span className="flex items-center gap-1.5">
+        {/* the routed view fills this with its sort / filters / actions */}
+        {id === "main" && (
+          <span
+            ref={(el) => {
+              setMainHeaderSlot(el);
+              return () => setMainHeaderSlot(null);
+            }}
+            className="flex min-w-0 flex-1 items-center justify-end gap-1 overflow-hidden"
+          />
+        )}
+        <span className={cn("flex items-center gap-1.5", id !== "main" && "ml-auto")}>
           {focused && <span className="text-[10px] text-accent">▮</span>}
           {id !== "main" && (
             <button

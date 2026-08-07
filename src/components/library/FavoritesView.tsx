@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { SelectionBar } from "@/components/library/SelectionBar";
 import { TrackRow } from "@/components/library/TrackRow";
 import { TrackTableHeader } from "@/components/library/TrackTableHeader";
+import { PaneAction, PaneActions } from "@/components/ui/PaneActions";
 import { Failed, Loading } from "@/components/ui/States";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { useMultiSelect } from "@/hooks/useMultiSelect";
@@ -172,27 +173,26 @@ export function FavoritesView() {
             </button>
           );
         })}
-        <span className="w-2 shrink-0" />
-        <button
-          type="button"
+      </div>
+      <PaneActions>
+        <PaneAction
+          tone="primary"
           onClick={() => playFrom(0)}
           disabled={tracks.length === 0}
-          className="ml-auto border border-subtle px-2 text-[10px] text-secondary hover:border-focus hover:text-accent disabled:opacity-40"
+          title="play everything in this filter"
         >
-          play all
-        </button>
-        <button
-          type="button"
+          ▶ play all
+        </PaneAction>
+        <PaneAction
           onClick={() => {
             for (const track of tracks) void api.queueAdd(track.id);
           }}
           disabled={tracks.length === 0}
           title="stage everything in this filter to the queue"
-          className="border border-subtle px-2 text-[10px] text-secondary hover:border-focus hover:text-accent disabled:opacity-40"
         >
-          queue all
-        </button>
-      </div>
+          + queue all
+        </PaneAction>
+      </PaneActions>
       {tracks.length === 0 && (
         <p className="p-3 text-[12px] text-muted">
           {filter === "liked"

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { EditableText } from "@/components/ui/EditableText";
 import { GroupHeader } from "@/components/ui/GroupHeader";
+import { PaneActions, PaneSort } from "@/components/ui/PaneActions";
 import { Loading } from "@/components/ui/States";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
@@ -103,28 +104,17 @@ export function ArtistsView() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-7 shrink-0 items-center gap-1 border-b border-subtle px-3 text-[10px]">
-        <span className="text-muted">sort:</span>
-        {SORTS.map(({ key, label }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => {
-              setSort(key);
-              setCursor(0);
-              localStorage.setItem(SORT_KEY, key);
-            }}
-            className={cn(
-              "px-1.5 py-0.5",
-              sort === key
-                ? "bg-raised text-accent"
-                : "text-muted hover:text-secondary",
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <PaneActions>
+        <PaneSort
+          value={sort}
+          options={SORTS}
+          onChange={(key) => {
+            setSort(key);
+            setCursor(0);
+            localStorage.setItem(SORT_KEY, key);
+          }}
+        />
+      </PaneActions>
       <div ref={listRef} className="min-h-0 flex-1 overflow-auto">
         {artists.map((artist, i) => {
           const header = headerAt(groups, i);

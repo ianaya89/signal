@@ -3,8 +3,8 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
 import { RemoteCover } from "@/components/remote/RemoteCover";
+import { PaneAction, PaneActions } from "@/components/ui/PaneActions";
 import { Failed, Loading } from "@/components/ui/States";
-import { BTN_PRIMARY } from "@/components/ui/controls";
 import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { SubsonicChild } from "@/ipc/types";
@@ -88,14 +88,12 @@ export function RemoteAlbumDetailView() {
             {data.year ? ` · ${data.year}` : ""} · {songs.length} tracks
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => playFrom(0)}
-          className={cn("ml-auto", BTN_PRIMARY)}
-        >
-          play album
-        </button>
       </header>
+      <PaneActions>
+        <PaneAction tone="primary" onClick={() => playFrom(0)}>
+          ▶ play album
+        </PaneAction>
+      </PaneActions>
       <div className="min-h-0 flex-1 overflow-auto">
         <ul>
           {songs.map((song, i) => (
