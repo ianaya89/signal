@@ -7,6 +7,7 @@ import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { registerListHandler } from "@/lib/keyboard";
+import { revealTrack } from "@/lib/reveal";
 import { cn, errText } from "@/lib/utils";
 import { toast } from "@/stores/toastStore";
 
@@ -100,6 +101,7 @@ export function FoldersView() {
         const track = trackAtCursor();
         if (track) void api.queueAdd(track.id);
       },
+      reveal: () => revealTrack(trackAtCursor()),
       fav: () => {
         const track = trackAtCursor();
         if (track) {
@@ -244,7 +246,7 @@ function Breadcrumb({
             <span className="text-muted">/</span>
             <button
               type="button"
-              onClick={() => onNavigate(last ? target : target)}
+              onClick={() => onNavigate(target)}
               className={cn(
                 "max-w-40 truncate",
                 last ? "text-accent" : "text-secondary hover:text-accent",

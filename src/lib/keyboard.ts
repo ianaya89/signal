@@ -32,6 +32,8 @@ export interface ListHandler {
   /** '.' — put the cursor on what is playing, returning whether the list held
    *  it. A false answer (or no handler) falls back to opening its album. */
   jump?: () => boolean;
+  /** 'o' — show the cursor row's file in the OS file manager. */
+  reveal?: () => void;
 }
 
 let listHandler: ListHandler | null = null;

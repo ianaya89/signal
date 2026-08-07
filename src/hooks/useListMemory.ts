@@ -13,13 +13,21 @@ import { useEffect, useRef, useState } from "react";
 const cursors = new Map<string, number>();
 const offsets = new Map<string, number>();
 
-/** `useState` for a list cursor, seeded from the last visit. */
-export function useListCursor(key: string) {
+/**
+ * `useState` for a list cursor, seeded from the last visit.
+ *
+ * Pass `length` where the list can shrink between visits (unfavouriting a
+ * track, say) so a remembered row past the end folds back onto the last one.
+ * A length of 0 is read as "not loaded yet" and leaves the cursor alone —
+ * clamping against an empty query would erase the position it is restoring.
+ */
+export function useListCursor(key: string, length?: number) {
   const [cursor, setCursor] = useState(() => cursors.get(key) ?? 0);
+  const clamped = length ? Math.min(cursor, length - 1) : cursor;
   useEffect(() => {
-    cursors.set(key, cursor);
-  }, [key, cursor]);
-  return [cursor, setCursor] as const;
+    cursors.set(key, clamped);
+  }, [key, clamped]);
+  return [clamped, setCursor] as const;
 }
 
 /**

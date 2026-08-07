@@ -15,6 +15,7 @@ import { useVirtualWindow } from "@/hooks/useVirtualWindow";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { registerListHandler } from "@/lib/keyboard";
+import { revealTrack } from "@/lib/reveal";
 import { cn } from "@/lib/utils";
 import type { FavoritesFilter } from "@/router";
 import { usePlayerStore } from "@/stores/playerStore";
@@ -29,7 +30,6 @@ export function FavoritesView() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { filter = "all" } = useSearch({ from: "/favorites" });
-  const [cursor, setCursor] = useListCursor(`favorites:${filter}`);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["loved"],
@@ -42,6 +42,10 @@ export function FavoritesView() {
   );
   const sort = useTrackSort(filtered);
   const tracks = sort.sorted;
+  const [cursor, setCursor] = useListCursor(
+    `favorites:${filter}`,
+    tracks.length,
+  );
   const tracksRef = useRef<Track[]>(tracks);
   tracksRef.current = tracks;
   const cursorRef = useRef(cursor);
@@ -121,6 +125,7 @@ export function FavoritesView() {
         const track = tracksRef.current[cursorRef.current];
         if (track) void api.queueAdd(track.id);
       },
+      reveal: () => revealTrack(tracksRef.current[cursorRef.current]),
       fav: toggleFav,
       remove: demote,
       rate: (rating) => {

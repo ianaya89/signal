@@ -86,7 +86,6 @@ export function AlbumsView() {
   const status = usePlayerStore((s) => s.status);
   const trackId = usePlayerStore((s) => s.trackId);
   const navigate = useNavigate();
-  const [cursor, setCursor] = useListCursor("albums");
   const gridRef = useRef<HTMLDivElement>(null);
   const [sort, setSort] = useState<AlbumSort>(
     () => (localStorage.getItem(SORT_KEY) as AlbumSort) || "artist",
@@ -104,6 +103,7 @@ export function AlbumsView() {
   const playingAlbumId =
     status !== "stopped" ? nowPlaying?.track.albumId : undefined;
 
+  const [cursor, setCursor] = useListCursor("albums", albums?.length);
   useMainTitle("albums", albums?.length);
   useScrollMemory("albums", gridRef, (albums?.length ?? 0) > 0);
 

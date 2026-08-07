@@ -71,7 +71,7 @@ Active in `NORMAL` mode, regardless of which pane has focus.
 | `[` / `]` | Seek −5s / +5s |
 | `{` / `}` | Previous / next track |
 | `i` | Toggle Inspector visibility |
-| `q` | Toggle queue focus — jump into the queue list inside the right rail; press again or `Tab` away to leave |
+| `q` | *(not built)* Toggle queue focus — jump into the queue list inside the right rail; press again or `Tab` away to leave. Today the inspector is reached with `i` or `3` |
 | `L` | Open Logs view (swaps the Center pane to the log viewer) |
 | `S` | Open Stats view (swaps the Center pane to listening-history/stats) |
 | `Esc` | Context-dependent "back" — see table above |
@@ -88,10 +88,11 @@ Applies to Library nav, the track table, playlist lists, search results, and the
 | `G` | Jump to bottom |
 | `Home` / `End` | Jump to top / bottom |
 | `.` | Jump to what is playing — moves the cursor onto the playing row (or the playing record in the album grid). Lists that do not hold it fall through to opening its album, so `.` always lands somewhere |
-| `Ctrl+d` / `Ctrl+u` | Half-page down / up |
 | `Enter` | Open / play — expands a tree node in Library, plays a track in a track table, jump-plays in the queue |
-| `o` | Open containing folder in the OS file manager |
+| `o` | Reveal the row's file in the OS file manager |
 | `x` | Remove — context-dependent: removes from a playlist in playlist views, unstages in the queue pane (see Queue bindings) |
+
+**Not built yet.** `Ctrl+d`/`Ctrl+u` (half-page scroll) and `q` (focus the queue list) are designed above but have no case in the dispatcher — do not treat them as available. Multi-select today is mouse-driven (click, shift-click, cmd-click via `useMultiSelect`); the `v` visual-select mode described below is the intended keyboard route to it and is likewise unbuilt.
 
 **Note on Space:** because `Space` is reserved globally for play/pause, list views never repurpose bare `Space` for row selection or multi-select the way some file managers do. Where multi-select is genuinely needed (bulk-add to queue, bulk playlist removal), `v` enters visual-select mode — extend the range with `j`/`k`, confirm with the action key you want applied (`a` to stage all, `x` to remove all), cancel with `Esc` — following vim's visual-mode convention instead of overloading `Space`.
 

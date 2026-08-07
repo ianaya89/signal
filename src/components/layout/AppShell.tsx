@@ -174,6 +174,9 @@ export function AppShell() {
         case "a":
           currentListHandler()?.stage?.();
           break;
+        case "o":
+          currentListHandler()?.reveal?.();
+          break;
         case "x":
           currentListHandler()?.remove?.();
           break;

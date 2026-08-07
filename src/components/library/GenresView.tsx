@@ -12,18 +12,19 @@ import { useVirtualWindow } from "@/hooks/useVirtualWindow";
 import { api } from "@/ipc/invoke";
 import type { GenreSummary, Track } from "@/ipc/types";
 import { registerListHandler } from "@/lib/keyboard";
+import { revealTrack } from "@/lib/reveal";
 import { cn } from "@/lib/utils";
 import { usePlayerStore } from "@/stores/playerStore";
 
 export function GenresView() {
   const navigate = useNavigate();
-  const [cursor, setCursor] = useListCursor("genres");
   const listRef = useRef<HTMLDivElement>(null);
   const { data: genres, isLoading } = useQuery({
     queryKey: ["genres"],
     queryFn: api.listGenres,
   });
 
+  const [cursor, setCursor] = useListCursor("genres", genres?.length);
   useMainTitle("genres", genres?.length);
 
   const genresRef = useRef<GenreSummary[]>(genres ?? []);
@@ -166,6 +167,7 @@ export function GenreDetailView() {
         const track = tracksRef.current[cursorRef.current];
         if (track) void api.queueAdd(track.id);
       },
+      reveal: () => revealTrack(tracksRef.current[cursorRef.current]),
       fav: () => {
         const track = tracksRef.current[cursorRef.current];
         if (track) {

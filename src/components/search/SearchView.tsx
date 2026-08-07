@@ -7,6 +7,7 @@ import { useMainTitle } from "@/hooks/useMainTitle";
 import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { registerListHandler, useKeyboardStore } from "@/lib/keyboard";
+import { revealTrack } from "@/lib/reveal";
 import { usePlayerStore } from "@/stores/playerStore";
 
 export function SearchView() {
@@ -79,6 +80,7 @@ export function SearchView() {
         const track = resultsRef.current[cursorRef.current];
         if (track) void api.queueAdd(track.id);
       },
+      reveal: () => revealTrack(resultsRef.current[cursorRef.current]),
       fav: () => {
         const track = resultsRef.current[cursorRef.current];
         if (track) {

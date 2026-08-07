@@ -38,6 +38,7 @@ export const BINDING_GROUPS: { title: string; bindings: Binding[] }[] = [
     title: "library",
     bindings: [
       { keys: "a", action: "stage track to queue" },
+      { keys: "o", action: "reveal file in finder" },
       { keys: "x", action: "remove (queue / playlist)" },
       { keys: "f", action: "toggle favorite" },
       { keys: "r then 0-5", action: "rate track (0 clears)" },

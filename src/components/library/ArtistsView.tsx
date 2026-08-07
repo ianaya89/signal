@@ -37,7 +37,6 @@ function sortArtists(artists: ArtistSummary[], sort: ArtistSort) {
 export function ArtistsView() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [cursor, setCursor] = useListCursor("artists");
   const [sort, setSort] = useState<ArtistSort>(
     () => (localStorage.getItem(SORT_KEY) as ArtistSort) || "name",
   );
@@ -47,6 +46,7 @@ export function ArtistsView() {
     queryFn: api.listArtists,
   });
 
+  const [cursor, setCursor] = useListCursor("artists", data?.length);
   useMainTitle("artists", data?.length);
   useScrollMemory("artists", listRef, (data?.length ?? 0) > 0);
 

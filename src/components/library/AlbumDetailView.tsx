@@ -17,6 +17,7 @@ import type { Track } from "@/ipc/types";
 import { artworkUrl } from "@/lib/artwork";
 import { registerListHandler } from "@/lib/keyboard";
 import { pickImage } from "@/lib/pickFolder";
+import { revealTrack } from "@/lib/reveal";
 import { useEditStore } from "@/stores/editStore";
 import { usePlayerStore } from "@/stores/playerStore";
 
@@ -72,6 +73,7 @@ export function AlbumDetailView() {
         const track = tracksRef.current[cursorRef.current];
         if (track) void api.queueAdd(track.id);
       },
+      reveal: () => revealTrack(tracksRef.current[cursorRef.current]),
       fav: () => {
         const track = tracksRef.current[cursorRef.current];
         if (track) {

@@ -3,6 +3,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { MenuItem } from "@/components/ui/ContextMenu";
 import { api } from "@/ipc/invoke";
 import type { PlaylistSummary, Track } from "@/ipc/types";
+import { revealTrack } from "@/lib/reveal";
 import { useEditStore } from "@/stores/editStore";
 import { toast } from "@/stores/toastStore";
 
@@ -114,12 +115,8 @@ export function buildTrackMenu({
     },
     { label: "", separator: true },
     {
-      label: "reveal in finder",
-      onClick: () => {
-        void api
-          .revealFile(track.technical.filePath)
-          .catch(() => toast.error("file not found"));
-      },
+      label: "reveal in finder (o)",
+      onClick: () => revealTrack(track),
     },
   ];
 }

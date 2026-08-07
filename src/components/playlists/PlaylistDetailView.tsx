@@ -16,6 +16,7 @@ import { api } from "@/ipc/invoke";
 import type { Track } from "@/ipc/types";
 import { registerListHandler } from "@/lib/keyboard";
 import { pickSavePath } from "@/lib/pickFolder";
+import { revealTrack } from "@/lib/reveal";
 import { cn, errText } from "@/lib/utils";
 import { usePlayerStore } from "@/stores/playerStore";
 import { toast } from "@/stores/toastStore";
@@ -95,6 +96,7 @@ export function PlaylistDetailView() {
         const track = tracksRef.current[cursorRef.current];
         if (track) void api.queueAdd(track.id);
       },
+      reveal: () => revealTrack(tracksRef.current[cursorRef.current]),
       fav: () => {
         const track = tracksRef.current[cursorRef.current];
         if (track) {
